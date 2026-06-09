@@ -2,4 +2,12 @@
 
 class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
+
+  def self.define_menu
+    menu do |_c|
+      submenu "Default" do
+        item PersonScreen, icon: :people, label: "People"
+      end
+    end
+  end
 end
