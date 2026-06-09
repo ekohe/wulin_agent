@@ -1,0 +1,21 @@
+= wulin_agent
+
+Conversational AI agent for Wulin Master apps. Exposes grid CRUD and custom
+actions as LLM tools (ruby_llm + MCP), gated by wulin_permits.
+
+== Installation
+
+Add to your Gemfile:
+
+  gem "wulin_agent", path: "vendor/gems/wulin_agent"
+
+== Development
+
+  git submodule update --init --recursive
+  cp spec/dummy/config/database.example.yml spec/dummy/config/database.yml
+  bundle install
+  bundle exec rspec
+
+Wulin gems are vendored as git submodules under +vendor/gems/+ (same layout as
+wulintest). +wulin_master+ comes from
+https://gitlab.ekohe.com/ekohe/wulin/wulin_master
