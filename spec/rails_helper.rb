@@ -8,6 +8,8 @@ require "rspec/rails"
 
 ActiveRecord::Migration.maintain_test_schema!
 
+Dir[File.join(__dir__, "support/**/*.rb")].sort.each { |f| require f }
+
 RSpec.configure do |config|
   config.fixture_paths = ["#{::Rails.root}/spec/fixtures"]
   config.use_transactional_fixtures = true

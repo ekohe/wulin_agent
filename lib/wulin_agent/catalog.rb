@@ -26,6 +26,7 @@ module WulinAgent
         GridDescriptor.new(
           grid_class: grid_class,
           controller: grid_class.model.model_name.plural,
+          screen_name: screen_name_for(grid_class),
           columns: build_columns(grid_class),
           default_actions: default_actions,
           custom_actions: custom_actions
@@ -71,6 +72,18 @@ module WulinAgent
 
       def normalize_choices(choices)
         choices.is_a?(Array) ? choices : nil
+      end
+
+      def screen_name_for(grid_class)
+        screen_class = WulinMaster::Screen.screens&.find do |klass|
+          (klass.components_pool || []).include?(grid_class)
+        end
+
+        if screen_class
+          WulinMaster::Utilities.get_screen_name(screen_class.name)
+        else
+          grid_class.model.model_name.singular
+        end
       end
     end
   end

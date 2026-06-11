@@ -21,6 +21,12 @@ PATH
       responders
       sass-rails
 
+PATH
+  remote: vendor/gems/wulin_permits
+  specs:
+    wulin_permits (2.0.0)
+      wulin_master
+
 GEM
   remote: http://rubygems.org/
   specs:
@@ -409,6 +415,7 @@ DEPENDENCIES
   standardrb
   wulin_agent!
   wulin_master!
+  wulin_permits!
 
 BUNDLED WITH
    2.6.9

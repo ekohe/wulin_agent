@@ -7,7 +7,9 @@ require "wulin_agent/catalog"
 require "wulin_agent/grid_dispatcher"
 require "wulin_agent/tool_spec"
 require "wulin_agent/standard_grid_tools"
+require "wulin_agent/action_inferer"
 require "wulin_agent/tool_registry"
+require "wulin_agent/ast_param_extractor"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent

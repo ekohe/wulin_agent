@@ -4,15 +4,18 @@ require "rails_helper"
 require "wulin_agent/tool_registry"
 
 RSpec.describe WulinAgent::ToolRegistry do
+  let(:admin) { User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true) }
+
   before do
     WulinAgent::Catalog.reset!
     described_class.reset!
+    PersonScreen
     PersonGrid
   end
 
   describe ".for" do
-    it "exposes standard people tools" do
-      names = described_class.for(nil).map(&:name)
+    it "exposes standard people tools for an admin user" do
+      names = described_class.for(admin).map(&:name)
 
       expect(names).to include(
         "people__get_columns",
@@ -20,14 +23,15 @@ RSpec.describe WulinAgent::ToolRegistry do
         "people__read",
         "people__create",
         "people__update",
-        "people__destroy"
+        "people__destroy",
+        "people__greet"
       )
     end
   end
 
   describe "people__get_columns" do
     it "returns column metadata from the catalog" do
-      tool = described_class.find("people__get_columns", nil)
+      tool = described_class.find("people__get_columns", admin)
       result = tool.execute({}, nil)
 
       names = result.map { |column| column[:name] }
@@ -35,7 +39,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     end
 
     it "is not mutating" do
-      tool = described_class.find("people__get_columns", nil)
+      tool = described_class.find("people__get_columns", admin)
 
       expect(tool.mutating).to be(false)
     end
@@ -47,7 +51,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     let!(:bob) { Person.create!(first_name: "Bob", last_name: "Smith") }
 
     it "lists rows via GridDispatcher" do
-      tool = described_class.find("people__index", nil)
+      tool = described_class.find("people__index", admin)
       result = tool.execute({"offset" => 0, "count" => 50}, nil)
 
       expect(result).to include("rows", "total", "offset")
@@ -56,7 +60,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     end
 
     it "applies grid filters" do
-      tool = described_class.find("people__index", nil)
+      tool = described_class.find("people__index", admin)
       result = tool.execute(
         {
           "offset" => 0,
@@ -71,7 +75,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     end
 
     it "is not mutating" do
-      tool = described_class.find("people__index", nil)
+      tool = described_class.find("people__index", admin)
 
       expect(tool.mutating).to be(false)
     end
@@ -82,7 +86,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     let!(:alice) { Person.create!(first_name: "Alice", last_name: "Martin") }
 
     it "returns a single record by id" do
-      tool = described_class.find("people__read", nil)
+      tool = described_class.find("people__read", admin)
       result = tool.execute({"id" => alice.id}, nil)
 
       expect(result["rows"].size).to eq(1)
@@ -92,7 +96,7 @@ RSpec.describe WulinAgent::ToolRegistry do
 
   describe "people__create" do
     it "creates a record via GridDispatcher" do
-      tool = described_class.find("people__create", nil)
+      tool = described_class.find("people__create", admin)
       result = tool.execute(
         {"attributes" => {"first_name" => "Charlie", "last_name" => "Dupont"}},
         nil
@@ -103,7 +107,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     end
 
     it "is mutating" do
-      tool = described_class.find("people__create", nil)
+      tool = described_class.find("people__create", admin)
 
       expect(tool.mutating).to be(true)
     end
@@ -113,7 +117,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     let!(:alice) { Person.create!(first_name: "Alice", last_name: "Martin") }
 
     it "updates a record via GridDispatcher" do
-      tool = described_class.find("people__update", nil)
+      tool = described_class.find("people__update", admin)
       result = tool.execute(
         {
           "id" => alice.id,
@@ -131,7 +135,7 @@ RSpec.describe WulinAgent::ToolRegistry do
     let!(:alice) { Person.create!(first_name: "Alice", last_name: "Martin") }
 
     it "destroys a record via GridDispatcher" do
-      tool = described_class.find("people__destroy", nil)
+      tool = described_class.find("people__destroy", admin)
       result = tool.execute({"id" => alice.id}, nil)
 
       expect(result["success"]).to be(true)

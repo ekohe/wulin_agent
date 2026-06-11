@@ -10,12 +10,6 @@ module WulinAgent
         parse_response(response)
       end
 
-      private
-
-      def resolve_controller(name)
-        "#{name.camelize}Controller".constantize
-      end
-
       def http_method_for(action)
         case action.to_s
         when "index", "show" then "GET"
@@ -24,6 +18,16 @@ module WulinAgent
         when "destroy" then "DELETE"
         else "POST"
         end
+      end
+
+      def mutating?(action)
+        http_method_for(action) != "GET"
+      end
+
+      private
+
+      def resolve_controller(name)
+        "#{name.camelize}Controller".constantize
       end
 
       def build_env(controller, action, params)

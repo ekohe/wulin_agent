@@ -16,6 +16,8 @@ class PersonGrid < WulinMaster::Grid
   column :vip
 
   action :fullscreen, icon: :fullscreen, global: true
+  action :greet, icon: :waving_hand, title: "Greet"
+  action :tag, icon: :waving_hand, title: "Tag"
 
   load_default_actions
 end

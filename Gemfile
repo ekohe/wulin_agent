@@ -6,3 +6,5 @@ source "http://rubygems.org"
 gemspec
 
 gem "wulin_master", path: "vendor/gems/wulin_master"
+gem "wulin_permits", path: "vendor/gems/wulin_permits"
+

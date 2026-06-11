@@ -13,6 +13,7 @@ RSpec.describe WulinAgent::Catalog do
       grid = described_class.find("people")
 
       expect(grid.controller).to eq("people")
+      expect(grid.screen_name).to eq("person")
       expect(grid.grid_class).to eq(PersonGrid)
 
       first_name = grid.columns.find { |c| c.name == :first_name }

@@ -33,7 +33,7 @@ module WulinAgent
           "get_columns",
           description: "List columns for #{grid.controller} grid",
           mutating: false,
-          permission: "#{grid.controller}#read"
+          permission: "#{grid.screen_name}#read"
         ) do |_params, _user|
           grid.columns.map do |column|
             {
@@ -54,7 +54,7 @@ module WulinAgent
           "index",
           description: "List #{grid.controller} records with pagination and filters",
           mutating: false,
-          permission: "#{grid.controller}#read"
+          permission: "#{grid.screen_name}#read"
         ) do |params, user|
           GridDispatcher.call(
             grid.controller,
@@ -77,7 +77,7 @@ module WulinAgent
           "read",
           description: "Read a single #{grid.controller} record by id",
           mutating: false,
-          permission: "#{grid.controller}#read"
+          permission: "#{grid.screen_name}#read"
         ) do |params, user|
           GridDispatcher.call(
             grid.controller,
@@ -94,7 +94,7 @@ module WulinAgent
           "create",
           description: "Create a new #{grid.controller} record",
           mutating: true,
-          permission: "#{grid.controller}#cud"
+          permission: "#{grid.screen_name}#cud"
         ) do |params, user|
           GridDispatcher.call(
             grid.controller,
@@ -111,7 +111,7 @@ module WulinAgent
           "update",
           description: "Update #{grid.controller} record(s)",
           mutating: true,
-          permission: "#{grid.controller}#cud"
+          permission: "#{grid.screen_name}#cud"
         ) do |params, user|
           GridDispatcher.call(
             grid.controller,
@@ -131,7 +131,7 @@ module WulinAgent
           "destroy",
           description: "Delete a #{grid.controller} record",
           mutating: true,
-          permission: "#{grid.controller}#cud"
+          permission: "#{grid.screen_name}#cud"
         ) do |params, user|
           GridDispatcher.call(
             grid.controller,
