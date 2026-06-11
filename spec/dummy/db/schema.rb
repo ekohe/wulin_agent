@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2021_06_15_142410) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_11_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,5 +40,62 @@ ActiveRecord::Schema[8.1].define(version: 2021_06_15_142410) do
     t.boolean "vip", default: false
     t.index ["country_id"], name: "index_people_on_country_id"
     t.index ["training_id"], name: "index_people_on_training_id"
+  end
+
+  create_table "permissions", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
+    t.string "description"
+    t.string "name"
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["name"], name: "uniq_permissions_name", unique: true
+  end
+
+  create_table "permissions_privileges", force: :cascade do |t|
+    t.integer "permission_id"
+    t.integer "privilege_id"
+  end
+
+  create_table "permissions_roles", id: :serial, force: :cascade do |t|
+    t.integer "permission_id"
+    t.integer "role_id"
+  end
+
+  create_table "privileges", force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
+    t.string "description"
+    t.string "name"
+    t.datetime "updated_at", precision: nil, null: false
+  end
+
+  create_table "roles", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
+    t.text "description"
+    t.string "name"
+    t.datetime "updated_at", precision: nil, null: false
+  end
+
+  create_table "roles_privileges", force: :cascade do |t|
+    t.integer "privilege_id"
+    t.integer "role_id"
+  end
+
+  create_table "roles_users", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
+    t.integer "role_id"
+    t.datetime "updated_at", precision: nil, null: false
+    t.integer "user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.boolean "admin", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
+  end
+
+  create_table "users_privileges", force: :cascade do |t|
+    t.integer "privilege_id"
+    t.integer "user_id"
   end
 end

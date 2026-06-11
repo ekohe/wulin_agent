@@ -4,6 +4,7 @@ require "rails/all"
 
 Bundler.require(*Rails.groups)
 require "wulin_master"
+require "wulin_permits"
 require "wulin_agent"
 
 module Dummy

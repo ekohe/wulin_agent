@@ -1,3 +1,6 @@
 [submodule "vendor/gems/wulin_master"]
 	path = vendor/gems/wulin_master
 	url = ../wulin_master.git
+[submodule "vendor/gems/wulin_permits"]
+	path = vendor/gems/wulin_permits
+	url = ../wulin_permits.git
