@@ -99,7 +99,8 @@ RSpec.describe WulinAgent::ToolRegistry do
       tool = described_class.find("people__create", admin)
       result = tool.execute(
         {"attributes" => {"first_name" => "Charlie", "last_name" => "Dupont"}},
-        nil
+        nil,
+        approved: true
       )
 
       expect(result["success"]).to be(true)
@@ -123,7 +124,8 @@ RSpec.describe WulinAgent::ToolRegistry do
           "id" => alice.id,
           "attributes" => {"first_name" => "Alicia"}
         },
-        nil
+        nil,
+        approved: true
       )
 
       expect(result["success"]).to be(true)
@@ -136,7 +138,7 @@ RSpec.describe WulinAgent::ToolRegistry do
 
     it "destroys a record via GridDispatcher" do
       tool = described_class.find("people__destroy", admin)
-      result = tool.execute({"id" => alice.id}, nil)
+      result = tool.execute({"id" => alice.id}, nil, approved: true)
 
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil
