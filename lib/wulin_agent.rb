@@ -11,6 +11,7 @@ require "wulin_agent/standard_grid_tools"
 require "wulin_agent/action_inferer"
 require "wulin_agent/tool_registry"
 require "wulin_agent/ast_param_extractor"
+require "wulin_agent/tool_adapter"
 require "wulin_agent/runner"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 

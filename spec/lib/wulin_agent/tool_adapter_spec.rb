@@ -34,7 +34,7 @@ RSpec.describe WulinAgent::ToolAdapter do
       spec = WulinAgent::ToolRegistry.find("people__greet", admin)
       tool = described_class.build([spec], user: admin).first
 
-      schema = tool.class.params_schema_definition.schema
+      schema = tool.class.params_schema_definition.instance_variable_get(:@schema)
       expect(schema[:properties]).to include(name: {type: "string"})
     end
 
