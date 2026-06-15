@@ -33,6 +33,12 @@ RSpec.describe WulinAgent::ActionInferer do
       expect(result).to eq("success" => true, "message" => "Hello, Axel!")
     end
 
+    it "uses agent_action description for greet" do
+      tool = described_class.build(grid).find { |t| t.name == "people__greet" }
+
+      expect(tool.description).to eq("Say hello to someone by name")
+    end
+
     it "infers params schema for greet" do
       tool = described_class.build(grid).find { |t| t.name == "people__greet" }
 

@@ -19,5 +19,9 @@ class PersonGrid < WulinMaster::Grid
   action :greet, icon: :waving_hand, title: "Greet"
   action :tag, icon: :waving_hand, title: "Tag"
 
+  agent_action :greet,
+    description: "Say hello to someone by name",
+    params: {name: {type: :string, required: false}}
+
   load_default_actions
 end
