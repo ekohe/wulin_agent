@@ -14,9 +14,14 @@ module WulinAgent
       @approval_mode = approval_mode
     end
 
-    def run(message)
+    def run(message, &block)
+      @on_event = block
       scope_messages_for_completion!
-      chat.ask(message).content
+      response = chat.ask(message) { |chunk| emit_text_delta(chunk) }
+      emit(type: :done)
+      response.content
+    ensure
+      @on_event = nil
     end
 
     def tools
@@ -46,6 +51,8 @@ module WulinAgent
       RubyLLM.chat(model: @model)
         .with_tools(*tools)
         .with_instructions(system_prompt)
+        .on_tool_call { |tc| emit_tool_call(tc) }
+        .on_tool_result { |result| emit_tool_result(result) }
     end
 
     def system_prompt
@@ -67,5 +74,32 @@ module WulinAgent
       system, rest = messages.partition { |msg| msg.role == :system }
       system + rest.last(MAX_CONTEXT_MESSAGES)
     end
+
+    def emit(event)
+      @on_event&.call(event)
+    end
+
+    def emit_tool_call(tool_call)
+      @current_tool_call = tool_call
+      emit(type: :tool_call, id: tool_call.id, name: tool_call.name, arguments: tool_call.arguments)
+    end
+    
+    def emit_tool_result(result)
+      emit(
+        type: :tool_result,
+        id: @current_tool_call&.id,
+        name: @current_tool_call&.name,
+        result: result
+      )
+      @current_tool_call = nil
+    end
+
+    def emit_text_delta(chunk)
+      content = chunk.content
+      return if content.nil? || content.to_s.empty?
+    
+      emit(type: :text_delta, content: content.to_s)
+    end
+
   end
 end

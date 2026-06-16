@@ -32,45 +32,111 @@ RSpec.describe WulinAgent::Runner do
   end
 
   describe "#run" do
-    it "asks the model with the user's tools attached" do
+    def stub_chat(message_content:, stream_chunks: [], tool_flow: nil, messages: [])
       chat = instance_double("RubyLLM::Chat")
-      message = instance_double("RubyLLM::Message", content: "There are 0 people.")
+      message = instance_double("RubyLLM::Message", content: message_content)
+      tool_call_handler = nil
+      tool_result_handler = nil
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:on_tool_call) do |&block|
+        tool_call_handler = block
+        chat
+      end
+      allow(chat).to receive(:on_tool_result) do |&block|
+        tool_result_handler = block
+        chat
+      end
+      allow(chat).to receive(:messages).and_return(messages)
       allow(chat).to receive(:instance_variable_set)
-      allow(chat).to receive(:ask).with("How many people?").and_return(message)
+
+      allow(chat).to receive(:ask) do |_prompt, &block|
+        if tool_flow
+          tool_call_handler&.call(tool_flow[:tool_call])
+          tool_result_handler&.call(tool_flow[:result])
+        end
+
+        stream_chunks.each do |content|
+          chunk = instance_double("RubyLLM::Chunk", content: content)
+          block&.call(chunk)
+        end
+
+        message
+      end
+
+      chat
+    end
+
+    it "asks the model with the user's tools attached" do
+      chat = stub_chat(message_content: "There are 0 people.")
 
       runner = described_class.new(user: admin)
       response = runner.run("How many people?")
 
       expect(RubyLLM).to have_received(:chat)
       expect(chat).to have_received(:with_tools).with(*runner.tools)
+      expect(chat).to have_received(:on_tool_call)
+      expect(chat).to have_received(:on_tool_result)
       expect(chat).to have_received(:ask).with("How many people?")
       expect(response).to eq("There are 0 people.")
     end
 
     it "keeps the system prompt and only the last 10 non-system messages" do
-      chat = instance_double("RubyLLM::Chat")
-      message = instance_double("RubyLLM::Message", content: "ok")
       system_msg = instance_double("RubyLLM::Message", role: :system)
       rest_msgs = (1..12).map { |i| instance_double("RubyLLM::Message", role: :user, content: "msg #{i}") }
       all_messages = [system_msg, *rest_msgs]
 
-      allow(RubyLLM).to receive(:chat).and_return(chat)
-      allow(chat).to receive(:with_tools).and_return(chat)
-      allow(chat).to receive(:with_instructions).and_return(chat)
-      allow(chat).to receive(:messages).and_return(all_messages)
-      allow(chat).to receive(:instance_variable_set).with(:@messages, anything)
-      allow(chat).to receive(:ask).and_return(message)
+      stub_chat(message_content: "ok", messages: all_messages)
 
       described_class.new(user: admin).run("next")
 
+      chat = RubyLLM.chat
       expect(chat).to have_received(:instance_variable_set).with(
         :@messages,
         [system_msg, *rest_msgs.last(10)]
+      )
+    end
+
+    it "yields text_delta and done events when a block is given" do
+      stub_chat(message_content: "Done.", stream_chunks: ["There ", "are 2."])
+
+      events = []
+      response = described_class.new(user: admin).run("How many people?") { |event| events << event }
+
+      expect(response).to eq("Done.")
+      expect(events).to eq(
+        [
+          {type: :text_delta, content: "There "},
+          {type: :text_delta, content: "are 2."},
+          {type: :done}
+        ]
+      )
+    end
+
+    it "yields correlated tool_call and tool_result events" do
+      tool_call = RubyLLM::ToolCall.new(
+        id: "call_abc",
+        name: "people__index",
+        arguments: {"offset" => 0}
+      )
+      tool_result = {"rows" => [], "total" => 0}
+
+      stub_chat(
+        message_content: "There are 0 people.",
+        stream_chunks: ["Checking..."],
+        tool_flow: {tool_call: tool_call, result: tool_result}
+      )
+
+      events = []
+      described_class.new(user: admin).run("How many people?") { |event| events << event }
+
+      expect(events).to include(
+        {type: :tool_call, id: "call_abc", name: "people__index", arguments: {"offset" => 0}},
+        {type: :tool_result, id: "call_abc", name: "people__index", result: tool_result},
+        {type: :text_delta, content: "Checking..."},
+        {type: :done}
       )
     end
   end
