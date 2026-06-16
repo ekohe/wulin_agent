@@ -38,6 +38,9 @@ RSpec.describe WulinAgent::Runner do
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:instance_variable_set)
       allow(chat).to receive(:ask).with("How many people?").and_return(message)
 
       runner = described_class.new(user: admin)
@@ -47,6 +50,28 @@ RSpec.describe WulinAgent::Runner do
       expect(chat).to have_received(:with_tools).with(*runner.tools)
       expect(chat).to have_received(:ask).with("How many people?")
       expect(response).to eq("There are 0 people.")
+    end
+
+    it "keeps the system prompt and only the last 10 non-system messages" do
+      chat = instance_double("RubyLLM::Chat")
+      message = instance_double("RubyLLM::Message", content: "ok")
+      system_msg = instance_double("RubyLLM::Message", role: :system)
+      rest_msgs = (1..12).map { |i| instance_double("RubyLLM::Message", role: :user, content: "msg #{i}") }
+      all_messages = [system_msg, *rest_msgs]
+
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:messages).and_return(all_messages)
+      allow(chat).to receive(:instance_variable_set).with(:@messages, anything)
+      allow(chat).to receive(:ask).and_return(message)
+
+      described_class.new(user: admin).run("next")
+
+      expect(chat).to have_received(:instance_variable_set).with(
+        :@messages,
+        [system_msg, *rest_msgs.last(10)]
+      )
     end
   end
 end
