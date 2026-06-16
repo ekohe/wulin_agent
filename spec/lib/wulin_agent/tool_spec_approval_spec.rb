@@ -15,7 +15,7 @@ RSpec.describe WulinAgent::ToolSpec do
   describe "#execute approval gate" do
     it "runs read tools immediately under confirm_writes" do
       tool = WulinAgent::ToolRegistry.find("people__index", admin)
-      result = tool.execute({"offset" => 0, "count" => 50}, nil)
+      result = tool.execute({"offset" => 0, "count" => 50}, admin)
 
       expect(result).to include("rows", "total")
       expect(result["status"]).not_to eq("approval_required")
@@ -36,7 +36,7 @@ RSpec.describe WulinAgent::ToolSpec do
     it "dispatches mutating tools when approved" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       tool = WulinAgent::ToolRegistry.find("people__destroy", admin)
-      result = tool.execute({"id" => alice.id}, nil, approved: true)
+      result = tool.execute({"id" => alice.id}, admin, approved: true)
 
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil
@@ -45,7 +45,7 @@ RSpec.describe WulinAgent::ToolSpec do
     it "dispatches mutating tools in auto mode" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       tool = WulinAgent::ToolRegistry.find("people__destroy", admin)
-      result = tool.execute({"id" => alice.id}, nil, approval_mode: :auto)
+      result = tool.execute({"id" => alice.id}, admin, approval_mode: :auto)
 
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil

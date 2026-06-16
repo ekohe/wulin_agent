@@ -3,6 +3,8 @@
 require "rails_helper"
 
 RSpec.describe WulinAgent::ActionInferer do
+  let(:admin) { User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true) }
+
   before do
     WulinAgent::Catalog.reset!
     PersonScreen
@@ -28,7 +30,7 @@ RSpec.describe WulinAgent::ActionInferer do
 
     it "dispatches via GridDispatcher" do
       tool = described_class.build(grid).find { |t| t.name == "people__greet" }
-      result = tool.execute({"name" => "Axel"}, nil, approved: true)
+      result = tool.execute({"name" => "Axel"}, admin, approved: true)
 
       expect(result).to eq("success" => true, "message" => "Hello, Axel!")
     end
@@ -59,7 +61,7 @@ RSpec.describe WulinAgent::ActionInferer do
 
     it "dispatches tag via GridDispatcher" do
       tool = described_class.build(grid).find { |t| t.name == "people__tag" }
-      result = tool.execute({"person_ids" => [1, 2]}, nil, approved: true)
+      result = tool.execute({"person_ids" => [1, 2]}, admin, approved: true)
 
       expect(result).to eq("success" => true, "count" => 2)
     end

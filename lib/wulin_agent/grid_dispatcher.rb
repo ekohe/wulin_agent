@@ -3,10 +3,12 @@
 module WulinAgent
   class GridDispatcher
     class << self
-      def call(controller, action, params = {}, _user = nil)
+      def call(controller, action, params = {}, user = nil)
+        raise ArgumentError, "user is required" if user.nil? && defined?(WulinPermits)
+
         controller_class = resolve_controller(controller)
-        env = build_env(controller, action, params.stringify_keys)
-        response = dispatch(controller_class, action.to_s, env)
+        env = build_env(controller, action, params.stringify_keys, user)
+        response = dispatch(controller_class, action.to_s, env, user)
         parse_response(response)
       end
 
@@ -30,7 +32,7 @@ module WulinAgent
         "#{name.camelize}Controller".constantize
       end
 
-      def build_env(controller, action, params)
+      def build_env(controller, action, params, _user = nil)
         Rack::MockRequest.env_for(
           "/#{controller}.json",
           method: http_method_for(action),
@@ -42,10 +44,14 @@ module WulinAgent
         )
       end
 
-      def dispatch(controller_class, action, env)
+      def dispatch(controller_class, action, env, user = nil)
         request = ActionDispatch::Request.new(env)
         response = ActionDispatch::Response.new
-        controller_class.dispatch(action, request, response)
+        controller = controller_class.new
+        controller.set_request!(request)
+        controller.set_response!(response)
+        controller.define_singleton_method(:current_user) { user } if user
+        controller.process(action)
         response
       end
 

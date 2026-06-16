@@ -52,7 +52,7 @@ RSpec.describe WulinAgent::ToolRegistry do
 
     it "lists rows via GridDispatcher" do
       tool = described_class.find("people__index", admin)
-      result = tool.execute({"offset" => 0, "count" => 50}, nil)
+      result = tool.execute({"offset" => 0, "count" => 50}, admin)
 
       expect(result).to include("rows", "total", "offset")
       expect(result["total"]).to eq(2)
@@ -67,7 +67,7 @@ RSpec.describe WulinAgent::ToolRegistry do
           "count" => 50,
           "filters" => [{"column" => "first_name", "value" => "Alice", "operator" => "equals"}]
         },
-        nil
+        admin
       )
 
       expect(result["total"]).to eq(1)
@@ -87,7 +87,7 @@ RSpec.describe WulinAgent::ToolRegistry do
 
     it "returns a single record by id" do
       tool = described_class.find("people__read", admin)
-      result = tool.execute({"id" => alice.id}, nil)
+      result = tool.execute({"id" => alice.id}, admin)
 
       expect(result["rows"].size).to eq(1)
       expect(result["rows"].first[first_name_idx]).to eq("Alice")
@@ -99,7 +99,7 @@ RSpec.describe WulinAgent::ToolRegistry do
       tool = described_class.find("people__create", admin)
       result = tool.execute(
         {"attributes" => {"first_name" => "Charlie", "last_name" => "Dupont"}},
-        nil,
+        admin,
         approved: true
       )
 
@@ -137,7 +137,7 @@ RSpec.describe WulinAgent::ToolRegistry do
           "id" => alice.id,
           "attributes" => {"first_name" => "Alicia"}
         },
-        nil,
+        admin,
         approved: true
       )
 
@@ -164,7 +164,7 @@ RSpec.describe WulinAgent::ToolRegistry do
 
     it "destroys a record via GridDispatcher" do
       tool = described_class.find("people__destroy", admin)
-      result = tool.execute({"id" => alice.id}, nil, approved: true)
+      result = tool.execute({"id" => alice.id}, admin, approved: true)
 
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil
