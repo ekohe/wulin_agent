@@ -50,6 +50,7 @@ RSpec.describe WulinAgent::Runner do
         chat
       end
       allow(chat).to receive(:messages).and_return(messages)
+      allow(chat).to receive(:add_message)
       allow(chat).to receive(:instance_variable_set)
 
       allow(chat).to receive(:ask) do |_prompt, &block|
@@ -154,6 +155,7 @@ RSpec.describe WulinAgent::Runner do
       allow(chat).to receive(:on_tool_call).and_return(chat)
       allow(chat).to receive(:on_tool_result).and_return(chat)
       allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:add_message)
       allow(chat).to receive(:instance_variable_set)
       allow(chat).to receive(:add_message)
       allow(chat).to receive(:complete) do |&block|
@@ -233,6 +235,7 @@ RSpec.describe WulinAgent::Runner do
       allow(chat).to receive(:on_tool_call).and_return(chat)
       allow(chat).to receive(:on_tool_result).and_return(chat)
       allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:add_message)
       allow(chat).to receive(:instance_variable_set)
       allow(chat).to receive(:add_message)
       allow(chat).to receive(:complete) do |&block|

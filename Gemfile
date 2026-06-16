@@ -8,3 +8,5 @@ gemspec
 gem "wulin_master", path: "vendor/gems/wulin_master"
 gem "wulin_permits", path: "vendor/gems/wulin_permits"
 
+
+gem "puma", "~> 8.0", group: :development

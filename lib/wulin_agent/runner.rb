@@ -8,10 +8,11 @@ module WulinAgent
   class Runner
     MAX_CONTEXT_MESSAGES = 10
 
-    def initialize(user:, model: nil, approval_mode: :confirm_writes)
+    def initialize(user:, model: nil, approval_mode: :confirm_writes, history: [])
       @user = user
       @model = model
       @approval_mode = approval_mode
+      @history = history
     end
 
     def run(message, &block)
@@ -93,11 +94,13 @@ module WulinAgent
     end
 
     def build_chat
-      RubyLLM.chat(model: @model)
+      chat = RubyLLM.chat(model: @model)
         .with_tools(*tools)
         .with_instructions(system_prompt)
         .on_tool_call { |tc| emit_tool_call(tc) }
         .on_tool_result { |result| emit_tool_result(result) }
+      @history.each { |msg| chat.add_message(role: msg[:role], content: msg[:content]) }
+      chat
     end
 
     def system_prompt

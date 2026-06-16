@@ -10,9 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_11_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_16_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "agent_conversations", force: :cascade do |t|
+    t.string "approval_mode", default: "confirm_writes", null: false
+    t.datetime "created_at", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "updated_at"], name: "index_agent_conversations_on_user_id_and_updated_at"
+    t.index ["user_id"], name: "index_agent_conversations_on_user_id"
+  end
+
+  create_table "agent_messages", force: :cascade do |t|
+    t.text "content"
+    t.bigint "conversation_id", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "role", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "created_at"], name: "index_agent_messages_on_conversation_id_and_created_at"
+    t.index ["conversation_id"], name: "index_agent_messages_on_conversation_id"
+  end
 
   create_table "grid_states", id: :serial, force: :cascade do |t|
     t.datetime "created_at", precision: nil, null: false
@@ -98,4 +119,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_11_150000) do
     t.integer "privilege_id"
     t.integer "user_id"
   end
+
+  add_foreign_key "agent_conversations", "users"
+  add_foreign_key "agent_messages", "agent_conversations", column: "conversation_id"
 end
