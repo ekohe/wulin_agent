@@ -50,5 +50,12 @@ RSpec.describe WulinAgent::ToolSpec do
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil
     end
+
+    it "returns an error when destroy is approved without id" do
+      tool = WulinAgent::ToolRegistry.find("people__destroy", admin)
+      result = tool.execute({}, nil, approved: true)
+
+      expect(result).to eq("error" => "id is required")
+    end
   end
 end

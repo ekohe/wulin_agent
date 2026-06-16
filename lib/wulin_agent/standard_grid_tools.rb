@@ -2,6 +2,32 @@
 
 module WulinAgent
   class StandardGridTools
+    ID_SCHEMA = {
+      properties: {id: {type: "integer", description: "Record id"}},
+      required: ["id"]
+    }.freeze
+
+    ATTRIBUTES_SCHEMA = {
+      properties: {
+        attributes: {
+          type: "object",
+          description: "Field values — call get_columns first to see valid fields"
+        }
+      },
+      required: ["attributes"]
+    }.freeze
+
+    UPDATE_SCHEMA = {
+      properties: {
+        id: {type: "integer", description: "Record id"},
+        attributes: {
+          type: "object",
+          description: "Fields to update — call get_columns first to see valid fields"
+        }
+      },
+      required: ["id", "attributes"]
+    }.freeze
+
     class << self
       def build(grid)
         tools = []
@@ -77,14 +103,13 @@ module WulinAgent
           "read",
           description: "Read a single #{grid.controller} record by id",
           mutating: false,
-          permission: "#{grid.screen_name}#read"
+          permission: "#{grid.screen_name}#read",
+          params_schema: ID_SCHEMA
         ) do |params, user|
-          GridDispatcher.call(
-            grid.controller,
-            "index",
-              {"checkbox_record_ids" => params["id"].to_s},
-              user
-            )
+          id = record_id(params)
+          next {"error" => "id is required"} unless id
+
+          GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
         end
       end
 
@@ -94,14 +119,13 @@ module WulinAgent
           "create",
           description: "Create a new #{grid.controller} record",
           mutating: true,
-          permission: "#{grid.screen_name}#cud"
+          permission: "#{grid.screen_name}#cud",
+          params_schema: ATTRIBUTES_SCHEMA
         ) do |params, user|
-          GridDispatcher.call(
-            grid.controller,
-            "create",
-            {"item" => params["attributes"] || params["item"]},
-            user
-          )
+          attributes = params["attributes"] || params["item"]
+          next {"error" => "attributes is required"} if attributes.blank?
+
+          GridDispatcher.call(grid.controller, "create", {"item" => attributes}, user)
         end
       end
 
@@ -109,17 +133,21 @@ module WulinAgent
         tool(
           grid,
           "update",
-          description: "Update #{grid.controller} record(s)",
+          description: "Update a #{grid.controller} record by id",
           mutating: true,
-          permission: "#{grid.screen_name}#cud"
+          permission: "#{grid.screen_name}#cud",
+          params_schema: UPDATE_SCHEMA
         ) do |params, user|
+          id = record_id(params)
+          next {"error" => "id is required"} unless id
+
+          attributes = params["attributes"] || params["item"]
+          next {"error" => "attributes is required"} if attributes.blank?
+
           GridDispatcher.call(
             grid.controller,
             "update",
-            {
-              "id"   => Array(params["id"] || params["ids"]).join(","),
-              "item" => params["attributes"] || params["item"]
-            },
+            {"id" => id, "item" => attributes},
             user
           )
         end
@@ -129,17 +157,20 @@ module WulinAgent
         tool(
           grid,
           "destroy",
-          description: "Delete a #{grid.controller} record",
+          description: "Delete a #{grid.controller} record by id",
           mutating: true,
-          permission: "#{grid.screen_name}#cud"
+          permission: "#{grid.screen_name}#cud",
+          params_schema: ID_SCHEMA
         ) do |params, user|
-          GridDispatcher.call(
-            grid.controller,
-            "destroy",
-            {"id" => Array(params["id"] || params["ids"]).join(",")},
-            user
-          )
+          id = record_id(params)
+          next {"error" => "id is required"} unless id
+
+          GridDispatcher.call(grid.controller, "destroy", {"id" => id}, user)
         end
+      end
+
+      def record_id(params)
+        Array(params["id"] || params["ids"]).map(&:to_s).reject(&:empty?).join(",").presence
       end
 
 

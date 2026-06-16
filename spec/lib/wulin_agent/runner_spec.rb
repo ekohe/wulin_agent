@@ -140,4 +140,164 @@ RSpec.describe WulinAgent::Runner do
       )
     end
   end
+
+  describe "#run_approved" do
+    before { WulinAgent::Approvals.reset! }
+
+    def stub_chat_for_approved(message_content: "Done.", stream_chunks: ["OK"])
+      chat = instance_double("RubyLLM::Chat")
+      message = instance_double("RubyLLM::Message", content: message_content)
+
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:on_tool_call).and_return(chat)
+      allow(chat).to receive(:on_tool_result).and_return(chat)
+      allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:instance_variable_set)
+      allow(chat).to receive(:add_message)
+      allow(chat).to receive(:complete) do |&block|
+        stream_chunks.each do |content|
+          chunk = instance_double("RubyLLM::Chunk", content: content)
+          block&.call(chunk)
+        end
+        message
+      end
+
+      chat
+    end
+
+    it "executes the approved tool and streams the follow-up response" do
+      alice = Person.create!(first_name: "Alice", last_name: "Martin")
+      token = WulinAgent::Approvals.issue!(
+        tool: "people__destroy",
+        params: {"id" => alice.id},
+        user_id: admin.id,
+        tool_call_id: "call_1"
+      )
+
+      stub_chat_for_approved
+
+      events = []
+      runner = described_class.new(user: admin)
+      response = runner.run_approved(token: token) { |event| events << event }
+
+      expect(Person.find_by(id: alice.id)).to be_nil
+      expect(response).to eq("Done.")
+      expect(events).to include(
+        {type: :tool_result, name: "people__destroy", result: {"success" => true}},
+        {type: :text_delta, content: "OK"},
+        {type: :done}
+      )
+
+      chat = RubyLLM.chat
+      expect(chat).to have_received(:add_message).with(
+        role: :user,
+        content: "User approved people__destroy: #{ {"success" => true}.to_json }"
+      )
+      expect(chat).to have_received(:with_tools).with(replace: true)
+      expect(chat).to have_received(:with_tools).with(*runner.tools, replace: true)
+    end
+
+    it "raises when the token is invalid" do
+      stub_chat_for_approved
+      runner = described_class.new(user: admin)
+
+      expect { runner.run_approved(token: "bad") }.to raise_error(ArgumentError, "invalid approval token")
+    end
+
+    it "raises when the token has no params" do
+      token = WulinAgent::Approvals.issue!(
+        tool: "people__destroy",
+        params: {},
+        user_id: admin.id
+      )
+
+      stub_chat_for_approved
+      runner = described_class.new(user: admin)
+
+      expect { runner.run_approved(token: token) }.to raise_error(ArgumentError, "missing tool params")
+    end
+  end
+
+  describe "#run_rejected" do
+    before { WulinAgent::Approvals.reset! }
+
+    def stub_chat_for_follow_up(message_content: "Understood.", stream_chunks: ["OK"])
+      chat = instance_double("RubyLLM::Chat")
+      message = instance_double("RubyLLM::Message", content: message_content)
+
+      allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_tools).and_return(chat)
+      allow(chat).to receive(:with_instructions).and_return(chat)
+      allow(chat).to receive(:on_tool_call).and_return(chat)
+      allow(chat).to receive(:on_tool_result).and_return(chat)
+      allow(chat).to receive(:messages).and_return([])
+      allow(chat).to receive(:instance_variable_set)
+      allow(chat).to receive(:add_message)
+      allow(chat).to receive(:complete) do |&block|
+        stream_chunks.each do |content|
+          chunk = instance_double("RubyLLM::Chunk", content: content)
+          block&.call(chunk)
+        end
+        message
+      end
+
+      chat
+    end
+
+    it "invalidates the token and streams the follow-up response" do
+      alice = Person.create!(first_name: "Alice", last_name: "Martin")
+      token = WulinAgent::Approvals.issue!(
+        tool: "people__destroy",
+        params: {"id" => alice.id},
+        user_id: admin.id
+      )
+
+      stub_chat_for_follow_up
+
+      events = []
+      runner = described_class.new(user: admin)
+      response = runner.run_rejected(token: token) { |event| events << event }
+
+      expect(Person.find_by(id: alice.id)).to eq(alice)
+      expect(response).to eq("Understood.")
+      expect(events).to eq(
+        [
+          {type: :text_delta, content: "OK"},
+          {type: :done}
+        ]
+      )
+
+      chat = RubyLLM.chat
+      expect(chat).to have_received(:add_message).with(
+        role: :user,
+        content: "User declined people__destroy"
+      )
+      expect(chat).to have_received(:with_tools).with(replace: true)
+      expect(WulinAgent::Approvals.consume!(token, user_id: admin.id)).to be_nil
+    end
+
+    it "uses a custom rejection reason" do
+      token = WulinAgent::Approvals.issue!(
+        tool: "people__destroy",
+        params: {"id" => 1},
+        user_id: admin.id
+      )
+
+      stub_chat_for_follow_up
+
+      described_class.new(user: admin).run_rejected(token: token, reason: "No thanks")
+
+      chat = RubyLLM.chat
+      expect(chat).to have_received(:add_message).with(role: :user, content: "No thanks")
+    end
+
+    it "raises when the token is invalid" do
+      stub_chat_for_follow_up
+      runner = described_class.new(user: admin)
+
+      expect { runner.run_rejected(token: "bad") }.to raise_error(ArgumentError, "invalid approval token")
+    end
+  end
 end

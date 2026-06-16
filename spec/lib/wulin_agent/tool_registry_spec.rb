@@ -112,6 +112,19 @@ RSpec.describe WulinAgent::ToolRegistry do
 
       expect(tool.mutating).to be(true)
     end
+
+    it "requires attributes in the params schema" do
+      tool = described_class.find("people__create", admin)
+
+      expect(tool.params_schema[:required]).to include("attributes")
+    end
+
+    it "returns an error without attributes" do
+      tool = described_class.find("people__create", admin)
+      result = tool.execute({}, nil, approved: true)
+
+      expect(result).to eq("error" => "attributes is required")
+    end
   end
 
   describe "people__update" do
@@ -130,6 +143,19 @@ RSpec.describe WulinAgent::ToolRegistry do
 
       expect(result["success"]).to be(true)
       expect(alice.reload.first_name).to eq("Alicia")
+    end
+
+    it "requires id and attributes in the params schema" do
+      tool = described_class.find("people__update", admin)
+
+      expect(tool.params_schema[:required]).to contain_exactly("id", "attributes")
+    end
+
+    it "returns an error without attributes" do
+      tool = described_class.find("people__update", admin)
+      result = tool.execute({"id" => alice.id}, nil, approved: true)
+
+      expect(result).to eq("error" => "attributes is required")
     end
   end
 

@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe WulinAgent::Approval do
+RSpec.describe WulinAgent::Approvals do
   let(:read_tool) { instance_double(WulinAgent::ToolSpec, mutating: false) }
   let(:write_tool) { instance_double(WulinAgent::ToolSpec, mutating: true) }
 
@@ -22,6 +22,34 @@ RSpec.describe WulinAgent::Approval do
     it "requires approval only for mutating tools in confirm_writes mode" do
       expect(described_class.needs_approval?(read_tool, mode: :confirm_writes)).to be(false)
       expect(described_class.needs_approval?(write_tool, mode: :confirm_writes)).to be(true)
+    end
+  end
+
+  describe ".issue! / .consume!" do
+    before { described_class.reset! }
+
+    let(:user) { User.create!(email: "reader@example.com", admin: true) }
+
+    it "issues a one-shot token for the user" do
+      token = described_class.issue!(tool: "people__destroy", params: {"id" => 1}, user_id: user.id)
+
+      grant = described_class.consume!(token, user_id: user.id)
+
+      expect(grant).to include(tool: "people__destroy", params: {"id" => 1}, user_id: user.id)
+    end
+
+    it "rejects a token for another user" do
+      other = User.create!(email: "other@example.com", admin: true)
+      token = described_class.issue!(tool: "people__destroy", params: {}, user_id: user.id)
+
+      expect(described_class.consume!(token, user_id: other.id)).to be_nil
+    end
+
+    it "rejects a consumed token twice" do
+      token = described_class.issue!(tool: "people__destroy", params: {}, user_id: user.id)
+      described_class.consume!(token, user_id: user.id)
+
+      expect(described_class.consume!(token, user_id: user.id)).to be_nil
     end
   end
 end

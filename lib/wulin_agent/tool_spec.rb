@@ -13,7 +13,7 @@ module WulinAgent
     keyword_init: true
   ) do
     def execute(params = {}, user = nil, approval_mode: :confirm_writes, approved: false)
-      if Approval.needs_approval?(self, mode: approval_mode, approved: approved)
+      if Approvals.needs_approval?(self, mode: approval_mode, approved: approved)
         {
           "status" => "approval_required",
           "tool" => name,
