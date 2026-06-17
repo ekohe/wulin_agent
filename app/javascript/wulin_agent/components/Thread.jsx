@@ -67,7 +67,7 @@ export function Thread() {
     <ThreadPrimitive.Root className="wulin-agent-thread">
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
         <ThreadPrimitive.Empty className="wulin-agent-thread__empty">
-          Pose une question sur la grille…
+          Ask a question…
         </ThreadPrimitive.Empty>
 
         <ThreadPrimitive.Messages
@@ -78,10 +78,10 @@ export function Thread() {
           <ComposerPrimitive.Root className="wulin-agent-composer">
             <ComposerPrimitive.Input
               className="wulin-agent-composer__input"
-              placeholder="Ex: Combien de personnes ?"
+              placeholder="Ex: How many people in the database ?"
             />
             <ComposerPrimitive.Send className="wulin-agent-composer__send">
-              Envoyer
+              Send
             </ComposerPrimitive.Send>
           </ComposerPrimitive.Root>
         </ThreadPrimitive.ViewportFooter>

@@ -79,7 +79,7 @@ export function AgentChat() {
         }}
       >
         {messages.length === 0 && (
-          <p style={{color: "#999"}}>Pose une question…</p>
+          <p style={{color: "#999"}}>Ask a question…</p>
         )}
         {messages.map((m, i) => (
           <p key={i} style={{margin: "0.5rem 0"}}>
@@ -96,11 +96,11 @@ export function AgentChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={streaming}
-          placeholder="Ex: Combien de personnes ?"
+          placeholder="Ex: How many people in the database ?"
           style={{flex: 1, padding: "0.5rem"}}
         />
         <button type="submit" disabled={streaming || !input.trim()}>
-          {streaming ? "…" : "Envoyer"}
+          {streaming ? "…" : "Send"}
         </button>
       </form>
     </div>
