@@ -12,10 +12,26 @@ function UserMessage() {
   );
 }
 
+function ToolFallback({toolName, args, result}) {
+  return (
+    <details className="wulin-agent-tool">
+      <summary>{toolName}</summary>
+      {args && Object.keys(args).length > 0 && (
+        <pre>{JSON.stringify(args, null, 2)}</pre>
+      )}
+      {result != null && (
+        <pre>{JSON.stringify(result, null, 2)}</pre>
+      )}
+    </details>
+  );
+}
+
 function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
-      <MessagePrimitive.Parts />
+      <MessagePrimitive.Parts
+        components={{tools: {Fallback: ToolFallback}}}
+      />
     </MessagePrimitive.Root>
   );
 }

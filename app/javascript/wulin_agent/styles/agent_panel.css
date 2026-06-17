@@ -46,6 +46,26 @@
   color: #333;
 }
 
+.wulin-agent-tool {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #f9f9f9;
+  font-size: 0.8125rem;
+}
+
+.wulin-agent-tool summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.wulin-agent-tool pre {
+  margin: 0.5rem 0 0;
+  overflow-x: auto;
+  font-size: 0.75rem;
+}
+
 .wulin-agent-thread__footer {
   padding: 0.75rem 1rem;
   border-top: 1px solid #eee;

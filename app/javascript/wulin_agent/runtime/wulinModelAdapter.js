@@ -14,11 +14,11 @@ function lastUserText(messages) {
 
   return "";
 }
-
 /** @type {import("@assistant-ui/react").ChatModelAdapter} */
 export const wulinModelAdapter = {
   async *run({messages, abortSignal}) {
     const text = lastUserText(messages);
+
     if (!text) {
       yield {content: [{type: "text", text: ""}]};
       return;
@@ -28,16 +28,68 @@ export const wulinModelAdapter = {
       signal: abortSignal,
     });
 
-    let accumulated = "";
+    const toolCalls = [];
+    let accumulatedText = "";
+
+    function snapshot() {
+      return {
+        content: [
+          ...toolCalls,
+          ...(accumulatedText
+            ? [{type: "text", text: accumulatedText}]
+            : [])
+        ]
+      };
+    }
 
     for await (const event of parseDataStream(body)) {
-      if (event.type === "text_delta") {
-        accumulated += event.content;
-        yield {content: [{type: "text", text: accumulated}]};
-      }
+      switch (event.type) {
 
-      if (event.type === "error") {
-        throw new Error(event.message);
+        case "text_delta":
+          accumulatedText += event.content;
+
+          yield snapshot();
+          break;
+
+
+        case "tool_call_start":
+          toolCalls.push({
+            type: "tool-call",
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            args: {},
+            argsText: "",
+          });
+
+          yield snapshot();
+          break;
+
+
+        case "tool_call_args": {
+          const call = toolCalls[toolCalls.length - 1];
+          if (call) {
+            call.args = event.arguments;
+            call.argsText = JSON.stringify(event.arguments);
+          }
+
+          yield snapshot();
+          break;
+        }
+
+
+        case "tool_result": {
+          const call = toolCalls.find(
+            (tc) => tc.toolCallId === event.toolCallId
+          );
+          if (call) call.result = event.result;
+
+          yield snapshot();
+          break;
+        }
+
+
+        case "error":
+          throw new Error(event.message);
       }
     }
   },
