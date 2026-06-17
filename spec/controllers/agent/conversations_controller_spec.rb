@@ -66,6 +66,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
       expect(response.body).to include('0:"Hi"')
       expect(response.body).to include("[DONE]")
       expect(response.media_type).to eq("text/plain")
+      expect(response.headers["X-Conversation-Id"]).to eq(Agent::Conversation.last.id.to_s)
     end
 
     it "passes prior history to the runner excluding the new user message" do
@@ -110,6 +111,28 @@ RSpec.describe Agent::ConversationsController, type: :controller do
     end
   end
 
+  describe "PATCH #update" do
+    it "updates approval_mode" do
+      conversation = Agent::Conversation.create!(user: user)
+
+      patch :update, params: {id: conversation.id, approval_mode: "auto"}
+
+      expect(response).to have_http_status(:ok)
+      payload = JSON.parse(response.body)
+      expect(payload).to eq("id" => conversation.id, "approval_mode" => "auto")
+      expect(conversation.reload.approval_mode).to eq("auto")
+    end
+
+    it "does not expose another user's conversation" do
+      other = User.create!(email: "other-#{SecureRandom.hex(4)}@example.com")
+      conversation = Agent::Conversation.create!(user: other)
+
+      expect {
+        patch :update, params: {id: conversation.id, approval_mode: "auto"}
+      }.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
   describe "POST #approve" do
     it "streams the approved tool result and persists the assistant reply" do
       conversation = Agent::Conversation.create!(user: user)
@@ -123,6 +146,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
       post :approve, params: {id: conversation.id, token: "tok-1"}
 
       expect(response.body).to include('"success":true')
+      expect(response.headers["X-Conversation-Id"]).to eq(conversation.id.to_s)
       expect(conversation.messages.last).to have_attributes(
         role: "assistant",
         content: "Done."

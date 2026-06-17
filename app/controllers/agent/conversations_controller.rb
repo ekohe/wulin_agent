@@ -4,11 +4,6 @@ module Agent
   class ConversationsController < ApplicationController
     include ActionController::Live
 
-    # Dev/curl only: skip CSRF so JSON POSTs work without a session token.
-    # In prod with assistant-ui (same-origin), remove this and send the token from
-    # the layout meta tag via useDataStreamRuntime({ credentials: "include", headers: { "X-CSRF-Token": ... } }).
-    skip_before_action :verify_authenticity_token
-
     before_action :require_current_user!
 
     def create
@@ -21,6 +16,12 @@ module Agent
 
     def reject
       stream_conversation_turn
+    end
+
+    def update
+      conversation = user_conversations.find(params[:id])
+      conversation.update!(approval_mode: params.require(:approval_mode))
+      render json: {id: conversation.id, approval_mode: conversation.approval_mode}
     end
 
     def show
@@ -40,7 +41,7 @@ module Agent
       conversation = find_or_create_conversation
       conversation.messages.create!(role: "user", content: message_param) if action_name == "create"
 
-      setup_stream_headers!
+      setup_stream_headers!(conversation)
       writer = WulinAgent::DataStreamWriter.new(response.stream)
       runner = build_runner(conversation)
 
@@ -88,10 +89,11 @@ module Agent
       params[:message].presence || params.require(:message)
     end
 
-    def setup_stream_headers!
+    def setup_stream_headers!(conversation)
       response.headers["Content-Type"] = "text/plain; charset=utf-8"
       response.headers["Cache-Control"] = "no-cache"
       response.headers["X-Accel-Buffering"] = "no"
+      response.headers["X-Conversation-Id"] = conversation.id.to_s
     end
 
     def build_runner(conversation)
