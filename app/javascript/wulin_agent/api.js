@@ -51,3 +51,41 @@ export async function sendMessage(message, explicitConversationId, {signal} = {}
 
   return {body: response.body, conversationId: newConversationId};
 }
+
+export async function runApproved({ token, params, signal } = {}) {
+  const id = conversationId;
+  if (id == null) throw new Error("No conversation");
+
+  const response = await fetch(`${BASE}/${id}/approve`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ token, params }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return { body: response.body };
+}
+
+export async function runRejected({ token, reason, signal } = {}) {
+  const id = conversationId;
+  if (id == null) throw new Error("No conversation");
+
+  const response = await fetch(`${BASE}/${id}/reject`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ token, reason }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return { body: response.body };
+}

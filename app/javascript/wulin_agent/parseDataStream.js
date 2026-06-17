@@ -21,6 +21,7 @@ export async function* parseDataStream(readableStream) {
 
       const prefix = line.slice(0, colon);
       const payload = line.slice(colon + 1);
+      console.log("RAW STREAM LINE:", line);
 
       try {
         switch (prefix) {

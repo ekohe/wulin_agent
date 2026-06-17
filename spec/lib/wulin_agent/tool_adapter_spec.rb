@@ -47,13 +47,14 @@ RSpec.describe WulinAgent::ToolAdapter do
       expect(result).to eq("success" => true, "message" => "Hello, Axel!")
     end
 
-    it "returns approval_required for mutating tools under confirm_writes" do
+    it "halts with approval_required for mutating tools under confirm_writes" do
       spec = WulinAgent::ToolRegistry.find("people__destroy", admin)
       tool = described_class.build([spec], user: admin, approval_mode: :confirm_writes).first
 
       result = tool.execute(id: 1)
 
-      expect(result["status"]).to eq("approval_required")
+      expect(result).to be_a(RubyLLM::Tool::Halt)
+      expect(result.content["status"]).to eq("approval_required")
     end
   end
 end

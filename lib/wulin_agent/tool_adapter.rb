@@ -19,12 +19,17 @@ module WulinAgent
         define_method(:name) { tool_spec.name }
 
         define_method(:execute) do |**kwargs|
-          tool_spec.execute(
+          result = tool_spec.execute(
             kwargs.stringify_keys,
             user,
             approval_mode: approval_mode,
             approved: false
           )
+          if result.is_a?(Hash) && result["status"] == "approval_required"
+            halt(result)
+          else
+            result
+          end
         end
       end
 

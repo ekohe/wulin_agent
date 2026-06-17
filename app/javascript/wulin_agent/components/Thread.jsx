@@ -12,7 +12,33 @@ function UserMessage() {
   );
 }
 
-function ToolFallback({toolName, args, result}) {
+function ToolFallback({toolName, args, result, approval, respondToApproval}) {
+  if (
+    approval &&
+    approval.approved === undefined &&
+    approval.resolution === undefined
+  ) {
+    return (
+      <div>
+        <div>{toolName} needs approval</div>
+
+        <button
+          onClick={() => respondToApproval({approved: true})}
+        >
+          Approve
+        </button>
+
+        <button
+          onClick={() =>
+            respondToApproval({approved: false, reason: "User declined"})
+          }
+        >
+          Reject
+        </button>
+      </div>
+    );
+  }
+
   return (
     <details className="wulin-agent-tool">
       <summary>{toolName}</summary>

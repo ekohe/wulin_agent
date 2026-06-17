@@ -27,7 +27,8 @@ RSpec.describe WulinAgent::Runner do
 
       result = destroy.execute(id: 999)
 
-      expect(result["status"]).to eq("approval_required")
+      expect(result).to be_a(RubyLLM::Tool::Halt)
+      expect(result.content["status"]).to eq("approval_required")
     end
   end
 
@@ -54,17 +55,21 @@ RSpec.describe WulinAgent::Runner do
       allow(chat).to receive(:instance_variable_set)
 
       allow(chat).to receive(:ask) do |_prompt, &block|
+        halt_result = nil
         if tool_flow
           tool_call_handler&.call(tool_flow[:tool_call])
           tool_result_handler&.call(tool_flow[:result])
+          halt_result = tool_flow[:result] if tool_flow[:result].is_a?(RubyLLM::Tool::Halt)
         end
 
-        stream_chunks.each do |content|
-          chunk = instance_double("RubyLLM::Chunk", content: content)
-          block&.call(chunk)
+        unless halt_result
+          stream_chunks.each do |content|
+            chunk = instance_double("RubyLLM::Chunk", content: content)
+            block&.call(chunk)
+          end
         end
 
-        message
+        halt_result || message
       end
 
       chat
@@ -139,6 +144,35 @@ RSpec.describe WulinAgent::Runner do
         {type: :text_delta, content: "Checking..."},
         {type: :done}
       )
+    end
+
+    it "halts without text after approval_required" do
+      WulinAgent::Approvals.reset!
+      tool_call = RubyLLM::ToolCall.new(
+        id: "call_create",
+        name: "people__create",
+        arguments: {"first_name" => "AMOGUS"}
+      )
+      approval_result = RubyLLM::Tool::Halt.new(
+        "status" => "approval_required",
+        "tool" => "people__create",
+        "params" => {"first_name" => "AMOGUS"},
+        "summary" => "Create person"
+      )
+
+      stub_chat(
+        message_content: "",
+        stream_chunks: ["Should not appear"],
+        tool_flow: {tool_call: tool_call, result: approval_result}
+      )
+
+      events = []
+      response = described_class.new(user: admin).run("create AMOGUS") { |event| events << event }
+
+      expect(response).to eq("")
+      expect(events).to include(hash_including(type: :tool_result, name: "people__create"))
+      expect(events).not_to include(hash_including(type: :text_delta))
+      expect(events.last).to eq(type: :done)
     end
   end
 

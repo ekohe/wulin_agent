@@ -20,7 +20,7 @@ module WulinAgent
       scope_messages_for_completion!
       response = chat.ask(message) { |chunk| emit_text_delta(chunk) }
       emit(type: :done)
-      response.content
+      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
     ensure
       @on_event = nil
     end
@@ -141,6 +141,8 @@ module WulinAgent
     end
     
     def emit_tool_result(result)
+      result = result.content if result.is_a?(RubyLLM::Tool::Halt)
+
       payload = {
         type: :tool_result,
         id: @current_tool_call&.id,
