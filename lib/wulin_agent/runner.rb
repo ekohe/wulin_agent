@@ -106,8 +106,19 @@ module WulinAgent
     def system_prompt
       <<~PROMPT.strip
         You are a Wulin Master assistant. Use the available tools to read and
-        modify grid data. Call list_grids to discover tables, get_columns before
-        create or update. Use controller names exactly as returned by list_grids.
+        modify grid data.
+
+        Workflow:
+        - Call list_grids to discover tables.
+        - Call get_columns before create, update, or filtering.
+        - Use controller names exactly as returned by list_grids.
+
+        To search or filter records, call list_records with a filters array.
+        Each filter needs column (from get_columns, must be filterable), value,
+        and optionally operator (equals, not_equals, include, exclude).
+        For text columns, equals matches values starting with the given prefix.
+        Combine multiple filters to narrow results. Use sort_col and sort_dir to order.
+
         Prefer tools over guessing. Be concise.
       PROMPT
     end

@@ -9,6 +9,27 @@ module WulinAgent
       }
     }.freeze
 
+    FILTER_ITEM = {
+      type: "object",
+      description: "Filter on one column. Call get_columns first to see filterable column names.",
+      properties: {
+        column: {
+          type: "string",
+          description: 'Column name from get_columns (e.g. "last_name"). Must be filterable.'
+        },
+        value: {
+          type: "string",
+          description: 'Value to match. For text columns, "equals" matches values starting with this prefix.'
+        },
+        operator: {
+          type: "string",
+          enum: %w[equals not_equals include exclude],
+          description: 'Comparison operator. Default: "equals". Use include/exclude for association columns.'
+        }
+      },
+      required: %w[column value]
+    }.freeze
+
     class << self
       def build
         [
@@ -68,7 +89,8 @@ module WulinAgent
         make_tool(
           name: "get_columns",
           operation: "get_columns",
-          description: "List columns for a grid. Call before create or update.",
+          description: "List columns for a grid. Call before create, update, or filtering. " \
+                        "Use filterable column names in list_records filters.",
           mutating: false,
           params_schema: {properties: CONTROLLER, required: ["controller"]}
         ) do |grid, _params, _user|
@@ -89,15 +111,33 @@ module WulinAgent
         make_tool(
           name: "list_records",
           operation: "index",
-          description: "List records with pagination and filters.",
+          description: "List records with optional filters, sorting, and pagination. " \
+                        "Call get_columns first to discover filterable columns.",
           mutating: false,
           params_schema: {
             properties: CONTROLLER.merge(
-              offset: {type: "integer"},
-              count: {type: "integer"},
-              filters: {type: "array"},
-              sort_col: {type: "string"},
-              sort_dir: {type: "string"}
+              offset: {
+                type: "integer",
+                description: "Number of records to skip. Default: 0."
+              },
+              count: {
+                type: "integer",
+                description: "Max records to return. Default: 50."
+              },
+              filters: {
+                type: "array",
+                description: 'Filters to apply. Example: [{"column":"last_name","value":"Martin","operator":"equals"}]',
+                items: FILTER_ITEM
+              },
+              sort_col: {
+                type: "string",
+                description: "Column name to sort by. Must be sortable in get_columns."
+              },
+              sort_dir: {
+                type: "string",
+                enum: %w[ASC DESC],
+                description: "Sort direction. Default follows the grid configuration."
+              }
             ),
             required: ["controller"]
           }
