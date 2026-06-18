@@ -2,3 +2,4 @@
 // listed below.
 //
 //= require_tree .
+//= require 'master/master.js'

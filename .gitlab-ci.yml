@@ -14,8 +14,10 @@ cache:
   key:
     files:
       - Gemfile.lock
+      - app/package-lock.json
   paths:
     - vendor/bundle
+    - app/node_modules
 
 stages:
   - test
@@ -31,6 +33,9 @@ before_script:
   - mkdir -p vendor/bundle
   - bundle config set path vendor/bundle
   - bundle check || bundle install --jobs 8
+
+  # frontend
+  - cd app && npm ci && npm run build
 
 rspec:
   stage: test

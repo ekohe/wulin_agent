@@ -9,11 +9,29 @@ Add to your Gemfile:
 
   gem "wulin_agent", path: "vendor/gems/wulin_agent"
 
+== Frontend assets
+
+JavaScript/CSS are built with esbuild under +app/+ and committed to
++app/assets/builds/+ (+wulin_agent.js+, +wulin_agent.css+).
+
+To rebuild after changing +app/javascript/wulin_agent/+:
+
+  cd app && npm ci && npm run build
+
++node_modules/+ is gitignored; run +npm ci+ after clone.
+
+The engine registers these assets for precompile. Host apps must link them in
++app/assets/config/manifest.js+:
+
+  //= link wulin_agent.js
+  //= link wulin_agent.css
+
 == Development
 
   git submodule update --init --recursive
   cp spec/dummy/config/database.example.yml spec/dummy/config/database.yml
   bundle install
+  cd app && npm ci && npm run build
   bundle exec rspec
 
 Wulin gems are vendored as git submodules under +vendor/gems/+ (same layout as

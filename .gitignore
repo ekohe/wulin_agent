@@ -11,3 +11,6 @@ spec/dummy/tmp/cache/*
 spec/dummy/tmp/pids/*
 # ignore the bundle folder
 vendor/bundle/
+# JavaScript dependencies (reinstall with npm ci in app/)
+app/node_modules/
+spec/dummy/node_modules/

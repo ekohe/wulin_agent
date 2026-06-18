@@ -6,8 +6,8 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const watch = process.argv.includes("--watch");
 
 const options = {
-  entryPoints: [path.resolve(dir, "../../app/javascript/wulin_agent/index.jsx")],
-  outfile: path.resolve(dir, "app/assets/builds/wulin_agent.js"),
+  entryPoints: [path.resolve(dir, "javascript/wulin_agent/index.jsx")],
+  outfile: path.resolve(dir, "assets/builds/wulin_agent.js"),
   bundle: true,
   format: "iife",
   loader: {".jsx": "jsx", ".css": "css"},

@@ -1,0 +1,16 @@
+- if xhr
+  - components.each do |component|
+    = render :partial => '/grid', :locals => {:grid => component} if component.grid?
+    = render :partial => '/panel', :locals => {:panel => component} if component.panel?
+    - break if component.respond_to?(:fill_window?) and component.fill_window?
+  :javascript
+    saveMessage("#{params[:screen]} loaded", 'info');
+    document.title = $("#menu .active").find('span').text() + " | " + "#{WulinMaster.config.app_title}";
+- else
+  - content_for :header_tags do
+    = stylesheet_link_tag "wulin_agent", media: "all"
+    = javascript_include_tag "wulin_agent"
+  = render '/header'
+  = render '/menu'
+  = render '/content'
+  = render 'wulin_agent/mount'
