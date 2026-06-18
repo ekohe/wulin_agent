@@ -2,6 +2,7 @@
 
 require "rails"
 require "wulin_agent/extensions/grid_agent_actions"
+require "wulin_agent/extensions/layout"
 
 module WulinAgent
   class Engine < ::Rails::Engine
@@ -11,10 +12,8 @@ module WulinAgent
       Catalog.reset!
 
       WulinMaster::Grid.include WulinAgent::Extensions::GridAgentActions
-
-      WulinMaster::ScreenController.prepend_view_path(
-        WulinAgent::Engine.root.join("app/views")
-      )
+      WulinMaster::HomeController.include WulinAgent::Extensions::Layout
+      WulinMaster::ScreenController.include WulinAgent::Extensions::Layout
     end
 
     initializer "wulin_agent.assets" do |app|
@@ -31,10 +30,16 @@ module WulinAgent
       end
     end
 
-    initializer "wulin_agent.ruby_llm" do
+    initializer "wulin_agent.ruby_llm" do |app|
       RubyLLM.configure do |config|
-        config.openai_api_key ||= ENV["OPENAI_API_KEY"]
         config.use_new_acts_as = true
+      end
+
+      app.config.after_initialize do
+        RubyLLM.configure do |config|
+          config.openai_api_key ||= ENV["OPENAI_API_KEY"].presence ||
+            Rails.application.credentials.dig(:openai, :access_token)
+        end
       end
     end
   end

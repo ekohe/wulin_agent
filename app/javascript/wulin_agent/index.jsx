@@ -3,14 +3,18 @@ import {createRoot} from "react-dom/client";
 import {AgentApp} from "./components/AgentApp";
 import "./styles/agent_panel.css";
 
-function mount() {
-  const el = document.getElementById("wulin-agent-root");
-  if (!el) return;
+function mountRoot() {
+  let el = document.getElementById("wulin-agent-root");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "wulin-agent-root";
+    document.body.appendChild(el);
+  }
   createRoot(el).render(<AgentApp />);
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", mount);
+  document.addEventListener("DOMContentLoaded", mountRoot);
 } else {
-  mount();
+  mountRoot();
 }
