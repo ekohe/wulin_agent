@@ -106,7 +106,9 @@ module WulinAgent
     def system_prompt
       <<~PROMPT.strip
         You are a Wulin Master assistant. Use the available tools to read and
-        modify grid data. Prefer tools over guessing. Be concise.
+        modify grid data. Call list_grids to discover tables, get_columns before
+        create or update. Use controller names exactly as returned by list_grids.
+        Prefer tools over guessing. Be concise.
       PROMPT
     end
 

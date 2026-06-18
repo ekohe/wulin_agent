@@ -48,10 +48,10 @@ RSpec.describe WulinAgent::ToolAdapter do
     end
 
     it "halts with approval_required for mutating tools under confirm_writes" do
-      spec = WulinAgent::ToolRegistry.find("people__destroy", admin)
+      spec = WulinAgent::ToolRegistry.find("destroy_record", admin)
       tool = described_class.build([spec], user: admin, approval_mode: :confirm_writes).first
 
-      result = tool.execute(id: 1)
+      result = tool.execute(controller: "people", id: 1)
 
       expect(result).to be_a(RubyLLM::Tool::Halt)
       expect(result.content["status"]).to eq("approval_required")

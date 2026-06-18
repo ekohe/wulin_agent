@@ -18,14 +18,14 @@ RSpec.describe WulinAgent::Runner do
       runner = described_class.new(user: admin)
       names = runner.tools.map(&:name)
 
-      expect(names).to include("people__index", "people__greet")
+      expect(names).to include("list_records", "people__greet")
     end
 
     it "respects approval_mode when building tools" do
       runner = described_class.new(user: admin, approval_mode: :confirm_writes)
-      destroy = runner.tools.find { |t| t.name == "people__destroy" }
+      destroy = runner.tools.find { |t| t.name == "destroy_record" }
 
-      result = destroy.execute(id: 999)
+      result = destroy.execute(controller: "people", id: 999)
 
       expect(result).to be_a(RubyLLM::Tool::Halt)
       expect(result.content["status"]).to eq("approval_required")
@@ -124,8 +124,8 @@ RSpec.describe WulinAgent::Runner do
     it "yields correlated tool_call and tool_result events" do
       tool_call = RubyLLM::ToolCall.new(
         id: "call_abc",
-        name: "people__index",
-        arguments: {"offset" => 0}
+        name: "list_records",
+        arguments: {"controller" => "people", "offset" => 0}
       )
       tool_result = {"rows" => [], "total" => 0}
 
@@ -139,8 +139,8 @@ RSpec.describe WulinAgent::Runner do
       described_class.new(user: admin).run("How many people?") { |event| events << event }
 
       expect(events).to include(
-        {type: :tool_call, id: "call_abc", name: "people__index", arguments: {"offset" => 0}},
-        {type: :tool_result, id: "call_abc", name: "people__index", result: tool_result},
+        {type: :tool_call, id: "call_abc", name: "list_records", arguments: {"controller" => "people", "offset" => 0}},
+        {type: :tool_result, id: "call_abc", name: "list_records", result: tool_result},
         {type: :text_delta, content: "Checking..."},
         {type: :done}
       )
@@ -150,13 +150,13 @@ RSpec.describe WulinAgent::Runner do
       WulinAgent::Approvals.reset!
       tool_call = RubyLLM::ToolCall.new(
         id: "call_create",
-        name: "people__create",
-        arguments: {"first_name" => "AMOGUS"}
+        name: "create_record",
+        arguments: {"controller" => "people", "attributes" => {"first_name" => "AMOGUS"}}
       )
       approval_result = RubyLLM::Tool::Halt.new(
         "status" => "approval_required",
-        "tool" => "people__create",
-        "params" => {"first_name" => "AMOGUS"},
+        "tool" => "create_record",
+        "params" => {"controller" => "people", "attributes" => {"first_name" => "AMOGUS"}},
         "summary" => "Create person"
       )
 
@@ -170,7 +170,7 @@ RSpec.describe WulinAgent::Runner do
       response = described_class.new(user: admin).run("create AMOGUS") { |event| events << event }
 
       expect(response).to eq("")
-      expect(events).to include(hash_including(type: :tool_result, name: "people__create"))
+      expect(events).to include(hash_including(type: :tool_result, name: "create_record"))
       expect(events).not_to include(hash_including(type: :text_delta))
       expect(events.last).to eq(type: :done)
     end
@@ -206,8 +206,8 @@ RSpec.describe WulinAgent::Runner do
     it "executes the approved tool and streams the follow-up response" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       token = WulinAgent::Approvals.issue!(
-        tool: "people__destroy",
-        params: {"id" => alice.id},
+        tool: "destroy_record",
+        params: {"controller" => "people", "id" => alice.id},
         user_id: admin.id,
         tool_call_id: "call_1"
       )
@@ -221,7 +221,7 @@ RSpec.describe WulinAgent::Runner do
       expect(Person.find_by(id: alice.id)).to be_nil
       expect(response).to eq("Done.")
       expect(events).to include(
-        {type: :tool_result, name: "people__destroy", result: {"success" => true}},
+        {type: :tool_result, name: "destroy_record", result: {"success" => true}},
         {type: :text_delta, content: "OK"},
         {type: :done}
       )
@@ -229,7 +229,7 @@ RSpec.describe WulinAgent::Runner do
       chat = RubyLLM.chat
       expect(chat).to have_received(:add_message).with(
         role: :user,
-        content: "User approved people__destroy: #{ {"success" => true}.to_json }"
+        content: "User approved destroy_record: #{ {"success" => true}.to_json }"
       )
       expect(chat).to have_received(:with_tools).with(replace: true)
       expect(chat).to have_received(:with_tools).with(*runner.tools, replace: true)
@@ -244,7 +244,7 @@ RSpec.describe WulinAgent::Runner do
 
     it "raises when the token has no params" do
       token = WulinAgent::Approvals.issue!(
-        tool: "people__destroy",
+        tool: "destroy_record",
         params: {},
         user_id: admin.id
       )
@@ -286,8 +286,8 @@ RSpec.describe WulinAgent::Runner do
     it "invalidates the token and streams the follow-up response" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       token = WulinAgent::Approvals.issue!(
-        tool: "people__destroy",
-        params: {"id" => alice.id},
+        tool: "destroy_record",
+        params: {"controller" => "people", "id" => alice.id},
         user_id: admin.id
       )
 
@@ -309,7 +309,7 @@ RSpec.describe WulinAgent::Runner do
       chat = RubyLLM.chat
       expect(chat).to have_received(:add_message).with(
         role: :user,
-        content: "User declined people__destroy"
+        content: "User declined destroy_record"
       )
       expect(chat).to have_received(:with_tools).with(replace: true)
       expect(WulinAgent::Approvals.consume!(token, user_id: admin.id)).to be_nil
@@ -317,8 +317,8 @@ RSpec.describe WulinAgent::Runner do
 
     it "uses a custom rejection reason" do
       token = WulinAgent::Approvals.issue!(
-        tool: "people__destroy",
-        params: {"id" => 1},
+        tool: "destroy_record",
+        params: {"controller" => "people", "id" => 1},
         user_id: admin.id
       )
 

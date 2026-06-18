@@ -18,34 +18,35 @@ RSpec.describe WulinAgent::ToolRegistry, "permissions" do
       expect(described_class.for(nil)).to eq([])
     end
 
-    it "returns all tools for an admin user" do
+    it "returns all meta tools for an admin user" do
       admin = User.create!(email: "admin@example.com", admin: true)
       names = described_class.for(admin).map(&:name)
 
       expect(names).to include(
-        "people__get_columns",
-        "people__index",
-        "people__read",
-        "people__create",
-        "people__update",
-        "people__destroy"
+        "list_grids",
+        "get_columns",
+        "list_records",
+        "read_record",
+        "create_record",
+        "update_record",
+        "destroy_record"
       )
     end
 
-    it "returns read-only tools for a user with person#read" do
+    it "returns read-only meta tools for a user with person#read" do
       reader = create_user_with_permissions("person#read")
       names = described_class.for(reader).map(&:name)
 
-      expect(names).to include("people__get_columns", "people__index", "people__read")
-      expect(names).not_to include("people__create", "people__update", "people__destroy")
+      expect(names).to include("list_grids", "get_columns", "list_records", "read_record")
+      expect(names).not_to include("create_record", "update_record", "destroy_record")
     end
 
-    it "returns mutating tools for a user with person#cud" do
+    it "returns mutating meta tools for a user with person#cud" do
       editor = create_user_with_permissions("person#cud")
       names = described_class.for(editor).map(&:name)
 
-      expect(names).to include("people__create", "people__update", "people__destroy")
-      expect(names).not_to include("people__index", "people__read", "people__get_columns")
+      expect(names).to include("create_record", "update_record", "destroy_record")
+      expect(names).not_to include("list_records", "read_record", "get_columns")
     end
   end
 end

@@ -4,10 +4,9 @@ module WulinAgent
   class ToolRegistry
     class << self
       def for(user = nil)
-        @all ||= Catalog.all.flat_map do |grid|
-          StandardGridTools.build(grid) + ActionInferer.build(grid)
-        end
-        filter_for_user(@all, user)
+        return [] if user.nil?
+
+        filter_meta_tools(MetaGridTools.build, user) + filter_custom_tools(custom_tools, user)
       end
 
       def find(name, user = nil)
@@ -15,13 +14,33 @@ module WulinAgent
       end
 
       def reset!
-        @all = nil
+        @custom_tools = nil
       end
 
       private
 
-      def filter_for_user(tools, user)
-        return [] if user.nil?
+      def custom_tools
+        @custom_tools ||= Catalog.all.flat_map { |grid| ActionInferer.build(grid) }
+      end
+
+      def filter_meta_tools(tools, user)
+        return tools if user.respond_to?(:admin?) && user.admin?
+
+        can_read = GridAccess.accessible_grids(user).any?
+        can_write = Catalog.all.any? { |grid| GridAccess.authorized?(user, grid, "create") }
+
+        tools.select do |tool|
+          if tool.name == "list_grids"
+            can_read || can_write
+          elsif tool.mutating
+            can_write
+          else
+            can_read
+          end
+        end
+      end
+
+      def filter_custom_tools(tools, user)
         return tools if user.respond_to?(:admin?) && user.admin?
 
         if user.respond_to?(:has_permission_with_name?)
