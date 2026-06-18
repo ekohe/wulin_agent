@@ -6,7 +6,7 @@ require "wulin_agent/extensions/grid_agent_actions"
 module WulinAgent
   class Engine < ::Rails::Engine
     config.to_prepare do
-
+      ControllerResolver.reset!
       ToolRegistry.reset!
       Catalog.reset!
 
