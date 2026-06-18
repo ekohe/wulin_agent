@@ -5,6 +5,11 @@ actions as LLM tools (ruby_llm + MCP), gated by wulin_permits.
 
 == Installation
 
+If +wulin_agent+ is vendored as a git submodule, initialize it after clone:
+
+  git submodule update --init --recursive
+
+
 Add to your Gemfile:
 
   gem "wulin_agent", path: "vendor/gems/wulin_agent"
@@ -58,7 +63,7 @@ The engine registers these assets for precompile. Host apps must link them in
   //= link wulin_agent.js
   //= link wulin_agent.css
 
-And require them in the main asset bundles (same pattern as +master/master.js+):
+And require them in the main asset bundles:
 
   // app/assets/javascripts/application.js
   //= require wulin_agent
