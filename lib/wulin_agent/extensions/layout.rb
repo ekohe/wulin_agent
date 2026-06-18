@@ -12,10 +12,10 @@ module WulinAgent
       private
 
       def inject_wulin_agent_assets
-        helpers.content_for :header_tags do
-          helpers.safe_join([
-            helpers.stylesheet_link_tag("wulin_agent", media: "all"),
-            helpers.javascript_include_tag("wulin_agent")
+        view_context.content_for :header_tags do
+          view_context.safe_join([
+            view_context.stylesheet_link_tag("wulin_agent", media: "all"),
+            view_context.javascript_include_tag("wulin_agent")
           ])
         end
       end
