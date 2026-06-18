@@ -6,6 +6,10 @@ require "wulin_agent/extensions/grid_agent_actions"
 module WulinAgent
   class Engine < ::Rails::Engine
     config.to_prepare do
+
+      ToolRegistry.reset!
+      Catalog.reset!
+
       WulinMaster::Grid.include WulinAgent::Extensions::GridAgentActions
 
       WulinMaster::ScreenController.prepend_view_path(
@@ -20,8 +24,17 @@ module WulinAgent
     end
 
     initializer :append_migrations do |app|
-      config.paths["db/migrate"].expanded.each do |migration_path|
-        app.config.paths["db/migrate"] << migration_path
+      unless app.root.to_s.match root.to_s
+        config.paths["db/migrate"].expanded.each do |expanded_path|
+          app.config.paths["db/migrate"] << expanded_path
+        end
+      end
+    end
+
+    initializer "wulin_agent.ruby_llm" do
+      RubyLLM.configure do |config|
+        config.openai_api_key ||= ENV["OPENAI_API_KEY"]
+        config.use_new_acts_as = true
       end
     end
   end
