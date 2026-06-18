@@ -29,7 +29,7 @@ module WulinAgent
       private
 
       def resolve_controller(name)
-        "#{name.camelize}Controller".constantize
+        ControllerResolver.for_name(name)
       end
 
       def build_env(controller, action, params, _user = nil)

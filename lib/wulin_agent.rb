@@ -3,6 +3,7 @@
 require "wulin_agent/version"
 require "wulin_agent/column_descriptor"
 require "wulin_agent/grid_descriptor"
+require "wulin_agent/controller_resolver"
 require "wulin_agent/catalog"
 require "wulin_agent/grid_dispatcher"
 require "wulin_agent/approvals"
@@ -17,7 +18,10 @@ require "wulin_agent/data_stream_writer"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent
-  def self.setup(&_block)
-    yield self
+  mattr_accessor :controller_namespace
+  self.controller_namespace = nil
+
+  def self.setup
+    yield self if block_given?
   end
 end

@@ -4,6 +4,7 @@ module WulinAgent
   GridDescriptor = Struct.new(
     :grid_class,
     :controller,
+    :controller_class,
     :screen_name,
     :columns,
     :default_actions,

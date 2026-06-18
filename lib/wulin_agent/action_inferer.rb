@@ -23,7 +23,8 @@ module WulinAgent
 
       def build_tool(grid, action)
         operation = action[:name].to_s
-        controller_class = resolve_controller(grid.controller)
+        controller_class = grid.controller_class
+        return unless controller_class
         return unless controller_class.instance_methods(false).include?(operation.to_sym)
 
         decl = agent_action_for(grid, operation)
@@ -38,10 +39,6 @@ module WulinAgent
         ) do |params, user|
           GridDispatcher.call(grid.controller, operation, params, user)
         end
-      end
-
-      def resolve_controller(name)
-        "#{name.camelize}Controller".constantize
       end
 
       def mutating?(operation)

@@ -26,6 +26,7 @@ module WulinAgent
         GridDescriptor.new(
           grid_class: grid_class,
           controller: grid_class.model.model_name.plural,
+          controller_class: ControllerResolver.for_grid(grid_class),
           screen_name: screen_name_for(grid_class),
           columns: build_columns(grid_class),
           default_actions: default_actions,
