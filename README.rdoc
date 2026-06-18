@@ -5,14 +5,19 @@ actions as LLM tools (ruby_llm + MCP), gated by wulin_permits.
 
 == Installation
 
-If +wulin_agent+ is vendored as a git submodule, initialize it after clone:
+Host apps vendoring the gem under +vendor/gems/wulin_agent+:
 
-  git submodule update --init --recursive
+1. Add to your Gemfile:
 
+     gem "wulin_agent", path: "vendor/gems/wulin_agent"
 
-Add to your Gemfile:
+2. Initialize the submodule:
 
-  gem "wulin_agent", path: "vendor/gems/wulin_agent"
+     git submodule update --init --recursive
+
+3. Install dependencies:
+
+     bundle install
 
 == Integration
 
