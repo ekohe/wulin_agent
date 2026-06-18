@@ -9,14 +9,46 @@ Add to your Gemfile:
 
   gem "wulin_agent", path: "vendor/gems/wulin_agent"
 
+== Integration
+
+=== Prerequisites
+
++wulin_agent+ is a Rails engine for Wulin Master apps. Host apps need:
+
+* +wulin_master+ (required dependency, declared in the gemspec)
+* +wulin_permits+ (recommended: LLM tools are gated by grid permissions)
+* PostgreSQL (+agent_messages.metadata+ is +jsonb+)
+
+Follow the standard Wulin Master / Wulin Permits setup in your app (migrations,
+menus, +rake wulin_permits:load_permissions+ after adding grids).
+
+=== OpenAI
+
+The engine configures +ruby_llm+ at boot. Provide an API key via environment
+variable or Rails credentials:
+
+  OPENAI_API_KEY=sk-...
+
+  # config/credentials.yml.enc
+  openai:
+    access_token: sk-...
+
++ENV["OPENAI_API_KEY"]+ takes precedence; credentials are used as fallback.
+
+=== Database
+
+The engine appends its migrations to the host app (+agent_conversations+,
++agent_messages+). Run:
+
+  rails db:migrate
+
++agent_conversations+ references +users+; ensure a +users+ table exists before
+migrating.
+
 == Frontend assets
 
 JavaScript/CSS are built with esbuild under +app/+ and committed to
 +app/assets/builds/+ (+wulin_agent.js+, +wulin_agent.css+).
-
-To rebuild after changing +app/javascript/wulin_agent/+:
-
-  cd app && npm ci && npm run build
 
 +node_modules/+ is gitignored; run +npm ci+ after clone.
 
