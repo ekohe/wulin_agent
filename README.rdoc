@@ -26,6 +26,14 @@ The engine registers these assets for precompile. Host apps must link them in
   //= link wulin_agent.js
   //= link wulin_agent.css
 
+And require them in the main asset bundles (same pattern as +master/master.js+):
+
+  // app/assets/javascripts/application.js
+  //= require wulin_agent
+
+  /* app/assets/stylesheets/application.css */
+  *= require wulin_agent
+
 == Development
 
   git submodule update --init --recursive

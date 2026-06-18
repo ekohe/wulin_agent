@@ -3,3 +3,4 @@
 //
 //= require_tree .
 //= require 'master/master.js'
+//= require wulin_agent

@@ -2,7 +2,6 @@
 
 require "rails"
 require "wulin_agent/extensions/grid_agent_actions"
-require "wulin_agent/extensions/layout"
 
 module WulinAgent
   class Engine < ::Rails::Engine
@@ -12,8 +11,6 @@ module WulinAgent
       Catalog.reset!
 
       WulinMaster::Grid.include WulinAgent::Extensions::GridAgentActions
-      WulinMaster::HomeController.include WulinAgent::Extensions::Layout
-      WulinMaster::ScreenController.include WulinAgent::Extensions::Layout
     end
 
     initializer "wulin_agent.assets" do |app|
