@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateAgentConversations < ActiveRecord::Migration[8.1]
+class CreateAgentConversations < ActiveRecord::Migration[6.1]
   def change
     create_table :agent_conversations do |t|
       t.references :user, null: false, foreign_key: true
