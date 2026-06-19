@@ -55,6 +55,37 @@ The engine appends its migrations to the host app (+agent_conversations+,
 +agent_conversations+ references +users+; ensure a +users+ table exists before
 migrating.
 
+=== Agent actions
+
+Grid custom actions (declared with +action+ on a +WulinMaster::Grid+) can be
+exposed to the LLM as tools alongside CRUD. Use +agent_action+ to describe how
+the agent should call them:
+
+  class PersonGrid < WulinMaster::Grid
+    action :greet, icon: :waving_hand, title: "Greet"
+
+    agent_action :greet,
+      description: "Say hello to someone by name",
+      params: { name: { type: :string, required: false } },
+      mutating: true
+  end
+
+Only actions backed by a controller method are exposed. UI-only actions (e.g.
++:fullscreen+ with no controller endpoint) are ignored. The tool name follows
++<controller>__<action>+ (e.g. +people__greet+) and is gated by
++wulin_permits+ (+people#greet+).
+
++agent_action+ options:
+
+* +description+ — text shown to the LLM (falls back to the grid action title)
+* +params+ — JSON schema for arguments (+type+, +required+). When omitted,
+  parameters are inferred from the controller method via AST
+* +mutating+ — whether the action requires write approval (+true+/+false+).
+  Defaults to HTTP method: custom actions use POST and are treated as mutating
+
+At runtime, +ActionInferer+ builds a +ToolSpec+ that dispatches through
++GridDispatcher+ to the grid controller, with the same permissions as the UI.
+
 == Frontend assets
 
 JavaScript/CSS are built with esbuild under +app/+ and committed to
