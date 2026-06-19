@@ -20,9 +20,6 @@ require "wulin_agent/data_stream_writer"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent
-  mattr_accessor :controller_namespace
-  self.controller_namespace = nil
-
   def self.setup
     yield self if block_given?
   end

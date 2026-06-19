@@ -6,8 +6,11 @@ module WulinAgent
       def call(controller, action, params = {}, user = nil)
         raise ArgumentError, "user is required" if user.nil? && defined?(WulinPermits)
 
-        controller_class = resolve_controller(controller)
-        env = build_env(controller, action, params.stringify_keys, user)
+        descriptor = Catalog.find(controller.to_s)
+        controller_class = ControllerResolver.for_name(controller)
+        return {"error" => "No controller resolved for #{controller}"} unless controller_class
+
+        env = build_env(controller_class, descriptor&.grid_class, action, params.stringify_keys)
         response = dispatch(controller_class, action.to_s, env, user)
         parse_response(response)
       end
@@ -28,19 +31,19 @@ module WulinAgent
 
       private
 
-      def resolve_controller(name)
-        ControllerResolver.for_name(name)
-      end
+      def build_env(controller_class, grid_class, action, params)
+        controller_path = controller_class.controller_path
+        request_params = params.merge(
+          "controller" => controller_path,
+          "action" => action.to_s,
+          "format" => "json"
+        )
+        request_params["grid"] = grid_class.name if grid_class
 
-      def build_env(controller, action, params, _user = nil)
         Rack::MockRequest.env_for(
-          "/#{controller}.json",
+          "/#{controller_path}.json",
           method: http_method_for(action),
-          params: params.merge(
-            "controller" => controller,
-            "action" => action,
-            "format" => "json"
-          )
+          params: request_params
         )
       end
 
@@ -57,14 +60,14 @@ module WulinAgent
 
       def parse_response(response)
         body = response.body
-      
+
         case response.status
         when 200..299
           JSON.parse(body)
         when 401
-          { "error" => "unauthorized", "body" => JSON.parse(body) }
+          {"error" => "unauthorized", "body" => JSON.parse(body)}
         else
-          { "error" => response.status, "body" => body }
+          {"error" => response.status, "body" => body}
         end
       end
     end

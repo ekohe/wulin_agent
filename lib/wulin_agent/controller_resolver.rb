@@ -29,26 +29,32 @@ module WulinAgent
 
         return grid_class.controller_class if grid_class.controller_class
 
-        controller = controller_by_plural(grid_class)
+        controller = controller_by_route(grid_class)
         return controller if controller
 
-        controller = controller_for_master_screen(grid_class)
-        return controller if controller
-
-        controller = controller_for_grid(grid_class)
-        return controller if controller
-
-        constantize_with_namespace(grid_class.model.model_name.plural)
+        controller_by_plural(grid_class)
       end
 
       def for_name(name)
-        grid = Catalog.find(name)
-        return grid.controller_class if grid&.controller_class
-
-        constantize_with_namespace(name)
+        Catalog.find(name)&.controller_class
       end
 
       private
+
+      def controller_by_route(grid_class)
+        return nil unless defined?(Rails) && Rails.application
+
+        path = normalize_path(grid_class.path)
+        return nil if path == "/"
+
+        recognized = Rails.application.routes.recognize_path(
+          "#{path}.json",
+          method: :GET
+        )
+        controller_class_for_path(recognized[:controller])
+      rescue ActionController::RoutingError, NameError
+        nil
+      end
 
       def controller_by_plural(grid_class)
         plural = grid_class.model.model_name.plural
@@ -57,71 +63,21 @@ module WulinAgent
         end
       end
 
-      def controller_for_master_screen(grid_class)
-        screens_for_grid(grid_class).each do |screen|
-          next unless master_grid_on_screen?(screen, grid_class)
-
-          controller = controller_for_screen(screen)
-          return controller if controller
+      def controller_class_for_path(controller_path)
+        segments = controller_path.split("/")
+        class_name = if segments.size == 1
+          "#{segments.first.camelize}Controller"
+        else
+          namespace = segments[0..-2].map(&:camelize).join("::")
+          "#{namespace}::#{segments.last.camelize}Controller"
         end
 
-        nil
-      end
-
-      def master_grid_on_screen?(screen_class, grid_class)
-        Array(screen_class.grid_configs).any? do |config|
-          config[:class] == grid_class && config[:master_grid].blank?
-        end
-      end
-
-      def controller_for_grid(grid_class)
-        screens = screens_for_grid(grid_class)
-        return nil if screens.empty?
-
-        grid_path = normalize_path(grid_class.path)
-        matches = screens.filter_map do |screen|
-          controller = controller_for_screen(screen)
-          next unless controller
-
-          [screen, controller, normalize_path(screen.path) == grid_path]
-        end
-
-        return nil if matches.empty?
-
-        path_match = matches.find { |_, _, path_matches| path_matches }
-        path_match ? path_match[1] : matches.first[1]
-      end
-
-      def screens_for_grid(grid_class)
-        Array(WulinMaster::Screen.screens).select do |screen|
-          (screen.components_pool || []).include?(grid_class)
-        end
-      end
-
-      def controller_for_screen(screen_class)
-        WulinMaster::ScreenController.descendants.find do |controller|
-          Array(controller.screen_classes).include?(screen_class)
-        end
+        class_name.constantize
       end
 
       def normalize_path(path)
         normalized = path.to_s.split("?", 2).first.chomp("/")
         normalized.empty? ? "/" : normalized
-      end
-
-      def constantize_with_namespace(name)
-        base = "#{name.camelize}Controller"
-        candidates = []
-        candidates << "#{WulinAgent.controller_namespace}::#{base}" if WulinAgent.controller_namespace.present?
-        candidates << base
-
-        candidates.each do |class_name|
-          return class_name.constantize
-        rescue NameError
-          next
-        end
-
-        raise NameError, "uninitialized constant #{candidates.last}"
       end
     end
   end
