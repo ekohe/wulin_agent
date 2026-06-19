@@ -24,33 +24,49 @@ export function ConversationHistory() {
     aui.thread().reset(toAssistantUiMessages(data.messages));
   }
 
-  async function startNew() {
-    resetConversationId()
-    setSelectedId(null)
-    aui.thread().reset([])
+  function startNew() {
+    resetConversationId();
+    setSelectedId(null);
+    aui.thread().reset([]);
   }
 
-
-  if (loading) return <p style={{ padding: 8 }}>Loading conversations...</p>;
+  if (loading) {
+    return (
+      <div className="wulin-agent-history">
+        <p className="wulin-agent-history__status">Loading…</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "8px", borderBottom: "1px solid #eee", background: "#fafafa" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <strong>History ({items.length})</strong>
-        <button type="button" onClick={startNew}>
-            + New Conversation
+    <div className="wulin-agent-history">
+      <div className="wulin-agent-history__header">
+        <span className="wulin-agent-history__title">History ({items.length})</span>
+        <button
+          type="button"
+          className="wulin-agent-history__new"
+          onClick={startNew}
+        >
+          + New
         </button>
       </div>
-      <ul>
+      <ul className="wulin-agent-history__list">
         {items.map((item) => (
           <li key={item.id}>
-            <button type="button" onClick={() => handleClick(item.id)}>
+            <button
+              type="button"
+              className={
+                selectedId === item.id
+                  ? "wulin-agent-history__item wulin-agent-history__item--active"
+                  : "wulin-agent-history__item"
+              }
+              onClick={() => handleClick(item.id)}
+            >
               {item.title}
             </button>
           </li>
         ))}
       </ul>
-      {selectedId && <p>Selected : #{selectedId}</p>}
     </div>
   );
 }
