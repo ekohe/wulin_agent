@@ -19,22 +19,34 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
     approval.resolution === undefined
   ) {
     return (
-      <div>
-        <div>{toolName} needs approval</div>
-
-        <button
-          onClick={() => respondToApproval({approved: true})}
-        >
-          Approve
-        </button>
-
-        <button
-          onClick={() =>
-            respondToApproval({approved: false, reason: "User declined"})
-          }
-        >
-          Reject
-        </button>
+      <div className="wulin-agent-approval">
+        <p className="wulin-agent-approval__title">
+          <span className="wulin-agent-approval__tool">{toolName}</span>
+          {" "}requires your approval
+        </p>
+        {args && Object.keys(args).length > 0 && (
+          <pre className="wulin-agent-approval__args">
+            {JSON.stringify(args, null, 2)}
+          </pre>
+        )}
+        <div className="wulin-agent-approval__actions">
+          <button
+            type="button"
+            className="wulin-agent-approval__approve"
+            onClick={() => respondToApproval({approved: true})}
+          >
+            Approve
+          </button>
+          <button
+            type="button"
+            className="wulin-agent-approval__reject"
+            onClick={() =>
+              respondToApproval({approved: false, reason: "User declined"})
+            }
+          >
+            Reject
+          </button>
+        </div>
       </div>
     );
   }

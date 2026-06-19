@@ -272,6 +272,81 @@
   color: var(--wulin-agent-text);
 }
 
+.wulin-agent-approval {
+  margin: 0.5rem 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-left: 3px solid var(--wulin-agent-main);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+}
+
+.wulin-agent-approval__title {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval__tool {
+  font-weight: 600;
+  color: var(--wulin-agent-main);
+}
+
+.wulin-agent-approval__args {
+  margin: 0 0 0.5rem;
+  padding: 0.375rem 0.5rem;
+  overflow-x: auto;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval__actions {
+  display: flex;
+  gap: 0.375rem;
+  justify-content: flex-end;
+}
+
+.wulin-agent-approval__approve,
+.wulin-agent-approval__reject {
+  height: 24px;
+  padding: 0 0.75rem;
+  border-radius: var(--wulin-agent-radius);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 24px;
+  cursor: pointer;
+  box-shadow: var(--wulin-agent-shadow);
+}
+
+.wulin-agent-approval__approve {
+  border: none;
+  background: var(--wulin-agent-main);
+  color: #fff;
+}
+
+.wulin-agent-approval__approve:hover {
+  background: var(--wulin-agent-main-hover);
+}
+
+.wulin-agent-approval__reject {
+  border: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text-muted);
+  box-shadow: none;
+}
+
+.wulin-agent-approval__reject:hover {
+  border-color: var(--wulin-agent-error);
+  color: var(--wulin-agent-error);
+  background: color-mix(in srgb, var(--wulin-agent-error) 8%, transparent);
+}
+
 .wulin-agent-thread__footer {
   flex-shrink: 0;
   padding: 10px 16px;
