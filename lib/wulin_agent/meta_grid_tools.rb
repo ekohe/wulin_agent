@@ -23,8 +23,8 @@ module WulinAgent
         },
         operator: {
           type: "string",
-          enum: %w[equals not_equals],
-          description: 'Comparison operator. Default: "equals". Use include/exclude for association columns.'
+          enum: %w[equals not_equals include exclude],
+          description: 'Comparison operator. Default: "equals". Use include/exclude only on String columns'
         }
       },
       required: %w[column value]

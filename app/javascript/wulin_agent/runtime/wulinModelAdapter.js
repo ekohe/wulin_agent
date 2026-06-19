@@ -102,7 +102,9 @@ async function* streamResponse(body, existingToolCalls = []) {
       }
 
       case "error":
-        throw new Error(event.message);
+        accumulatedText += `\n\nErreur : ${event.message}`;
+        yield snapshot();
+        return;
     }
   }
 }

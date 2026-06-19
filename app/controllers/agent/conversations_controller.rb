@@ -53,7 +53,16 @@ module Agent
         metadata: writer.metadata
       )
     rescue => e
-      writer&.write_error(e.message)
+      error_text = assistant_error_text(e)
+      if writer
+        writer.write(type: :text_delta, content: error_text)
+        writer.close
+      end
+      conversation.messages.create!(
+        role: "assistant",
+        content: writer&.assistant_text.presence || error_text,
+        metadata: writer&.metadata || {}
+      )
     ensure
       response.stream.close
     end
@@ -83,6 +92,10 @@ module Agent
 
     def user_conversations
       Agent::Conversation.where(user_id: current_user.id)
+    end
+
+    def assistant_error_text(error)
+      "Error : #{error.message}"
     end
 
     def message_param

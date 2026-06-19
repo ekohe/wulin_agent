@@ -136,6 +136,12 @@
   color: #333;
 }
 
+.wulin-agent-error {
+  margin: 0;
+  color: #b00020;
+  font-size: 0.875rem;
+}
+
 .wulin-agent-tool {
   margin: 0.5rem 0;
   padding: 0.5rem;

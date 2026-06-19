@@ -84,6 +84,42 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       post :create, params: {conversation_id: conversation.id, message: "Second"}
     end
+
+    it "persists an assistant message when the runner raises" do
+      allow(runner).to receive(:run).and_raise(
+        NoMethodError, "undefined method `split' for nil:NilClass"
+      )
+
+      expect {
+        post :create, params: {message: "List stories"}
+      }.to change(Agent::Message, :count).by(2)
+
+      messages = Agent::Conversation.last.messages.chronological
+      expect(messages.map(&:role)).to eq(%w[user assistant])
+      expect(messages.last.content).to include("split")
+    end
+
+    it "streams the error as assistant text" do
+      allow(runner).to receive(:run).and_raise(RuntimeError, "boom")
+
+      post :create, params: {message: "Hello"}
+
+      expect(response.body).to include('0:"Error : boom"')
+      expect(response.body).not_to include('3:')
+      expect(response.body).to include("[DONE]")
+    end
+
+    it "includes the error reply in history for the next turn" do
+      conversation = Agent::Conversation.create!(user: user)
+      conversation.messages.create!(role: "user", content: "First")
+      conversation.messages.create!(role: "assistant", content: "OK")
+
+      allow(runner).to receive(:run).and_raise(RuntimeError, "boom")
+      post :create, params: {conversation_id: conversation.id, message: "Second"}
+
+      messages = conversation.reload.messages.chronological
+      expect(messages.last).to have_attributes(role: "assistant", content: "Error : boom")
+    end
   end
 
   describe "GET #show" do

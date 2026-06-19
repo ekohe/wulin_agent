@@ -56,7 +56,15 @@ function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
       <MessagePrimitive.Parts
-        components={{tools: {Fallback: ToolFallback}}}
+        components={{
+          Text: ({text}) =>
+            text.startsWith("Error :") ? (
+              <p className="wulin-agent-error">{text}</p>
+            ) : (
+              <p>{text}</p>
+            ),
+          tools: { Fallback: ToolFallback },
+        }}
       />
     </MessagePrimitive.Root>
   );
