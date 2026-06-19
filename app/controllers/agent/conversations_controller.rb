@@ -33,10 +33,32 @@ module Agent
           {role: message.role, content: message.content, metadata: message.metadata}
         end
       }
+    end 
+
+    def index
+      conversations = user_conversations
+      .includes(:messages)
+      .order(updated_at: :desc)
+      .limit(50)
+
+
+      render json: conversations.map { |conversation|
+        {
+          id: conversation.id,
+          title: conversation_title(conversation),
+          updated_at: conversation.updated_at.iso8601,
+          approval_mode: conversation.approval_mode
+        }
+      }
     end
 
     private
-
+    def conversation_title(conversation)
+      conversation.title.presence ||
+        conversation.messages.chronological.first&.content&.truncate(80) ||
+        "Conversation ##{conversation.id}"
+    end
+    
     def stream_conversation_turn
       conversation = find_or_create_conversation
       conversation.messages.create!(role: "user", content: message_param) if action_name == "create"

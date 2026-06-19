@@ -10,6 +10,10 @@ export function resetConversationId() {
   conversationId = null;
 }
 
+export function setConversationId(id) {
+  conversationId = id != null ? String(id) : null;
+}
+
 function csrfToken() {
   return document.querySelector('meta[name="csrf-token"]')?.content;
 }
@@ -18,6 +22,13 @@ function jsonHeaders() {
   return {
     "Content-Type": "application/json",
     Accept: "text/plain",
+    "X-CSRF-Token": csrfToken(),
+  };
+}
+
+function getHeaders() {
+  return {
+    Accept: "application/json",
     "X-CSRF-Token": csrfToken(),
   };
 }
@@ -89,3 +100,41 @@ export async function runRejected({ token, reason, signal } = {}) {
 
   return { body: response.body };
 }
+
+export async function listConversations({ signal } = {}) {
+  const response = await fetch(BASE,{
+    method: "GET",
+    credentials: "include",
+    headers: getHeaders(),
+    signal,
+  });
+  if (response.status === 401) {
+    throw new Error("Not authenticated (401)");
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function fetchConversation(id, { signal } = {}) {
+  const response = await fetch(`${BASE}/${id}`, {
+    method: "GET",
+    credentials: "include",
+    headers: getHeaders(),
+    signal,
+  });
+
+  if (response.status === 401) {
+    throw new Error("Not authenticated (401)");
+  }
+  if (response.status === 404) {
+    throw new Error("Conversation not found (404)");
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+

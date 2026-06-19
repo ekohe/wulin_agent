@@ -1,6 +1,7 @@
 import {useState} from "react";
 import {WulinAgentProvider} from "./WulinAgentProvider";
 import {Thread} from "./Thread";
+import { ConversationHistory } from "./ConversationHistory";
 
 export function AgentApp() {
   const [open, setOpen] = useState(false);
@@ -45,6 +46,7 @@ export function AgentApp() {
               ×
             </button>
           </header>
+          <ConversationHistory />
           <Thread />
         </div>
       </aside>
