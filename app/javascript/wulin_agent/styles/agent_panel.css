@@ -57,6 +57,11 @@
   cursor: pointer;
 }
 
+.wulin-agent-backdrop:focus {
+  background: rgba(0, 0, 0, 0.2);
+  outline: none;
+}
+
 .wulin-agent-drawer {
   position: fixed;
   top: var(--wulin-agent-nav-height);
