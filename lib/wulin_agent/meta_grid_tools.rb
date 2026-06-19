@@ -24,7 +24,7 @@ module WulinAgent
         operator: {
           type: "string",
           enum: %w[equals not_equals include exclude],
-          description: 'Comparison operator. Default: "equals". Use include/exclude only on String columns'
+          description: 'Comparison operator. Default: "equals". Strictly use include/exclude only on String columns unless prompted differently.'
         }
       },
       required: %w[column value]

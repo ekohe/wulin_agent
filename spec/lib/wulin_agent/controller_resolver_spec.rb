@@ -89,6 +89,155 @@ RSpec.describe WulinAgent::ControllerResolver do
       end
     end
 
+    context "when the grid declares controller_class" do
+      let(:story_model) do
+        Class.new do
+          def self.model_name
+            ActiveModel::Name.new(self, nil, "Story")
+          end
+        end
+      end
+
+      let(:story_grid) do
+        Class.new(WulinMaster::Grid) do
+          def self.model
+            Story
+          end
+        end
+      end
+
+      before do
+        stub_const("Story", story_model)
+        stub_const(
+          "Admin::StoriesController",
+          Class.new(WulinMaster::ScreenController)
+        )
+        stub_const(
+          "Admin::EventsController",
+          Class.new(WulinMaster::ScreenController)
+        )
+        stub_const("StoryGrid", story_grid)
+        StoryGrid.controller_class = Admin::StoriesController
+        WulinMaster::Grid.grids.replace([PersonGrid, StoryGrid])
+      end
+
+      it "uses the explicit controller_class" do
+        expect(described_class.for_grid(StoryGrid)).to eq(Admin::StoriesController)
+      end
+    end
+
+    context "when a namespaced controller matches the model plural" do
+      let(:story_model) do
+        Class.new do
+          def self.model_name
+            ActiveModel::Name.new(self, nil, "Story")
+          end
+        end
+      end
+
+      let(:story_grid) do
+        Class.new(WulinMaster::Grid) do
+          def self.model
+            Story
+          end
+        end
+      end
+
+      let(:event_screen) do
+        Class.new(WulinMaster::Screen) do
+          path "/admin/events"
+          grid EventGrid
+          grid StoryGrid, master_grid: "EventGrid"
+        end
+      end
+
+      before do
+        stub_const("Story", story_model)
+        stub_const("Event", Class.new { def self.model_name = ActiveModel::Name.new(self, nil, "Event") })
+        stub_const("StoryGrid", story_grid)
+        stub_const("EventGrid", Class.new(WulinMaster::Grid) { def self.model = Event })
+        stub_const("EventScreen", event_screen)
+        stub_const(
+          "Admin::StoriesController",
+          Class.new(WulinMaster::ScreenController)
+        )
+        stub_const(
+          "Admin::EventsController",
+          Class.new(WulinMaster::ScreenController) do
+            controller_for_screen EventScreen
+          end
+        )
+
+        WulinMaster::Grid.grids.replace([PersonGrid, EventGrid, StoryGrid])
+        WulinMaster::Screen.screens.replace([EventScreen])
+      end
+
+      it "prefers the controller whose name matches the model plural" do
+        expect(described_class.for_grid(StoryGrid)).to eq(Admin::StoriesController)
+      end
+    end
+
+    context "when no controller matches the model plural" do
+      let(:chapter_model) do
+        Class.new do
+          def self.model_name
+            ActiveModel::Name.new(self, nil, "Chapter")
+          end
+        end
+      end
+
+      let(:chapter_grid) do
+        Class.new(WulinMaster::Grid) do
+          def self.model
+            Chapter
+          end
+        end
+      end
+
+      let(:chapter_detail_screen) do
+        Class.new(WulinMaster::Screen) do
+          path "/admin/chapter_details"
+          grid ChapterGrid
+        end
+      end
+
+      let(:event_screen) do
+        Class.new(WulinMaster::Screen) do
+          path "/admin/events"
+          grid EventGrid
+          grid ChapterGrid, master_grid: "EventGrid"
+        end
+      end
+
+      before do
+        stub_const("Chapter", chapter_model)
+        stub_const("Event", Class.new { def self.model_name = ActiveModel::Name.new(self, nil, "Event") })
+        stub_const("ChapterGrid", chapter_grid)
+        stub_const("EventGrid", Class.new(WulinMaster::Grid) { def self.model = Event })
+        stub_const("ChapterDetailScreen", chapter_detail_screen)
+        stub_const("EventScreen", event_screen)
+        stub_const(
+          "Admin::ChapterDetailsController",
+          Class.new(WulinMaster::ScreenController) do
+            controller_for_screen ChapterDetailScreen
+          end
+        )
+        stub_const(
+          "Admin::EventsController",
+          Class.new(WulinMaster::ScreenController) do
+            controller_for_screen EventScreen
+          end
+        )
+
+        WulinMaster::Grid.grids.replace([PersonGrid, EventGrid, ChapterGrid])
+        WulinMaster::Screen.screens.replace([EventScreen, ChapterDetailScreen])
+      end
+
+      it "prefers the screen where the grid is master" do
+        expect(described_class.for_grid(ChapterGrid)).to eq(Admin::ChapterDetailsController)
+      end
+    end
+
     context "with Admin namespace fallback" do
       let(:article_model) do
         Class.new do

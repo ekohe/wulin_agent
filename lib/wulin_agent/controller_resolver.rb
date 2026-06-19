@@ -27,6 +27,14 @@ module WulinAgent
       def for_grid(grid_class)
         load_screen_controllers!
 
+        return grid_class.controller_class if grid_class.controller_class
+
+        controller = controller_by_plural(grid_class)
+        return controller if controller
+
+        controller = controller_for_master_screen(grid_class)
+        return controller if controller
+
         controller = controller_for_grid(grid_class)
         return controller if controller
 
@@ -41,6 +49,30 @@ module WulinAgent
       end
 
       private
+
+      def controller_by_plural(grid_class)
+        plural = grid_class.model.model_name.plural
+        WulinMaster::ScreenController.descendants.find do |controller|
+          controller.controller_name == plural
+        end
+      end
+
+      def controller_for_master_screen(grid_class)
+        screens_for_grid(grid_class).each do |screen|
+          next unless master_grid_on_screen?(screen, grid_class)
+
+          controller = controller_for_screen(screen)
+          return controller if controller
+        end
+
+        nil
+      end
+
+      def master_grid_on_screen?(screen_class, grid_class)
+        Array(screen_class.grid_configs).any? do |config|
+          config[:class] == grid_class && config[:master_grid].blank?
+        end
+      end
 
       def controller_for_grid(grid_class)
         screens = screens_for_grid(grid_class)
