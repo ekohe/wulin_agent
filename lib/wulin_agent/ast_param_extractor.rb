@@ -68,10 +68,10 @@ module WulinAgent
       receiver = node.children[0]
       return unless params_receiver?(receiver)
 
-      sym_node = node.children[2]&.children&.first
-      return unless sym_node&.type == :SYM
+      key_node = node.children[2]&.children&.first
+      return unless key_node&.type == :SYM || key_node&.type == :LIT
 
-      sym_node.children.first
+      key_node.children.first
     end
 
     def params_receiver?(node)
