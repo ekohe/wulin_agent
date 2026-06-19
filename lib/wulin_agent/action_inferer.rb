@@ -25,7 +25,7 @@ module WulinAgent
         operation = action[:name].to_s
         controller_class = grid.controller_class
         return unless controller_class
-        return unless controller_class.instance_methods(false).include?(operation.to_sym)
+        return unless controller_action?(controller_class, operation)
 
         decl = agent_action_for(grid, operation)
 
@@ -39,6 +39,14 @@ module WulinAgent
         ) do |params, user|
           GridDispatcher.call(grid.controller, operation, params, user)
         end
+      end
+
+      def controller_action?(controller_class, operation)
+        method = controller_class.instance_method(operation)
+        owner = method.owner
+        owner == controller_class || owner.in?(controller_class.included_modules)
+      rescue NameError
+        false
       end
 
       def mutating?(operation)
