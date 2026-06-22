@@ -165,6 +165,36 @@ Tools are gated by +wulin_permits+:
 At runtime, +ActionInferer+ builds a +ToolSpec+ that dispatches through
 +GridDispatcher+ to the grid controller, with the same permissions as the UI.
 
+Most custom actions need no configuration: +ActionInferer+ reads
++params[:...]+ from the controller method via AST. Use +agent_action+ only
+for actions the inferer cannot parse, or to override the schema or
+description.
+
+=== Scanning custom actions
+
+After install, audit which custom actions are ready for the agent:
+
+  bin/rails wulin_agent:scan
+
+The report classifies each grid custom action:
+
+* +skip+ — UI-only (no controller method)
+* +inferred+ — params schema auto-detected from the controller
+* +declared+ — explicit +agent_action+ on the grid
+* +partial+ — tool exists but schema is empty; needs +agent_action+
+* +manual+ — inferer failed; needs +agent_action+
+
+Options:
+
+  VERBOSE=1 bin/rails wulin_agent:scan
+  WRITE=1 bin/rails wulin_agent:scan
+  FORCE=1 WRITE=1 bin/rails wulin_agent:scan
+
++WRITE=1+ writes a draft +config/wulin_agent_actions.rb+ for +partial+ and
++manual+ actions only. This file is not loaded at boot — copy the
++agent_action+ blocks into your grid classes, fill in +params:+, then delete
+the draft.
+
 == Routes
 
 The engine exposes its routes automatically.

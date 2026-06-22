@@ -17,6 +17,8 @@ require "wulin_agent/ast_param_extractor"
 require "wulin_agent/tool_adapter"
 require "wulin_agent/runner"
 require "wulin_agent/data_stream_writer"
+require "wulin_agent/action_scanner"
+require "wulin_agent/schema_formatter"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent

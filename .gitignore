@@ -7,6 +7,7 @@ pkg/*
 spec/dummy/log/*.log
 spec/dummy/config/database.yml
 spec/dummy/.env
+spec/dummy/config/wulin_agent_actions.rb
 spec/dummy/tmp/cache/*
 spec/dummy/tmp/pids/*
 # ignore the bundle folder

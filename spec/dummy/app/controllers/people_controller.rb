@@ -12,4 +12,8 @@ class PeopleController < WulinMaster::ScreenController
     ids = Array(params[:person_ids]).map(&:to_i)
     render json: { success: true, count: ids.size }
   end
+
+  def noop
+    render json: {success: true}
+  end
 end
