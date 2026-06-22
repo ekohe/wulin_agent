@@ -68,9 +68,9 @@ module WulinAgent
     end
 
     def require_wulin_agent_js
-      path = "app/assets/javascripts/application.js"
-      unless File.exist?(path)
-        say "Skipped #{path} (not found)", :yellow
+      path = %w[javascripts javascript].map { |dir| "app/assets/#{dir}/application.js" }.find { |p| File.exist?(p) }
+      unless path
+        say "Skipped application.js (not found in javascripts or javascript)", :yellow
         return
       end
       return if File.read(path).include?("wulin_agent")
