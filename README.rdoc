@@ -5,21 +5,61 @@ actions as LLM tools (ruby_llm + MCP), gated by wulin_permits.
 
 == Installation
 
-Host apps vendoring the gem under +vendor/gems/wulin_agent+:
+Host apps vendor +wulin_agent+ as a git submodule under
++vendor/gems/wulin_agent+.
 
-1. Add to your Gemfile:
+=== Add the gem to the host app
 
-     gem "wulin_agent", path: "vendor/gems/wulin_agent"
+From the host Rails application:
 
-2. Initialize the submodule:
+  cd /path/to/app
 
-     git submodule update --init --recursive
+Add the repository as a submodule:
 
-3. Install dependencies:
+  git submodule add git@gitlab.ekohe.com:ekohe/wulin/wulin_agent.git vendor/gems/wulin_agent
 
-     bundle install
+Add the gem to the Gemfile:
+
+  gem "wulin_agent", path: "vendor/gems/wulin_agent"
+
+Install dependencies:
+
+  bundle install
+
+For other developers after cloning the project:
+
+  git submodule update --init --recursive
+  bundle install
 
 == Integration
+
+=== Install generator
+
+From the host Rails application:
+
+  bin/rails generate wulin_agent:install
+
+The generator automatically:
+
+* creates +config/initializers/wulin_agent.rb+
+* adds +wulin_agent.js+ and +wulin_agent.css+ to the asset manifest
+* requires the assets in the main application bundles
+* adds +#wulin-agent-root+ to +app/views/layouts/application.html.haml+
+  (or +application.html.erb+) when available
+
+You should see:
+
+  wulin_agent installed
+
+  Routes: automatic with the gem (/agent/conversations)
+
+  Next steps:
+    rails db/migrate
+    rake wulin_permits:load_permission
+    export OPENAI_API_KEY=sk-...
+
+No manual mount is required in +routes.rb+. The engine routes are loaded
+automatically.
 
 === Prerequisites
 
@@ -30,7 +70,30 @@ Host apps vendoring the gem under +vendor/gems/wulin_agent+:
 * PostgreSQL (+agent_messages.metadata+ is +jsonb+)
 
 Follow the standard Wulin Master / Wulin Permits setup in your app (migrations,
-menus, +rake wulin_permits:load_permissions+ after adding grids).
+menus, +rake wulin_permits:load_permission+ after adding grids).
+
+=== Database
+
+Run the engine migrations:
+
+  bin/rails db:migrate
+
+This creates:
+
+* +agent_conversations+
+* +agent_messages+
+
++agent_conversations+ references +users+; ensure a +users+ table exists before
+migrating.
+
+=== Permissions
+
+Load Wulin permissions:
+
+  rake wulin_permits:load_permission
+
+This registers grid/action permissions so LLM tools are exposed only when the
+current user has the required permissions.
 
 === OpenAI
 
@@ -39,23 +102,29 @@ variable or Rails credentials:
 
   OPENAI_API_KEY=sk-...
 
+or:
+
   # config/credentials.yml.enc
   openai:
     access_token: sk-...
 
 +ENV["OPENAI_API_KEY"]+ takes precedence; credentials are used as fallback.
 
-=== Database
+=== Assets
 
-The engine appends its migrations to the host app (+agent_conversations+,
-+agent_messages+). Run:
+The JavaScript/CSS assets are already built in the gem
+(+app/assets/builds/+).
 
-  rails db:migrate
+After installation:
 
-+agent_conversations+ references +users+; ensure a +users+ table exists before
-migrating.
+  bin/rails assets:precompile
 
-=== Agent actions
+is enough for production.
+
+In development, restarting the Rails server is usually enough after running
+the generator.
+
+== Agent actions
 
 Grid custom actions (declared with +action+ on a +WulinMaster::Grid+) can be
 exposed to the LLM as tools alongside CRUD. Use +agent_action+ to describe how
@@ -71,9 +140,19 @@ the agent should call them:
   end
 
 Only actions backed by a controller method are exposed. UI-only actions (e.g.
-+:fullscreen+ with no controller endpoint) are ignored. The tool name follows
-+<controller>__<action>+ (e.g. +people__greet+) and is gated by
-+wulin_permits+ (+people#greet+).
++:fullscreen+ with no controller endpoint) are ignored.
+
+The tool name follows:
+
+  <controller>__<action>
+
+Example:
+
+  people__greet
+
+Tools are gated by +wulin_permits+:
+
+  people#greet
 
 +agent_action+ options:
 
@@ -86,36 +165,40 @@ Only actions backed by a controller method are exposed. UI-only actions (e.g.
 At runtime, +ActionInferer+ builds a +ToolSpec+ that dispatches through
 +GridDispatcher+ to the grid controller, with the same permissions as the UI.
 
-== Frontend assets
+== Routes
 
-JavaScript/CSS are built with esbuild under +app/+ and committed to
-+app/assets/builds/+ (+wulin_agent.js+, +wulin_agent.css+).
+The engine exposes its routes automatically.
 
-+node_modules/+ is gitignored; run +npm ci+ after clone.
+Available endpoint:
 
-The engine registers these assets for precompile. Host apps must link them in
-+app/assets/config/manifest.js+:
+  /agent/conversations
 
-  //= link wulin_agent.js
-  //= link wulin_agent.css
-
-And require them in the main asset bundles:
-
-  // app/assets/javascripts/application.js
-  //= require wulin_agent
-
-  /* app/assets/stylesheets/application.css */
-  *= require wulin_agent
+No manual configuration is required in the host application's
++config/routes.rb+.
 
 == Development
 
+Clone dependencies:
+
   git submodule update --init --recursive
-  cp spec/dummy/config/database.example.yml spec/dummy/config/database.yml
+
+Install gems:
+
   bundle install
-  cd app && npm ci && npm run build
+
+Build frontend assets:
+
+  cd app
+  npm ci
+  npm run build
+
+Run tests:
+
   bundle exec rspec
 
 Wulin gems are vendored as git submodules under +vendor/gems/+ (same layout as
 wulintest). +wulin_master+ is a sibling repo on GitLab
-(+../wulin_master.git+). CI uses +GIT_SUBMODULE_STRATEGY: recursive+ (same
-GitLab instance, no SSH keys required).
+(+../wulin_master.git+).
+
+CI uses +GIT_SUBMODULE_STRATEGY: recursive+ (same GitLab instance, no SSH keys
+required).
