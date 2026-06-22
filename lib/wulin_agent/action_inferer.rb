@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module WulinAgent
+  class ToolSchemaError < StandardError; end
   # Builds ToolSpec entries for grid custom actions (non-CRUD).
   #
   # Flow (next implementation):
@@ -26,19 +27,23 @@ module WulinAgent
         controller_class = grid.controller_class
         return unless controller_class
         return unless controller_action?(controller_class, operation)
-
+      
         decl = agent_action_for(grid, operation)
-
+      
         StandardGridTools.tool(
           grid,
           operation,
           description: resolve_description(grid, action, decl, operation),
           mutating: resolve_mutating(operation, decl),
           permission: "#{grid.controller}##{operation}",
-          params_schema: resolve_params_schema(controller_class, operation, decl)
+          params_schema: resolve_params_schema_with_context(grid, controller_class, operation, decl)
         ) do |params, user|
           GridDispatcher.call(grid.controller, operation, params, user)
         end
+      rescue ToolSchemaError
+        raise
+      rescue StandardError => e
+        raise tool_schema_error(grid, operation, e)
       end
 
       def controller_action?(controller_class, operation)
@@ -70,12 +75,14 @@ module WulinAgent
         { properties: properties, required: required }
       end
 
-      def resolve_params_schema(controller_class, operation, decl)
+      def resolve_params_schema_with_context(grid, controller_class, operation, decl)
         if decl && decl[:params].present?
           params_schema_from_declaration(decl[:params])
         else
           AstParamExtractor.new(controller_class, operation.to_sym).to_schema
         end
+      rescue TypeError, ArgumentError => e
+        raise tool_schema_error(grid, operation, e)
       end
 
       def resolve_description(grid, action, decl, operation)
@@ -88,6 +95,20 @@ module WulinAgent
         return decl[:mutating] if decl&.key?(:mutating)
 
         mutating?(operation)
+      end
+
+      def tool_schema_error(grid, operation, cause = nil)
+        tool_name = WulinAgent.tool_name(grid.controller, operation)
+      
+        hint = <<~HINT.squish
+          Add an explicit agent_action :#{operation} on #{grid.grid_class.name}
+          with params: { ... } (see README), or implement #{grid.controller_class.name}##{operation}
+          with inferrable params[:...] in Ruby source.
+        HINT
+      
+        ToolSchemaError.new(
+          "Cannot build agent tool #{tool_name} for grid action :#{operation} on #{grid.grid_class.name}. #{hint}"
+        )
       end
     end
   end

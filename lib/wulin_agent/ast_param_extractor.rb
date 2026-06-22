@@ -31,6 +31,13 @@ module WulinAgent
     def ast_for_method
       method = @controller_class.instance_method(@method_name)
       file, _line = method.source_location
+
+      if file.nil?
+        raise ArgumentError,
+          "no Ruby source for #{@controller_class.name}##{@method_name} (owner: #{method.owner})"
+      end
+
+      
       tree = RubyVM::AbstractSyntaxTree.parse_file(file)
       find_defn(tree, @method_name)
     end

@@ -58,7 +58,7 @@ module Agent
         conversation.messages.chronological.first&.content&.truncate(80) ||
         "Conversation ##{conversation.id}"
     end
-    
+
     def stream_conversation_turn
       conversation = find_or_create_conversation
       conversation.messages.create!(role: "user", content: message_param) if action_name == "create"
@@ -75,6 +75,9 @@ module Agent
         metadata: writer.metadata
       )
     rescue => e
+      Rails.logger.error(
+        "[wulin_agent] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
+      )
       error_text = assistant_error_text(e)
       if writer
         writer.write(type: :text_delta, content: error_text)
@@ -117,7 +120,10 @@ module Agent
     end
 
     def assistant_error_text(error)
-      "Error : #{error.message}"
+      message = error.message
+      message = "Agent tool configuration error: #{message}" if error.is_a?(WulinAgent::ToolSchemaError)
+      
+      "Error : #{message}"
     end
 
     def message_param
