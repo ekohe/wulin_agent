@@ -200,5 +200,3 @@ Wulin gems are vendored as git submodules under +vendor/gems/+ (same layout as
 wulintest). +wulin_master+ is a sibling repo on GitLab
 (+../wulin_master.git+).
 
-CI uses +GIT_SUBMODULE_STRATEGY: recursive+ (same GitLab instance, no SSH keys
-required).
