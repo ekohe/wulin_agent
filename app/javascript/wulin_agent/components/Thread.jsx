@@ -84,19 +84,19 @@ export function Thread() {
         <ThreadPrimitive.Messages
           components={{UserMessage, AssistantMessage}}
         />
-
-        <ThreadPrimitive.ViewportFooter className="wulin-agent-thread__footer">
-          <ComposerPrimitive.Root className="wulin-agent-composer">
-            <ComposerPrimitive.Input
-              className="wulin-agent-composer__input"
-              placeholder="Ex: How many people in the database ?"
-            />
-            <ComposerPrimitive.Send className="wulin-agent-composer__send">
-              Send
-            </ComposerPrimitive.Send>
-          </ComposerPrimitive.Root>
-        </ThreadPrimitive.ViewportFooter>
       </ThreadPrimitive.Viewport>
+
+      <footer className="wulin-agent-thread__footer">
+        <ComposerPrimitive.Root className="wulin-agent-composer">
+          <ComposerPrimitive.Input
+            className="wulin-agent-composer__input"
+            placeholder="Ex: How many people in the database ?"
+          />
+          <ComposerPrimitive.Send className="wulin-agent-composer__send">
+            Send
+          </ComposerPrimitive.Send>
+        </ComposerPrimitive.Root>
+      </footer>
     </ThreadPrimitive.Root>
   );
 }

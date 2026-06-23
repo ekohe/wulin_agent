@@ -1,4 +1,5 @@
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
+import {createPortal} from "react-dom";
 import {WulinAgentProvider} from "./WulinAgentProvider";
 import {Thread} from "./Thread";
 import {ConversationHistory} from "./ConversationHistory";
@@ -12,9 +13,22 @@ import {
 
 export function AgentApp() {
   const [open, setOpen] = useState(false);
+  const [toggleSlot, setToggleSlot] = useState(null);
   const [approvalMode, setApprovalMode] = useState(
     () => getStoredApprovalMode() ?? "confirm_writes"
   );
+
+  useEffect(() => {
+    const ul = document.querySelector("nav .nav-wrapper ul.right");
+    if (!ul) return;
+
+    const li = document.createElement("li");
+    li.className = "wulin-agent-toggle-slot";
+    ul.insertBefore(li, ul.firstChild);
+    setToggleSlot(li);
+
+    return () => li.remove();
+  }, []);
 
   const handleApprovalModeChange = useCallback(async (mode) => {
     setApprovalMode(mode);
@@ -37,20 +51,23 @@ export function AgentApp() {
     setPendingApprovalMode(mode);
   }, []);
 
+  const toggleButton = (
+    <button
+      type="button"
+      className={`wulin-agent-toggle${open ? " wulin-agent-toggle--open" : ""}`}
+      aria-expanded={open}
+      aria-label={open ? "Fermer l'agent" : "Ouvrir l'agent"}
+      onClick={() => setOpen((v) => !v)}
+    >
+      <i className="material-icons" aria-hidden="true">
+        android
+      </i>
+    </button>
+  );
+
   return (
     <WulinAgentProvider>
-      <button
-        type="button"
-        className="wulin-agent-toggle"
-        aria-expanded={open}
-        aria-label={open ? "Fermer l'agent" : "Ouvrir l'agent"}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <i className="material-icons" aria-hidden="true">
-          smart_toy
-        </i>
-        <span className="wulin-agent-toggle__label">Agent</span>
-      </button>
+      {toggleSlot && createPortal(toggleButton, toggleSlot)}
 
       {open && (
         <button
