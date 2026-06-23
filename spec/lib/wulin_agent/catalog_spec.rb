@@ -9,6 +9,15 @@ RSpec.describe WulinAgent::Catalog do
     PersonGrid
   end
 
+  describe ".all" do
+    it "rebuilds the registry when Grid.grids was cleared after load" do
+      PersonGrid
+      WulinMaster::Grid.grids.clear
+
+      expect(described_class.all.map(&:controller)).to eq(["people"])
+    end
+  end
+
   describe ".find" do
     it "describes people grid columns, actions, and choices" do
       grid = described_class.find("people")

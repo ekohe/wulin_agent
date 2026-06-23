@@ -69,5 +69,18 @@ RSpec.describe Agent::Conversation do
         [{role: :user, content: "first"}]
       )
     end
+
+    it "includes message metadata for tool replay" do
+      conversation = described_class.create!(user: user)
+      metadata = {
+        "tool_calls" => [{"id" => "call_1", "name" => "list_records", "arguments" => {}}],
+        "tool_results" => [{"id" => "call_1", "name" => "list_records", "result" => {"rows" => []}}]
+      }
+      conversation.messages.create!(role: "assistant", content: "", metadata: metadata)
+
+      expect(conversation.history_for_runner.last).to eq(
+        {role: :assistant, content: "", metadata: metadata}
+      )
+    end
   end
 end

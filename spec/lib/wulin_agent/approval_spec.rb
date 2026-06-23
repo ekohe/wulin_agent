@@ -52,4 +52,19 @@ RSpec.describe WulinAgent::Approvals do
       expect(described_class.consume!(token, user_id: user.id)).to be_nil
     end
   end
+
+  describe ".fetch!" do
+    before { described_class.reset! }
+
+    let(:user) { User.create!(email: "fetcher@example.com", admin: true) }
+
+    it "returns a grant without consuming it" do
+      token = described_class.issue!(tool: "list_grids", params: {}, user_id: user.id)
+
+      grant = described_class.fetch!(token, user_id: user.id)
+
+      expect(grant).to include(tool: "list_grids", params: {}, user_id: user.id)
+      expect(described_class.fetch!(token, user_id: user.id)).to include(tool: "list_grids")
+    end
+  end
 end

@@ -1,10 +1,41 @@
-import {useState} from "react";
+import {useCallback, useState} from "react";
 import {WulinAgentProvider} from "./WulinAgentProvider";
 import {Thread} from "./Thread";
-import { ConversationHistory } from "./ConversationHistory";
+import {ConversationHistory} from "./ConversationHistory";
+import {ApprovalModeSelect} from "./ApprovalModeSelect";
+import {
+  getConversationId,
+  getStoredApprovalMode,
+  setPendingApprovalMode,
+  updateApprovalMode,
+} from "../api";
 
 export function AgentApp() {
   const [open, setOpen] = useState(false);
+  const [approvalMode, setApprovalMode] = useState(
+    () => getStoredApprovalMode() ?? "confirm_writes"
+  );
+
+  const handleApprovalModeChange = useCallback(async (mode) => {
+    setApprovalMode(mode);
+    setPendingApprovalMode(mode);
+
+    const id = getConversationId();
+    if (id == null) return;
+
+    try {
+      const data = await updateApprovalMode(id, mode);
+      setApprovalMode(data.approval_mode);
+      setPendingApprovalMode(data.approval_mode);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  const handleConversationApprovalMode = useCallback((mode) => {
+    setApprovalMode(mode);
+    setPendingApprovalMode(mode);
+  }, []);
 
   return (
     <WulinAgentProvider>
@@ -36,17 +67,25 @@ export function AgentApp() {
       >
         <div className="wulin-agent-panel">
           <header className="wulin-agent-panel__header">
-            <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
-            <button
-              type="button"
-              className="wulin-agent-panel__close"
-              aria-label="Fermer"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </button>
+            <div className="wulin-agent-panel__header-row">
+              <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
+              <button
+                type="button"
+                className="wulin-agent-panel__close"
+                aria-label="Fermer"
+                onClick={() => setOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <ApprovalModeSelect
+              value={approvalMode}
+              onChange={handleApprovalModeChange}
+            />
           </header>
-          <ConversationHistory />
+          <ConversationHistory
+            onApprovalModeChange={handleConversationApprovalMode}
+          />
           <Thread />
         </div>
       </aside>

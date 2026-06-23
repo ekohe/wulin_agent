@@ -11,7 +11,13 @@ module Agent
       inverse_of: :messages
 
     validates :role, inclusion: {in: ROLES}
-    validates :content, presence: true
+    validates :content, presence: true, unless: :tool_only_assistant_message?
+
+    def tool_only_assistant_message?
+      role == "assistant" &&
+        metadata.is_a?(Hash) &&
+        metadata["tool_calls"].present?
+    end
 
     scope :chronological, -> { order(:created_at) }
   end

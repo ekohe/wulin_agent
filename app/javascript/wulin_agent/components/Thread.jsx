@@ -3,6 +3,7 @@ import {
   MessagePrimitive,
   ThreadPrimitive,
 } from "@assistant-ui/react";
+import {ApprovalCard} from "./ApprovalCard";
 
 function UserMessage() {
   return (
@@ -13,47 +14,37 @@ function UserMessage() {
 }
 
 function ToolFallback({toolName, args, result, approval, respondToApproval}) {
-  if (
-    approval &&
-    approval.approved === undefined &&
-    approval.resolution === undefined
-  ) {
+  const isPending =
+    approval?.approved === undefined && approval?.resolution === undefined;
+  const isExecuting = approval?.approved === true && result == null;
+  const isRejected = approval?.approved === false;
+
+  if (approval && isPending) {
     return (
-      <div className="wulin-agent-approval">
-        <p className="wulin-agent-approval__title">
-          <span className="wulin-agent-approval__tool">{toolName}</span>
-          {" "}requires your approval
-        </p>
-        {args && Object.keys(args).length > 0 && (
-          <pre className="wulin-agent-approval__args">
-            {JSON.stringify(args, null, 2)}
-          </pre>
-        )}
-        <div className="wulin-agent-approval__actions">
-          <button
-            type="button"
-            className="wulin-agent-approval__approve"
-            onClick={() => respondToApproval({approved: true})}
-          >
-            Approve
-          </button>
-          <button
-            type="button"
-            className="wulin-agent-approval__reject"
-            onClick={() =>
-              respondToApproval({approved: false, reason: "User declined"})
-            }
-          >
-            Reject
-          </button>
-        </div>
-      </div>
+      <ApprovalCard
+        toolName={toolName}
+        args={args}
+        approval={approval}
+        respondToApproval={respondToApproval}
+      />
     );
   }
 
+  let toolClass = "wulin-agent-tool";
+  if (isRejected) {
+    toolClass += " wulin-agent-tool--rejected";
+  } else if (isExecuting) {
+    toolClass += " wulin-agent-tool--executing";
+  } else if (approval?.approved === true) {
+    toolClass += " wulin-agent-tool--approved";
+  }
+
   return (
-    <details className="wulin-agent-tool">
-      <summary>{toolName}</summary>
+    <details className={toolClass} open={isExecuting || undefined}>
+      <summary>
+        {toolName}
+        {isExecuting ? " — executing…" : ""}
+      </summary>
       {args && Object.keys(args).length > 0 && (
         <pre>{JSON.stringify(args, null, 2)}</pre>
       )}

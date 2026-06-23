@@ -1,5 +1,6 @@
 import {getConversationId, runApproved, runRejected, sendMessage} from "../api";
 import {parseDataStream} from "../parseDataStream";
+import { getApprovalDraft, clearApprovalDraft } from "../approvalDrafts";
 
 function lastUserText(messages) {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -17,25 +18,49 @@ function lastUserText(messages) {
 
 async function* streamResponse(body, existingToolCalls = []) {
   const isResume = existingToolCalls.length > 0;
+  const knownToolCallIds = new Set(
+    existingToolCalls.map((part) => part.toolCallId)
+  );
   const toolCalls = [];
+  const newToolCalls = [];
   let accumulatedText = "";
 
+  function allCalls() {
+    return isResume ? newToolCalls : toolCalls;
+  }
+
   function snapshot() {
+    const calls = allCalls();
+    const content = [
+      ...calls,
+      ...(accumulatedText
+        ? [{type: "text", text: accumulatedText}]
+        : []),
+    ];
+    return {content};
+  }
+
+  function findCall(event) {
+    const byId = (calls) =>
+      calls.find((part) => part.toolCallId === event.toolCallId);
+
     if (isResume) {
-      return {
-        content: accumulatedText
-          ? [{type: "text", text: accumulatedText}]
-          : [],
-      };
+      return (
+        byId(existingToolCalls) ||
+        byId(newToolCalls) ||
+        existingToolCalls.find(
+          (part) => part.approval?.approved === true && part.result === undefined
+        )
+      );
     }
-    return {
-      content: [
-        ...toolCalls,
-        ...(accumulatedText
-          ? [{type: "text", text: accumulatedText}]
-          : []),
-      ],
-    };
+
+    return (
+      byId(toolCalls) || toolCalls.find((part) => part.toolName === event.name)
+    );
+  }
+
+  function shouldYieldResumeUpdate() {
+    return newToolCalls.length > 0 || accumulatedText;
   }
 
   for await (const event of parseDataStream(body)) {
@@ -46,58 +71,68 @@ async function* streamResponse(body, existingToolCalls = []) {
         break;
 
       case "tool_call_start": {
-        const exists = toolCalls.find(
-          (t) => t.toolCallId === event.toolCallId
+        if (isResume && knownToolCallIds.has(event.toolCallId)) {
+          break;
+        }
+
+        const calls = allCalls();
+        const exists = calls.find(
+          (part) => part.toolCallId === event.toolCallId
         );
-      
+
         if (!exists) {
-          toolCalls.push({
+          const part = {
             type: "tool-call",
             toolCallId: event.toolCallId,
             toolName: event.toolName,
             args: {},
             argsText: "",
-          });
+          };
+          calls.push(part);
+          if (isResume) knownToolCallIds.add(event.toolCallId);
         }
-      
+
         yield snapshot();
         break;
       }
 
       case "tool_call_args": {
-        const call = toolCalls[toolCalls.length - 1];
+        const calls = isResume
+          ? [...existingToolCalls, ...newToolCalls]
+          : toolCalls;
+        const call =
+          calls.find((part) => part.toolCallId === event.toolCallId) ||
+          allCalls()[allCalls().length - 1];
         if (call) {
           call.args = event.arguments;
           call.argsText = JSON.stringify(event.arguments);
         }
-        yield snapshot();
+        if (!isResume || shouldYieldResumeUpdate()) {
+          yield snapshot();
+        }
         break;
       }
 
       case "tool_result": {
-        const call = isResume
-          ? existingToolCalls.find((tc) => tc.toolCallId === event.toolCallId) ||
-            existingToolCalls.find(
-              (p) => p.approval?.approved === true && p.result === undefined
-            )
-          : toolCalls.find((tc) => tc.toolCallId === event.toolCallId) ||
-            toolCalls.find((tc) => tc.toolName === event.name);
-      
+        const call = findCall(event);
+
         if (event.result?.status === "approval_required") {
           if (call) {
             call.approval = {id: event.result.approval_token};
             delete call.result;
           }
-      
+
           yield {
             ...snapshot(),
             status: {type: "requires-action", reason: "tool-calls"},
           };
           return;
         }
-      
+
         if (call) call.result = event.result;
-        yield snapshot();
+        if (!isResume || shouldYieldResumeUpdate()) {
+          yield snapshot();
+        }
         break;
       }
 
@@ -122,10 +157,18 @@ export const wulinModelAdapter = {
         part.approval?.approved === true && part.result === undefined
     );
     if (approvedCall) {
+      const token = approvedCall.approval.id;
+      const params =
+        getApprovalDraft(token) ?? approvedCall.args;
+      approvedCall.args = params;
+      approvedCall.argsText = JSON.stringify(params);
       const {body} = await runApproved({
-        token: approvedCall.approval.id,
+        token,
+        params,
         signal: abortSignal,
       });
+      clearApprovalDraft(token);
+
       yield* streamResponse(body, existingToolCalls);
       return;
     }

@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { useAui } from "@assistant-ui/react";
-import { fetchConversation, listConversations, setConversationId, resetConversationId } from "../api";
+import {
+  fetchConversation,
+  getStoredConversationId,
+  listConversations,
+  resetConversationId,
+  setConversationId,
+} from "../api";
 import { toAssistantUiMessages } from "../messageMapper";
 
-export function ConversationHistory() {
+export function ConversationHistory({onApprovalModeChange}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -17,10 +23,27 @@ export function ConversationHistory() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const storedId = getStoredConversationId();
+    if (!storedId) return;
+
+    fetchConversation(storedId)
+      .then((data) => {
+        setSelectedId(data.id);
+        setConversationId(data.id);
+        onApprovalModeChange?.(data.approval_mode);
+        aui.thread().reset(toAssistantUiMessages(data.messages));
+      })
+      .catch(() => {
+        resetConversationId();
+      });
+  }, [aui, onApprovalModeChange]);
+
   async function handleClick(id) {
     setSelectedId(id);
     const data = await fetchConversation(id);
     setConversationId(data.id);
+    onApprovalModeChange?.(data.approval_mode);
     aui.thread().reset(toAssistantUiMessages(data.messages));
   }
 

@@ -27,14 +27,15 @@ module WulinAgent
 
     def run_approved(token:, params: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
+      grant = Approvals.fetch!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
 
       spec = ToolRegistry.find(grant[:tool], @user)
       raise ArgumentError, "tool not found" unless spec
 
-      final_params = (params || grant[:params]).stringify_keys
-      raise ArgumentError, "missing tool params" if final_params.empty?
+      raw = params || grant[:params] || {}
+      raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
+      final_params = raw.deep_stringify_keys
       result = spec.execute(
         final_params,
         @user,
@@ -42,30 +43,32 @@ module WulinAgent
         approved: true
       )
 
-      emit(type: :tool_result, name: grant[:tool], result: result)
+      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
 
-      chat.add_message(
-        role: :user,
-        content: "User approved #{grant[:tool]}: #{result.to_json}"
-      )
-      response = complete_summary_turn
+      replace_tool_result!(grant[:tool_call_id], result)
+      response = continue_agent_turn
+      Approvals.consume!(token, user_id: @user.id)
       emit(type: :done)
-      response.content
+      response
     ensure
       @on_event = nil
     end
 
     def run_rejected(token:, reason: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
+      grant = Approvals.fetch!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
     
       message = reason || "User declined #{grant[:tool]}"
-      chat.add_message(role: :user, content: message)
+      replace_tool_result!(
+        grant[:tool_call_id],
+        {"status" => "rejected", "reason" => message}
+      )
 
-      response = complete_summary_turn
+      response = continue_agent_turn
+      Approvals.consume!(token, user_id: @user.id)
       emit(type: :done)
-      response.content
+      response
     ensure
       @on_event = nil
     end
@@ -99,7 +102,7 @@ module WulinAgent
         .with_instructions(system_prompt)
         .on_tool_call { |tc| emit_tool_call(tc) }
         .on_tool_result { |result| emit_tool_result(result) }
-      @history.each { |msg| chat.add_message(role: msg[:role], content: msg[:content]) }
+      @history.each { |msg| replay_message!(chat, msg) }
       chat
     end
 
@@ -131,17 +134,65 @@ module WulinAgent
       end
     end
 
-    def complete_summary_turn
+    def continue_agent_turn
       scope_messages_for_completion!
-      chat.with_tools(replace: true)
-      chat.complete { |chunk| emit_text_delta(chunk) }
-    ensure
-      chat.with_tools(*tools, replace: true)
+      response = chat.complete { |chunk| emit_text_delta(chunk) }
+      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
+    end
+
+    def replay_message!(chat, msg)
+      tool_calls = msg.dig(:metadata, "tool_calls") || []
+      tool_results = msg.dig(:metadata, "tool_results") || []
+      completed_ids = tool_results.map { |result| result["id"] }.to_set
+      completed_calls = tool_calls.select { |call| completed_ids.include?(call["id"]) }
+
+      if completed_calls.any?
+        replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        return
+      end
+
+      return if msg[:content].blank?
+
+      chat.add_message(role: msg[:role], content: msg[:content])
+    end
+
+    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
+      calls = tool_calls.index_by { |call| call["id"] }.transform_values do |call|
+        RubyLLM::ToolCall.new(
+          id: call["id"],
+          name: call["name"],
+          arguments: call["arguments"] || {}
+        )
+      end
+
+      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: calls)
+
+      tool_calls.each do |call|
+        tool_result = tool_results.find { |result| result["id"] == call["id"] }
+        next unless tool_result
+
+        chat.add_message(
+          role: :tool,
+          content: tool_result["result"].to_json,
+          tool_call_id: call["id"]
+        )
+      end
+    end
+
+    def replace_tool_result!(tool_call_id, result)
+      message = chat.messages.find { |msg| msg.tool_result? && msg.tool_call_id == tool_call_id }
+      if message
+        message.content = result
+      else
+        chat.add_message(role: :tool, content: result.to_json, tool_call_id: tool_call_id)
+      end
     end
 
     def limited_messages(messages)
       system, rest = messages.partition { |msg| msg.role == :system }
-      system + rest.last(MAX_CONTEXT_MESSAGES)
+      trimmed = rest.last(MAX_CONTEXT_MESSAGES)
+      trimmed.shift while trimmed.first&.tool_result?
+      system + trimmed
     end
 
     def emit(event)

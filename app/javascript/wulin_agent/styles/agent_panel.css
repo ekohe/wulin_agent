@@ -17,6 +17,9 @@
   --wulin-agent-font: inherit;
   --wulin-agent-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   --wulin-agent-radius: 2px;
+  --wulin-agent-aborted: #d1d1d1;
+  --wulin-agent-warning: #f0b429;
+  --wulin-agent-warning-soft: color-mix(in srgb, var(--wulin-agent-warning) 10%, transparent);
 }
 
 .wulin-agent-toggle {
@@ -71,7 +74,7 @@
   max-width: 100vw;
   transform: translateX(100%);
   transition: transform 0.2s ease;
-  z-index: 1004;
+  z-index: 1010;
   background: var(--wulin-agent-bg);
   border-left: 1px solid var(--wulin-agent-border);
   display: flex;
@@ -94,13 +97,27 @@
 
 .wulin-agent-panel__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.375rem;
   flex-shrink: 0;
-  height: 40px;
-  padding: 0 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--wulin-agent-border);
   background: var(--wulin-agent-bg);
+  position: relative;
+  z-index: 2;
+}
+
+.wulin-agent-panel__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 24px;
+}
+
+.wulin-agent-panel__header .wulin-agent-approval-mode {
+  width: 100%;
+  margin-left: 0;
 }
 
 .wulin-agent-panel__title {
@@ -310,6 +327,15 @@
   color: var(--wulin-agent-text);
 }
 
+.wulin-agent-approval__textarea {
+  display: block;
+  width: 100%;
+  min-height: 7rem;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 .wulin-agent-approval__actions {
   display: flex;
   gap: 0.375rem;
@@ -317,7 +343,8 @@
 }
 
 .wulin-agent-approval__approve,
-.wulin-agent-approval__reject {
+.wulin-agent-approval__reject,
+.wulin-agent-approval__edit {
   height: 24px;
   padding: 0 0.75rem;
   border-radius: var(--wulin-agent-radius);
@@ -326,6 +353,24 @@
   font-weight: 500;
   line-height: 24px;
   cursor: pointer;
+}
+
+.wulin-agent-approval__edit {
+  margin-right: auto;
+  border: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  box-shadow: none;
+}
+
+.wulin-agent-approval__edit:hover {
+  border-color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main);
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-approval__approve,
+.wulin-agent-approval__reject {
   box-shadow: var(--wulin-agent-shadow);
 }
 
@@ -362,6 +407,14 @@
 .wulin-agent-composer {
   display: flex;
   gap: 0.375rem;
+  padding: 0.375rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+}
+
+.wulin-agent-composer:focus-within {
+  border-color: var(--wulin-agent-main);
 }
 
 .wulin-agent-composer__input {
@@ -400,4 +453,49 @@
 .wulin-agent-composer__send:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.wulin-agent-approval--pending {
+  border: 1px solid var(--wulin-agent-warning);
+  background: var(--wulin-agent-warning-soft);
+}
+
+.wulin-agent-tool--executing {
+  border: 1px solid var(--wulin-agent-main);
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-tool--executing summary {
+  color: var(--wulin-agent-main);
+}
+
+.wulin-agent-tool--rejected {
+  border: 1px solid var(--wulin-agent-aborted);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-aborted);
+}
+
+.wulin-agent-tool--rejected summary {
+  color: var(--wulin-agent-aborted);
+}
+
+.wulin-agent-tool--approved {
+  border: 1px solid var(--wulin-agent-border);
+}
+
+
+.wulin-agent-approval-mode {
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 0 0.375rem;
+  font-size: 12px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  color: var(--wulin-agent-text);
+  cursor: pointer;
+  /* Materialize hides native selects (opacity: 0) for custom dropdowns */
+  opacity: 1;
+  appearance: auto;
 }

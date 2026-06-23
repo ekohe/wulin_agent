@@ -1,6 +1,10 @@
 const BASE = "/agent/conversations";
+const STORAGE_CONVERSATION_KEY = "wulin_agent_conversation_id";
+const STORAGE_APPROVAL_MODE_KEY = "wulin_agent_approval_mode";
 
-let conversationId = null;
+let conversationId = sessionStorage.getItem(STORAGE_CONVERSATION_KEY);
+let pendingApprovalMode =
+  sessionStorage.getItem(STORAGE_APPROVAL_MODE_KEY) ?? "confirm_writes";
 
 export function getConversationId() {
   return conversationId;
@@ -8,10 +12,33 @@ export function getConversationId() {
 
 export function resetConversationId() {
   conversationId = null;
+  sessionStorage.removeItem(STORAGE_CONVERSATION_KEY);
 }
 
 export function setConversationId(id) {
   conversationId = id != null ? String(id) : null;
+  if (conversationId) {
+    sessionStorage.setItem(STORAGE_CONVERSATION_KEY, conversationId);
+  } else {
+    sessionStorage.removeItem(STORAGE_CONVERSATION_KEY);
+  }
+}
+
+export function getStoredConversationId() {
+  return sessionStorage.getItem(STORAGE_CONVERSATION_KEY);
+}
+
+export function setPendingApprovalMode(mode) {
+  pendingApprovalMode = mode;
+  sessionStorage.setItem(STORAGE_APPROVAL_MODE_KEY, mode);
+}
+
+export function getStoredApprovalMode() {
+  return sessionStorage.getItem(STORAGE_APPROVAL_MODE_KEY);
+}
+
+export function getPendingApprovalMode() {
+  return pendingApprovalMode;
 }
 
 function csrfToken() {
@@ -36,7 +63,11 @@ function getHeaders() {
 export async function sendMessage(message, explicitConversationId, {signal} = {}) {
   const id = explicitConversationId ?? conversationId;
   const body = {message};
-  if (id != null) body.conversation_id = id;
+  if (id != null) {
+    body.conversation_id = id;
+  } else {
+    body.approval_mode = pendingApprovalMode;
+  }
 
   const response = await fetch(BASE, {
     method: "POST",
@@ -57,7 +88,7 @@ export async function sendMessage(message, explicitConversationId, {signal} = {}
     response.headers.get("X-Conversation-Id") ?? id;
 
   if (newConversationId != null) {
-    conversationId = String(newConversationId);
+    setConversationId(newConversationId);
   }
 
   return {body: response.body, conversationId: newConversationId};
@@ -138,3 +169,23 @@ export async function fetchConversation(id, { signal } = {}) {
   return response.json();
 }
 
+
+
+export async function updateApprovalMode(id, approvalMode, { signal } = {}) {
+  const response = await fetch(`${BASE}/${id}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      ...jsonHeaders(),
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ approval_mode: approvalMode }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json(); // { id, approval_mode }
+}

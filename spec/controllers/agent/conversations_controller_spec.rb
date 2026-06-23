@@ -42,8 +42,20 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       conversation = Agent::Conversation.last
       expect(conversation.user).to eq(user)
+      expect(conversation.approval_mode).to eq("confirm_writes")
       expect(conversation.messages.chronological.pluck(:role, :content)).to eq(
         [["user", "How many people?"], ["assistant", "There are 0 people."]]
+      )
+    end
+
+    it "creates a conversation with the requested approval_mode" do
+      stub_runner_run(content: "OK")
+
+      post :create, params: {message: "Hello", approval_mode: "confirm_all"}
+
+      expect(Agent::Conversation.last.approval_mode).to eq("confirm_all")
+      expect(WulinAgent::Runner).to have_received(:new).with(
+        hash_including(approval_mode: :confirm_all)
       )
     end
 
@@ -188,6 +200,40 @@ RSpec.describe Agent::ConversationsController, type: :controller do
         content: "Done."
       )
     end
+
+    it "resolves the pending approval on the original assistant message" do
+      conversation = Agent::Conversation.create!(user: user)
+      conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {
+          "tool_calls" => [
+            {"id" => "call_0", "name" => "list_grids", "arguments" => {}},
+            {"id" => "call_1", "name" => "people__destroy", "arguments" => {"id" => 26}}
+          ],
+          "tool_results" => [
+            {"id" => "call_0", "name" => "list_grids", "result" => [{"controller" => "people"}]},
+            {
+              "id" => "call_1",
+              "name" => "people__destroy",
+              "result" => {"status" => "approval_required", "approval_token" => "tok-1"}
+            }
+          ]
+        }
+      )
+      allow(runner).to receive(:run_approved) do |**_args, &block|
+        block&.call(type: :tool_result, name: "people__destroy", result: {"success" => true})
+        block&.call(type: :text_delta, content: "Done.")
+        block&.call(type: :done)
+        "Done."
+      end
+
+      post :approve, params: {id: conversation.id, token: "tok-1"}
+
+      expect(conversation.messages.chronological.first.metadata["tool_results"].last["result"]).to eq(
+        "success" => true
+      )
+    end
   end
 
   describe "POST #reject" do
@@ -203,6 +249,34 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       expect(response.body).to include('0:"Understood."')
       expect(conversation.messages.last.content).to eq("Understood.")
+    end
+
+    it "marks the pending approval as rejected on the original assistant message" do
+      conversation = Agent::Conversation.create!(user: user)
+      conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {
+          "tool_calls" => [{"id" => "call_1", "name" => "people__destroy", "arguments" => {"id" => 26}}],
+          "tool_results" => [{
+            "id" => "call_1",
+            "name" => "people__destroy",
+            "result" => {"status" => "approval_required", "approval_token" => "tok-1"}
+          }]
+        }
+      )
+      allow(runner).to receive(:run_rejected) do |**_args, &block|
+        block&.call(type: :text_delta, content: "Understood.")
+        block&.call(type: :done)
+        "Understood."
+      end
+
+      post :reject, params: {id: conversation.id, token: "tok-1", reason: "No thanks"}
+
+      expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq(
+        "status" => "rejected",
+        "reason" => "No thanks"
+      )
     end
   end
 end

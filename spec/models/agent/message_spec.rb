@@ -20,6 +20,17 @@ RSpec.describe Agent::Message do
       expect(message).not_to be_valid
       expect(message.errors[:content]).to be_present
     end
+
+    it "allows empty content for assistant messages with tool calls" do
+      message = described_class.new(
+        conversation: conversation,
+        role: "assistant",
+        content: "",
+        metadata: {"tool_calls" => [{"id" => "call_1", "name" => "destroy_record"}]}
+      )
+
+      expect(message).to be_valid
+    end
   end
 
   describe ".chronological" do

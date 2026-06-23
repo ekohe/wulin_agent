@@ -23,7 +23,9 @@ module Agent
       scope = messages.chronological.to_a
       scope = scope[0...-1] if exclude_last && scope.any?
       scope.last(limit).map do |message|
-        {role: message.role.to_sym, content: message.content}
+        entry = {role: message.role.to_sym, content: message.content}
+        entry[:metadata] = message.metadata if message.metadata.present?
+        entry
       end
     end
   end

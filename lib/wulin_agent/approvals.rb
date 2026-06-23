@@ -28,6 +28,14 @@ module WulinAgent
       grant
     end
 
+    def self.fetch!(token, user_id:)
+      grant = store[token]
+      return nil unless grant
+      return nil if grant[:user_id] != user_id
+      return nil if grant[:expires_at] < Time.current
+      grant
+    end
+
     def self.store
       @store ||= {}
     end

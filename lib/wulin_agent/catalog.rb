@@ -7,6 +7,7 @@ module WulinAgent
 
     class << self
       def all
+        ensure_grids_loaded!
         @all ||= WulinMaster::Grid.grids.map { |grid_class| build(grid_class) }
       end
 
@@ -19,6 +20,22 @@ module WulinAgent
       end
 
       private
+
+      def ensure_grids_loaded!
+        return unless defined?(Rails) && Rails.application
+
+        Dir.glob(Rails.root.join("app/screens/**/*.rb")).each { |f| require f }
+        Dir.glob(Rails.root.join("app/grids/**/*.rb")).each { |f| require f }
+
+        return if WulinMaster::Grid.grids.any?
+
+        WulinMaster::Screen.screens&.each do |screen|
+          (screen.components_pool || []).each do |klass|
+            next unless klass.is_a?(Class) && klass < WulinMaster::Grid
+            WulinMaster::Grid.grids << klass unless WulinMaster::Grid.grids.include?(klass)
+          end
+        end
+      end
 
       def build(grid_class)
         default_actions, custom_actions = build_actions(grid_class)

@@ -69,6 +69,8 @@ module Agent
 
       assistant_content = run_runner_turn(runner) { |event| writer.write(event) }
 
+      resolve_pending_approval!(conversation, writer) if %w[approve reject].include?(action_name)
+
       conversation.messages.create!(
         role: "assistant",
         content: writer.assistant_text.presence || assistant_content.to_s,
@@ -111,8 +113,13 @@ module Agent
       if params[:conversation_id].present? || params[:id].present?
         user_conversations.find(params[:conversation_id].presence || params[:id])
       else
-        user_conversations.create!
+        user_conversations.create!(approval_mode: approval_mode_for_create)
       end
+    end
+
+    def approval_mode_for_create
+      mode = params[:approval_mode].to_s
+      Agent::Conversation::APPROVAL_MODES.include?(mode) ? mode : "confirm_writes"
     end
 
     def user_conversations
@@ -122,7 +129,7 @@ module Agent
     def assistant_error_text(error)
       message = error.message
       message = "Agent tool configuration error: #{message}" if error.is_a?(WulinAgent::ToolSchemaError)
-      
+
       "Error : #{message}"
     end
 
@@ -143,6 +150,41 @@ module Agent
         approval_mode: conversation.approval_mode_sym,
         history: conversation.history_for_runner(exclude_last: action_name == "create")
       )
+    end
+
+    def resolve_pending_approval!(conversation, writer)
+      token = params[:token]
+      return if token.blank?
+
+      result =
+        if action_name == "approve"
+          writer.metadata["tool_results"]&.find { |tr| tr["result"].present? }&.dig("result")
+        else
+          {"status" => "rejected", "reason" => params[:reason].presence || "User declined"}
+        end
+      return unless result
+
+      message = conversation.messages.chronological.reverse.find do |msg|
+        msg.metadata.fetch("tool_results", []).any? do |tr|
+          tool_result_approval_token(tr) == token
+        end
+      end
+      return unless message
+
+      tool_results = message.metadata["tool_results"].map do |tr|
+        if tool_result_approval_token(tr) == token
+          tr.merge("result" => result)
+        else
+          tr
+        end
+      end
+
+      message.update!(metadata: message.metadata.merge("tool_results" => tool_results))
+    end
+
+    def tool_result_approval_token(tool_result)
+      result = tool_result["result"]
+      result["approval_token"] if result.is_a?(Hash)
     end
   end
 end
