@@ -82,9 +82,32 @@ This creates:
 
 * +agent_conversations+
 * +agent_messages+
+* +agent_knowledge+
 
 +agent_conversations+ references +users+; ensure a +users+ table exists before
 migrating.
+
+== Knowledge
+
+Domain terms (acronyms, schema mappings, workflows) live in +agent_knowledge+.
+The agent reads them via +knowledge_search+ and can add or remove entries with
++knowledge_upsert+ / +knowledge_delete+ (writes require approval in
++confirm_writes+ mode).
+
+Categories: +acronym+, +schema+, +goal+, +glossary+. Optional +scope+ limits an
+entry to a grid context (e.g. +orders+).
+
+Example:
+
+  Agent::Knowledge.create!(
+    key: "NHK",
+    value: "Customer — Nippon Hoso Kyokai",
+    category: "schema",
+    scope: "orders"
+  )
+
+Knowledge tools are available to any authenticated agent user (not gated by
+grid permissions). Mutating calls still go through the approval flow.
 
 === Permissions
 
