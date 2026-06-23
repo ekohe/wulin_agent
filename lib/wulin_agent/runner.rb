@@ -112,6 +112,8 @@ module WulinAgent
         modify grid data.
 
         Workflow:
+        - If the user mentions acronyms or domain terms you do not understand, call
+          knowledge_search before querying grids.
         - Call list_grids to discover tables.
         - Call get_columns before create, update, or filtering.
         - Use controller names exactly as returned by list_grids.

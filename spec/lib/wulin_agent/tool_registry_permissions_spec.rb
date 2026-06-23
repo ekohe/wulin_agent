@@ -37,7 +37,15 @@ RSpec.describe WulinAgent::ToolRegistry, "permissions" do
       reader = create_user_with_permissions("person#read")
       names = described_class.for(reader).map(&:name)
 
-      expect(names).to include("list_grids", "get_columns", "list_records", "read_record")
+      expect(names).to include(
+        "list_grids",
+        "get_columns",
+        "list_records",
+        "read_record",
+        "knowledge_search",
+        "knowledge_upsert",
+        "knowledge_delete"
+      )
       expect(names).not_to include("create_record", "update_record", "destroy_record")
     end
 
@@ -45,7 +53,14 @@ RSpec.describe WulinAgent::ToolRegistry, "permissions" do
       editor = create_user_with_permissions("person#cud")
       names = described_class.for(editor).map(&:name)
 
-      expect(names).to include("create_record", "update_record", "destroy_record")
+      expect(names).to include(
+        "create_record",
+        "update_record",
+        "destroy_record",
+        "knowledge_search",
+        "knowledge_upsert",
+        "knowledge_delete"
+      )
       expect(names).not_to include("list_records", "read_record", "get_columns")
     end
   end

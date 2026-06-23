@@ -18,7 +18,13 @@ RSpec.describe WulinAgent::Runner do
       runner = described_class.new(user: admin)
       names = runner.tools.map(&:name)
 
-      expect(names).to include("list_records", "people__greet")
+      expect(names).to include("list_records", "people__greet", "knowledge_search")
+    end
+
+    it "mentions knowledge_search in the system prompt" do
+      runner = described_class.new(user: admin)
+
+      expect(runner.send(:system_prompt)).to include("knowledge_search")
     end
 
     it "respects approval_mode when building tools" do
@@ -91,7 +97,9 @@ RSpec.describe WulinAgent::Runner do
 
     it "keeps the system prompt and only the last 10 non-system messages" do
       system_msg = instance_double("RubyLLM::Message", role: :system)
-      rest_msgs = (1..12).map { |i| instance_double("RubyLLM::Message", role: :user, content: "msg #{i}") }
+      rest_msgs = (1..12).map do |i|
+        instance_double("RubyLLM::Message", role: :user, content: "msg #{i}", tool_result?: false)
+      end
       all_messages = [system_msg, *rest_msgs]
 
       stub_chat(message_content: "ok", messages: all_messages)

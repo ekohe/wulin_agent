@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_16_120001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_23_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,6 +22,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_16_120001) do
     t.bigint "user_id", null: false
     t.index ["user_id", "updated_at"], name: "index_agent_conversations_on_user_id_and_updated_at"
     t.index ["user_id"], name: "index_agent_conversations_on_user_id"
+  end
+
+  create_table "agent_knowledge", force: :cascade do |t|
+    t.string "category", null: false
+    t.datetime "created_at", null: false
+    t.string "key", null: false
+    t.string "scope"
+    t.datetime "updated_at", null: false
+    t.text "value", null: false
+    t.index "key, COALESCE(scope, ''::character varying)", name: "index_agent_knowledge_on_key_and_scope", unique: true
+    t.index ["category"], name: "index_agent_knowledge_on_category"
+    t.index ["scope"], name: "index_agent_knowledge_on_scope"
   end
 
   create_table "agent_messages", force: :cascade do |t|

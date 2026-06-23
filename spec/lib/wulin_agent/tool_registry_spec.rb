@@ -26,6 +26,9 @@ RSpec.describe WulinAgent::ToolRegistry do
         "create_record",
         "update_record",
         "destroy_record",
+        "knowledge_search",
+        "knowledge_upsert",
+        "knowledge_delete",
         "people__greet"
       )
     end
