@@ -40,6 +40,9 @@ module WulinAgent
           anthropic = Rails.application.credentials[:anthropic]
           config.anthropic_api_key ||= ENV["ANTHROPIC_API_KEY"].presence ||
             anthropic&.dig(:access_token) || anthropic&.dig(:api_key)
+          gemini = Rails.application.credentials[:gemini]
+          config.gemini_api_key ||= ENV["GEMINI_API_KEY"].presence ||
+            gemini&.dig(:access_token) || gemini&.dig(:api_key)
 
           config.default_model = ENV.fetch("WULIN_AGENT_MODEL", WulinAgent::DEFAULT_MODEL)
         end

@@ -128,11 +128,13 @@ use (environment variables take precedence over Rails credentials):
 
   OPENAI_API_KEY=sk-...
   ANTHROPIC_API_KEY=sk-...
+  GEMINI_API_KEY=...
 
 Default model when +WULIN_AGENT_MODEL+ is unset: +gpt-4o-mini+ (OpenAI).
-Override to switch provider, e.g. Claude:
+Override to switch provider, e.g. Claude or Gemini:
 
   WULIN_AGENT_MODEL=claude-sonnet-4-6
+  WULIN_AGENT_MODEL=gemini-2.0-flash
 
 Restart the app after changing env vars. Only configure keys for providers you
 actually use.
