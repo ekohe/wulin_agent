@@ -60,8 +60,11 @@ RSpec.describe WulinAgent::ToolRegistry do
       result = tool.execute(people.merge("offset" => 0, "count" => 50), admin)
 
       expect(result).to include("rows", "total", "offset")
+      expect(result["display"]).to eq("grid")
+      expect(result["columns"]).to be_an(Array)
       expect(result["total"]).to eq(2)
       expect(result["rows"].map { |row| row[first_name_idx] }).to contain_exactly("Alice", "Bob")
+      expect(result["columns"].map { |c| c["name"] }).to include("first_name", "last_name")
     end
 
     it "applies grid filters" do
@@ -94,6 +97,8 @@ RSpec.describe WulinAgent::ToolRegistry do
       tool = described_class.find("read_record", admin)
       result = tool.execute(people.merge("id" => alice.id), admin)
 
+      expect(result["display"]).to eq("grid")
+      expect(result["columns"]).to be_an(Array)
       expect(result["rows"].size).to eq(1)
       expect(result["rows"].first[first_name_idx]).to eq("Alice")
     end

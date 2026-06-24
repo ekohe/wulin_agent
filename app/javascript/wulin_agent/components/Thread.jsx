@@ -4,6 +4,8 @@ import {
   ThreadPrimitive,
 } from "@assistant-ui/react";
 import {ApprovalCard} from "./ApprovalCard";
+import { GridResultTable } from "./GridResultTable";
+import { isGridResult } from "../gridResult";
 
 function UserMessage() {
   return (
@@ -49,7 +51,11 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
         <pre>{JSON.stringify(args, null, 2)}</pre>
       )}
       {result != null && (
-        <pre>{JSON.stringify(result, null, 2)}</pre>
+        isGridResult(result) ? (
+          <GridResultTable result={result} />
+        ) : (
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        )
       )}
     </details>
   );

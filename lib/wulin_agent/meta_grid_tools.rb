@@ -142,7 +142,7 @@ module WulinAgent
             required: ["controller"]
           }
         ) do |grid, params, user|
-          GridDispatcher.call(
+          result = GridDispatcher.call(
             grid.controller,
             "index",
             {
@@ -154,6 +154,7 @@ module WulinAgent
             }.compact,
             user
           )
+          GridResult.wrap(grid, result)
         end
       end
 
@@ -171,7 +172,8 @@ module WulinAgent
           id = record_id(params)
           next {"error" => "id is required"} unless id
 
-          GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
+          result = GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
+          GridResult.wrap(grid, result)
         end
       end
 

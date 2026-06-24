@@ -505,3 +505,45 @@ nav ul.right .wulin-agent-toggle-slot {
   opacity: 1;
   appearance: auto;
 }
+
+.wulin-agent-grid-result {
+  margin-top: 0.5rem;
+}
+
+.wulin-agent-grid-result__meta {
+  margin: 0 0 0.375rem;
+  font-size: 11px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-grid-result__scroll {
+  overflow-x: auto;
+  max-height: 240px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+}
+
+.wulin-agent-grid-result__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wulin-agent-grid-result__table th,
+.wulin-agent-grid-result__table td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--wulin-agent-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wulin-agent-grid-result__table th {
+  position: sticky;
+  top: 0;
+  background: var(--wulin-agent-bg-subtle);
+  font-weight: 600;
+}
+
+.wulin-agent-grid-result__table tbody tr:nth-child(odd) {
+  background: var(--wulin-agent-row-odd);
+}
