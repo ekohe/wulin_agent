@@ -97,13 +97,17 @@ module WulinAgent
     end
 
     def build_chat
-      chat = RubyLLM.chat(model: @model)
+      chat = RubyLLM.chat(model: resolved_model)
         .with_tools(*tools)
         .with_instructions(system_prompt)
         .on_tool_call { |tc| emit_tool_call(tc) }
         .on_tool_result { |result| emit_tool_result(result) }
       @history.each { |msg| replay_message!(chat, msg) }
       chat
+    end
+
+    def resolved_model
+      @model.presence || RubyLLM.config.default_model
     end
 
     def system_prompt

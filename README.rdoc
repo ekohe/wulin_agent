@@ -121,20 +121,21 @@ Load Wulin permissions:
 This registers grid/action permissions so LLM tools are exposed only when the
 current user has the required permissions.
 
-=== OpenAI
+=== LLM providers and model
 
-The engine configures +ruby_llm+ at boot. Provide an API key via environment
-variable or Rails credentials:
+The engine configures +ruby_llm+ at boot. Set API keys for the providers you
+use (environment variables take precedence over Rails credentials):
 
   OPENAI_API_KEY=sk-...
+  ANTHROPIC_API_KEY=sk-...
 
-or:
+Default model when +WULIN_AGENT_MODEL+ is unset: +gpt-4o-mini+ (OpenAI).
+Override to switch provider, e.g. Claude:
 
-  # config/credentials.yml.enc
-  openai:
-    access_token: sk-...
+  WULIN_AGENT_MODEL=claude-sonnet-4-6
 
-+ENV["OPENAI_API_KEY"]+ takes precedence; credentials are used as fallback.
+Restart the app after changing env vars. Only configure keys for providers you
+actually use.
 
 === Assets
 

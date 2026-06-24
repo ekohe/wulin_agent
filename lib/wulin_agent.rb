@@ -24,6 +24,8 @@ require "wulin_agent/grid_result"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent
+  DEFAULT_MODEL = "gpt-4o-mini"
+
   def self.setup
     yield self if block_given?
   end

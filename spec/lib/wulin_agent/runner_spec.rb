@@ -104,12 +104,20 @@ RSpec.describe WulinAgent::Runner do
       runner = described_class.new(user: admin)
       response = runner.run("How many people?")
 
-      expect(RubyLLM).to have_received(:chat)
+      expect(RubyLLM).to have_received(:chat).with(model: RubyLLM.config.default_model)
       expect(chat).to have_received(:with_tools).with(*runner.tools)
       expect(chat).to have_received(:on_tool_call)
       expect(chat).to have_received(:on_tool_result)
       expect(chat).to have_received(:ask).with("How many people?")
       expect(response).to eq("There are 0 people.")
+    end
+
+    it "uses an explicit model when passed" do
+      chat = stub_chat(message_content: "ok")
+
+      described_class.new(user: admin, model: "claude-sonnet-4-6").run("hi")
+
+      expect(RubyLLM).to have_received(:chat).with(model: "claude-sonnet-4-6")
     end
 
     it "keeps the system prompt and only the last 10 non-system messages" do

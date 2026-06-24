@@ -37,6 +37,11 @@ module WulinAgent
           openai = Rails.application.credentials[:openai]
           config.openai_api_key ||= ENV["OPENAI_API_KEY"].presence ||
             openai&.dig(:access_token) || openai&.dig(:api_key)
+          anthropic = Rails.application.credentials[:anthropic]
+          config.anthropic_api_key ||= ENV["ANTHROPIC_API_KEY"].presence ||
+            anthropic&.dig(:access_token) || anthropic&.dig(:api_key)
+
+          config.default_model = ENV.fetch("WULIN_AGENT_MODEL", WulinAgent::DEFAULT_MODEL)
         end
       end
     end
