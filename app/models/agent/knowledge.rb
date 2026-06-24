@@ -30,5 +30,21 @@ module Agent
     def global?
       scope.blank?
     end
+
+    # Global acronyms only — injected into the system prompt (see Runner).
+    PROMPT_LIMIT = 30
+
+    def self.for_prompt(limit: PROMPT_LIMIT)
+      return [] unless table_exists?
+
+      where(category: "acronym", scope: [nil, ""])
+        .order(:key)
+        .limit(limit)
+        .pluck(:key, :value)
+    end
+
+    def self.table_exists?
+      connection.data_source_exists?(table_name)
+    end
   end
 end

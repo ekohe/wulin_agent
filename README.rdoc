@@ -90,20 +90,23 @@ migrating.
 == Knowledge
 
 Domain terms (acronyms, schema mappings, workflows) live in +agent_knowledge+.
-The agent reads them via +knowledge_search+ and can add or remove entries with
-+knowledge_upsert+ / +knowledge_delete+ (writes require approval in
-+confirm_writes+ mode).
+
+* Global +acronym+ entries (no +scope+, up to 30) are injected into the agent
+  system prompt so common terms (NHK, MRL, …) work without a tool call.
+* Everything else is fetched on demand via +knowledge_search+.
+* The agent can add or remove entries with +knowledge_upsert+ / +knowledge_delete+
+  (writes require approval in +confirm_writes+ mode).
 
 Categories: +acronym+, +schema+, +goal+, +glossary+. Optional +scope+ limits an
-entry to a grid context (e.g. +orders+).
+entry to a grid context (e.g. +orders+). Only global acronyms are injected;
+scoped or non-acronym entries stay in the DB.
 
-Example:
+Seed common acronyms after migrate:
 
   Agent::Knowledge.create!(
     key: "NHK",
     value: "Customer — Nippon Hoso Kyokai",
-    category: "schema",
-    scope: "orders"
+    category: "acronym"
   )
 
 Knowledge tools are available to any authenticated agent user (not gated by

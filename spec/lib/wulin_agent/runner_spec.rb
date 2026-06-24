@@ -27,6 +27,23 @@ RSpec.describe WulinAgent::Runner do
       expect(runner.send(:system_prompt)).to include("knowledge_search")
     end
 
+    it "injects global acronyms into the system prompt" do
+      Agent::Knowledge.create!(key: "NHK", value: "Customer NHK", category: "acronym")
+      Agent::Knowledge.create!(key: "X", value: "scoped", category: "acronym", scope: "orders")
+
+      prompt = described_class.new(user: admin).send(:system_prompt)
+
+      expect(prompt).to include("Domain acronyms:")
+      expect(prompt).to include("NHK: Customer NHK")
+      expect(prompt).not_to include("X: scoped")
+    end
+
+    it "omits the acronyms section when none are configured" do
+      prompt = described_class.new(user: admin).send(:system_prompt)
+
+      expect(prompt).not_to include("Domain acronyms:")
+    end
+
     it "respects approval_mode when building tools" do
       runner = described_class.new(user: admin, approval_mode: :confirm_writes)
       destroy = runner.tools.find { |t| t.name == "destroy_record" }

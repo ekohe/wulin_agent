@@ -72,6 +72,23 @@ RSpec.describe Agent::Knowledge do
     end
   end
 
+  describe ".for_prompt" do
+    it "returns global acronyms ordered by key" do
+      described_class.create!(key: "NHK", value: "customer", category: "acronym")
+      described_class.create!(key: "MRL", value: "licensee", category: "acronym")
+      described_class.create!(key: "SAD", value: "scoped", category: "acronym", scope: "orders")
+      described_class.create!(key: "NOTE", value: "glossary", category: "glossary")
+
+      expect(described_class.for_prompt).to eq([["MRL", "licensee"], ["NHK", "customer"]])
+    end
+
+    it "respects the limit" do
+      35.times { |i| described_class.create!(key: "K#{i}", value: "v", category: "acronym") }
+
+      expect(described_class.for_prompt(limit: 5).size).to eq(5)
+    end
+  end
+
   describe "#global?" do
     it "is true when scope is blank" do
       expect(described_class.new(scope: nil).global?).to be(true)

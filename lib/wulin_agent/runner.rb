@@ -107,12 +107,16 @@ module WulinAgent
     end
 
     def system_prompt
+      [base_system_prompt, knowledge_prompt_section].compact.join
+    end
+
+    def base_system_prompt
       <<~PROMPT.strip
         You are a Wulin Master assistant. Use the available tools to read and
         modify grid data.
 
         Workflow:
-        - If the user mentions acronyms or domain terms you do not understand, call
+        - Use the domain acronyms below when present. For other terms, call
           knowledge_search before querying grids.
         - Call list_grids to discover tables.
         - Call get_columns before create, update, or filtering.
@@ -126,6 +130,15 @@ module WulinAgent
 
         Prefer tools over guessing. Be concise.
       PROMPT
+    end
+
+    def knowledge_prompt_section
+      return unless defined?(Agent::Knowledge)
+
+      lines = Agent::Knowledge.for_prompt.map { |key, value| "- #{key}: #{value}" }
+      return if lines.empty?
+
+      "\n\nDomain acronyms:\n#{lines.join("\n")}"
     end
 
     def scope_messages_for_completion!
