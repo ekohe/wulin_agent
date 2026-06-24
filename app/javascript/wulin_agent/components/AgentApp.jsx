@@ -9,11 +9,13 @@ import {
   getStoredApprovalMode,
   setPendingApprovalMode,
   updateApprovalMode,
+  fetchAgentConfig
 } from "../api";
 
 export function AgentApp() {
   const [open, setOpen] = useState(false);
   const [toggleSlot, setToggleSlot] = useState(null);
+  const [model, setModel] = useState(null);
   const [approvalMode, setApprovalMode] = useState(
     () => getStoredApprovalMode() ?? "confirm_writes"
   );
@@ -28,6 +30,12 @@ export function AgentApp() {
     setToggleSlot(li);
 
     return () => li.remove();
+  }, []);
+
+  useEffect(() => {
+    fetchAgentConfig()
+      .then((data) => setModel(data.model))
+      .catch((err) => console.error(err));
   }, []);
 
   const handleApprovalModeChange = useCallback(async (mode) => {
@@ -95,6 +103,12 @@ export function AgentApp() {
                 ×
               </button>
             </div>
+            {model && (
+              <div className="wulin-agent-panel__meta">
+                <span className="wulin-agent-panel__model-label">Model</span>
+                <span className="wulin-agent-panel__model">{model}</span>
+              </div>
+            )}
             <ApprovalModeSelect
               value={approvalMode}
               onChange={handleApprovalModeChange}

@@ -169,6 +169,24 @@ export async function fetchConversation(id, { signal } = {}) {
   return response.json();
 }
 
+export async function fetchAgentConfig({ signal } = {}) {
+  const response = await fetch(`${BASE}/agent_config`, {
+    method: "GET",
+    credentials: "include",
+    headers: getHeaders(),
+    signal,
+  });
+
+  if (response.status === 401) {
+    throw new Error("Not authenticated (401)");
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json(); // { model: "gpt-4o-mini" }
+}
+
 
 
 export async function updateApprovalMode(id, approvalMode, { signal } = {}) {

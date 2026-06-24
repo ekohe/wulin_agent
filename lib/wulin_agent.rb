@@ -29,4 +29,8 @@ module WulinAgent
   def self.setup
     yield self if block_given?
   end
+
+  def self.current_model
+    RubyLLM.config.default_model
+  end
 end

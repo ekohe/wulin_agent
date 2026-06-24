@@ -52,6 +52,10 @@ module Agent
       }
     end
 
+    def agent_config
+      render json: { model: WulinAgent.current_model }
+    end
+
     private
     def conversation_title(conversation)
       conversation.title.presence ||
@@ -186,5 +190,6 @@ module Agent
       result = tool_result["result"]
       result["approval_token"] if result.is_a?(Hash)
     end
+
   end
 end
