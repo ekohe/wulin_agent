@@ -6,6 +6,12 @@ let conversationId = sessionStorage.getItem(STORAGE_CONVERSATION_KEY);
 let pendingApprovalMode =
   sessionStorage.getItem(STORAGE_APPROVAL_MODE_KEY) ?? "confirm_writes";
 
+let onConversationCreated = null;
+
+export function setOnConversationCreated(cb) {
+  onConversationCreated = cb;
+}
+
 export function getConversationId() {
   return conversationId;
 }
@@ -91,6 +97,10 @@ export async function sendMessage(message, explicitConversationId, {signal} = {}
     setConversationId(newConversationId);
   }
 
+  if (id == null && newConversationId != null) {
+    onConversationCreated?.(newConversationId);
+  }
+  
   return {body: response.body, conversationId: newConversationId};
 }
 

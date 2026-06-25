@@ -9,7 +9,7 @@ import {
 } from "../api";
 import { toAssistantUiMessages } from "../messageMapper";
 
-export function ConversationHistory({ open, onToggle, onApprovalModeChange }) {
+export function ConversationHistory({open, width, historyVersion, onToggle, onResizeStart, onApprovalModeChange}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -20,11 +20,20 @@ export function ConversationHistory({ open, onToggle, onApprovalModeChange }) {
     : "wulin-agent-history wulin-agent-history--collapsed";
 
   useEffect(() => {
+    if (historyVersion === 0) setLoading(true);
+
     listConversations()
       .then(setItems)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [historyVersion]);
+
+  useEffect(() => {
+    if (historyVersion === 0) return;
+
+    const storedId = getStoredConversationId();
+    if (storedId) setSelectedId(storedId);
+  }, [historyVersion]);
 
   useEffect(() => {
     const storedId = getStoredConversationId();
@@ -57,7 +66,7 @@ export function ConversationHistory({ open, onToggle, onApprovalModeChange }) {
   }
 
   return (
-    <div className={rootClass}>
+    <div className={rootClass} style={open ? {width} : undefined}>
       <div className="wulin-agent-history__header">
         <button
           type="button"
@@ -109,6 +118,16 @@ export function ConversationHistory({ open, onToggle, onApprovalModeChange }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {open && (
+        <div
+          className="wulin-agent-history__resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionner l'historique"
+          onMouseDown={onResizeStart}
+        />
       )}
     </div>
   );
