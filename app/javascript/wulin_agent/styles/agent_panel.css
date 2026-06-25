@@ -340,6 +340,20 @@ nav ul.right .wulin-agent-toggle-slot {
   font-weight: 500;
 }
 
+.wulin-agent-history__item:focus {
+  background: transparent;
+  outline: none;
+}
+
+.wulin-agent-history__item:focus-visible {
+  outline: 2px solid var(--wulin-agent-main);
+  outline-offset: -2px;
+}
+
+.wulin-agent-history__item--active:focus {
+  background: var(--wulin-agent-main-soft);
+}
+
 .wulin-agent-history__status {
   margin: 0;
   padding: 0.375rem 12px;
