@@ -368,7 +368,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-message {
-  margin-bottom: 0.625rem;
+  margin-bottom: 1rem;
   line-height: 1.45;
   font-size: 14px;
   min-width: 0;
@@ -387,10 +387,34 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-message--user {
   color: var(--wulin-agent-text);
   font-weight: 500;
+  width: fit-content;
+  max-width: 85%;
+  margin-left: auto;
+}
+
+.wulin-agent-message--user .wulin-agent-message__bubble {
+  background: var(--wulin-agent-bg-subtle);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
 }
 
 .wulin-agent-message--assistant {
   color: var(--wulin-agent-text);
+  max-width: 90%;
+  margin-right: auto;
+}
+
+.wulin-agent-message__role {
+  margin-bottom: 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-message--user .wulin-agent-message__role {
+  text-align: right;
 }
 
 .wulin-agent-error {

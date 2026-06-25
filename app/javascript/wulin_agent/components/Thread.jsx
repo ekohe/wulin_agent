@@ -12,7 +12,10 @@ import remarkGfm from "remark-gfm";
 function UserMessage() {
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--user">
-      <MessagePrimitive.Parts />
+      <div className="wulin-agent-message__role">User</div>
+      <div className="wulin-agent-message__bubble">
+        <MessagePrimitive.Parts />
+      </div>
     </MessagePrimitive.Root>
   );
 }
@@ -74,6 +77,7 @@ function AssistantText({text}) {
 function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
+      <div className="wulin-agent-message__role">Agent</div>
       <MessagePrimitive.Parts
         components={{
           Text: ({text}) =>
