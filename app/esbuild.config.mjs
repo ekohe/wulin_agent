@@ -12,6 +12,10 @@ const options = {
   format: "iife",
   loader: {".jsx": "jsx", ".css": "css"},
   nodePaths: [path.resolve(dir, "node_modules")],
+  alias: {
+    react: path.resolve(dir, "node_modules/react"),
+    "react-dom": path.resolve(dir, "node_modules/react-dom"),
+  },
   jsx: "automatic",
   jsxImportSource: "react",
 };
