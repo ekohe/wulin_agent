@@ -18,7 +18,8 @@ module WulinAgent
           controller: nil,
           operation: "search",
           description: "Search domain knowledge (acronyms, schema mappings, workflows). " \
-                        "Call before querying grids when the user mentions domain terms you do not understand.",
+                        "Call before querying grids when the user mentions domain terms you do not understand. " \
+                        "Omit query (or pass *) to list all entries.",
           mutating: false,
           permission: nil,
           params_schema: {
@@ -87,8 +88,10 @@ module WulinAgent
         scope = scope.by_category(params["category"]) if params["category"].present?
         scope = scope.for_scope(params["scope"]) if params["scope"].present?
 
-        if params["query"].present?
-          q = "%#{Agent::Knowledge.sanitize_sql_like(params['query'])}%"
+        query = params["query"].to_s.strip
+        query = nil if query.in?(["*", "%"])
+        if query.present?
+          q = "%#{Agent::Knowledge.sanitize_sql_like(query)}%"
           scope = scope.where("key ILIKE ? OR value ILIKE ?", q, q)
         end
 
