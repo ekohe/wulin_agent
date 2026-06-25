@@ -6,7 +6,7 @@ module WulinAgent
       def for(user = nil)
         return [] if user.nil?
 
-        meta = MetaGridTools.build + KnowledgeTools.build
+        meta = MetaGridTools.build + KnowledgeTools.build + SkillTools.build
 
         filter_meta_tools(meta, user) + filter_custom_tools(custom_tools, user)
       end
@@ -32,7 +32,7 @@ module WulinAgent
         can_write = Catalog.all.any? { |grid| GridAccess.authorized?(user, grid, "create") }
 
         tools.select do |tool|
-          next true if knowledge_tool?(tool)
+          next true if knowledge_tool?(tool) || skill_tool?(tool)
 
           if tool.name == "list_grids"
             can_read || can_write
@@ -46,6 +46,10 @@ module WulinAgent
 
       def knowledge_tool?(tool)
         tool.name.start_with?("knowledge_")
+      end
+
+      def skill_tool?(tool)
+        tool.name.start_with?("skill_")
       end
 
       def filter_custom_tools(tools, user)

@@ -113,7 +113,7 @@ module WulinAgent
     end
 
     def system_prompt
-      [base_system_prompt, knowledge_prompt_section].compact.join
+      [base_system_prompt, knowledge_prompt_section, skill_prompt_section].compact.join
     end
 
     def base_system_prompt
@@ -145,6 +145,15 @@ module WulinAgent
       return if lines.empty?
 
       "\n\nDomain acronyms:\n#{lines.join("\n")}"
+    end
+
+    def skill_prompt_section
+      return unless defined?(Agent::Skill)
+    
+      lines = Agent::Skill.for_prompt.map { |name, desc| "- #{name}: #{desc}" }
+      return if lines.empty?
+    
+      "\n\nAvailable skills (call skill_read to load instructions):\n#{lines.join("\n")}"
     end
 
     def scope_messages_for_completion!
