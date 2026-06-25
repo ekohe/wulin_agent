@@ -97,9 +97,9 @@ export function Thread() {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
-        <ThreadPrimitive.Empty className="wulin-agent-thread__empty">
-          Ask a question…
-        </ThreadPrimitive.Empty>
+      <ThreadPrimitive.Empty>
+        <div className="wulin-agent-thread__empty">Ask anything</div>
+      </ThreadPrimitive.Empty>
 
         <ThreadPrimitive.Messages
           components={{UserMessage, AssistantMessage}}

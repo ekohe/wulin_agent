@@ -237,16 +237,21 @@ export function AgentApp() {
                 ×
               </button>
             </div>
-            {model && (
-              <div className="wulin-agent-panel__meta">
-                <span className="wulin-agent-panel__model-label">Model</span>
-                <span className="wulin-agent-panel__model">{model}</span>
-              </div>
-            )}
-            <ApprovalModeSelect
-              value={approvalMode}
-              onChange={handleApprovalModeChange}
-            />
+            <div className="wulin-agent-panel__meta">
+              {model && (
+                <>
+                  <span className="wulin-agent-panel__model-label">Model</span>
+                  <span className="wulin-agent-panel__model">{model}</span>
+                </>
+              )}
+              <span className="wulin-agent-panel__model-label wulin-agent-panel__approval-label">
+                Approval mode
+              </span>
+              <ApprovalModeSelect
+                value={approvalMode}
+                onChange={handleApprovalModeChange}
+              />
+            </div>
           </header>
           <div className="wulin-agent-body">
             <ConversationHistory
