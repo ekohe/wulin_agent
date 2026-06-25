@@ -402,6 +402,107 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 12px;
 }
 
+.wulin-agent-markdown {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.wulin-agent-markdown > :first-child {
+  margin-top: 0;
+}
+
+.wulin-agent-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.wulin-agent-markdown p {
+  margin: 0 0 0.5rem;
+}
+
+.wulin-agent-markdown h1,
+.wulin-agent-markdown h2,
+.wulin-agent-markdown h3,
+.wulin-agent-markdown h4 {
+  margin: 0.75rem 0 0.375rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.wulin-agent-markdown h1 { font-size: 16px; }
+.wulin-agent-markdown h2 { font-size: 15px; }
+.wulin-agent-markdown h3,
+.wulin-agent-markdown h4 { font-size: 14px; }
+
+.wulin-agent-markdown ul,
+.wulin-agent-markdown ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.wulin-agent-markdown li {
+  margin: 0.125rem 0;
+}
+
+.wulin-agent-markdown a {
+  color: var(--wulin-agent-main);
+}
+
+.wulin-agent-markdown blockquote {
+  margin: 0 0 0.5rem;
+  padding-left: 0.625rem;
+  border-left: 3px solid var(--wulin-agent-border);
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-markdown code {
+  padding: 0.0625rem 0.25rem;
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.wulin-agent-markdown pre {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.625rem;
+  overflow-x: auto;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+}
+
+.wulin-agent-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.wulin-agent-markdown table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 0.5rem;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wulin-agent-markdown th,
+.wulin-agent-markdown td {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  text-align: left;
+}
+
+.wulin-agent-markdown th {
+  background: var(--wulin-agent-bg-subtle);
+  font-weight: 600;
+}
+
+.wulin-agent-markdown tbody tr:nth-child(odd) {
+  background: var(--wulin-agent-row-odd);
+}
+
 .wulin-agent-tool {
   margin: 0.375rem 0;
   padding: 0.375rem 0.5rem;

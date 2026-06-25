@@ -135,6 +135,8 @@ module WulinAgent
         Combine multiple filters to narrow results. Use sort_col and sort_dir to order.
 
         Prefer tools over guessing. Be concise.
+
+        Your responses are rendered as Markdown.
       PROMPT
     end
 

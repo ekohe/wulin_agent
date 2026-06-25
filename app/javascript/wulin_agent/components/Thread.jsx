@@ -6,6 +6,8 @@ import {
 import {ApprovalCard} from "./ApprovalCard";
 import { GridResultTable } from "./GridResultTable";
 import { isGridResult } from "../gridResult";
+import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
+import remarkGfm from "remark-gfm";
 
 function UserMessage() {
   return (
@@ -61,6 +63,15 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
   );
 }
 
+function AssistantText() {
+  return (
+    <MarkdownTextPrimitive
+      remarkPlugins={[remarkGfm]}
+      className="wulin-agent-markdown"
+    />
+  );
+}
+
 function AssistantMessage() {
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
@@ -70,7 +81,7 @@ function AssistantMessage() {
             text.startsWith("Error :") ? (
               <p className="wulin-agent-error">{text}</p>
             ) : (
-              <p>{text}</p>
+              <AssistantText />
             ),
           tools: { Fallback: ToolFallback },
         }}
