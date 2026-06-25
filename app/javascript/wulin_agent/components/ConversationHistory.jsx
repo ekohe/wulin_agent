@@ -9,12 +9,15 @@ import {
 } from "../api";
 import { toAssistantUiMessages } from "../messageMapper";
 
-export function ConversationHistory({onApprovalModeChange}) {
+export function ConversationHistory({ open, onToggle, onApprovalModeChange }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const aui = useAui();
 
+  const rootClass = open
+    ? "wulin-agent-history"
+    : "wulin-agent-history wulin-agent-history--collapsed";
 
   useEffect(() => {
     listConversations()
@@ -53,43 +56,60 @@ export function ConversationHistory({onApprovalModeChange}) {
     aui.thread().reset([]);
   }
 
-  if (loading) {
-    return (
-      <div className="wulin-agent-history">
-        <p className="wulin-agent-history__status">Loading…</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="wulin-agent-history">
+    <div className={rootClass}>
       <div className="wulin-agent-history__header">
-        <span className="wulin-agent-history__title">History ({items.length})</span>
         <button
           type="button"
-          className="wulin-agent-history__new"
-          onClick={startNew}
+          className="wulin-agent-history__toggle"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-label={open ? "Hide history" : "Show history"}
         >
-          + New
+          <i className="material-icons" aria-hidden="true">
+            {open ? "chevron_left" : "chevron_right"}
+          </i>
         </button>
-      </div>
-      <ul className="wulin-agent-history__list">
-        {items.map((item) => (
-          <li key={item.id}>
+
+        {open && !loading && (
+          <>
+            <span className="wulin-agent-history__title">
+              History ({items.length})
+            </span>
             <button
               type="button"
-              className={
-                selectedId === item.id
-                  ? "wulin-agent-history__item wulin-agent-history__item--active"
-                  : "wulin-agent-history__item"
-              }
-              onClick={() => handleClick(item.id)}
+              className="wulin-agent-history__new"
+              onClick={startNew}
             >
-              {item.title}
+              + New
             </button>
-          </li>
-        ))}
-      </ul>
+          </>
+        )}
+      </div>
+
+      {open && loading && (
+        <p className="wulin-agent-history__status">Loading…</p>
+      )}
+
+      {open && !loading && (
+        <ul className="wulin-agent-history__list">
+          {items.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className={
+                  selectedId === item.id
+                    ? "wulin-agent-history__item wulin-agent-history__item--active"
+                    : "wulin-agent-history__item"
+                }
+                onClick={() => handleClick(item.id)}
+              >
+                {item.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

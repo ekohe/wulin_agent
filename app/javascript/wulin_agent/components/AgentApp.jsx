@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {createPortal} from "react-dom";
 import {WulinAgentProvider} from "./WulinAgentProvider";
 import {Thread} from "./Thread";
@@ -12,13 +12,54 @@ import {
   fetchAgentConfig
 } from "../api";
 
+const DRAWER_MIN_WIDTH = 360;
+const DRAWER_DEFAULT_WIDTH = 480;
+const DRAWER_WIDTH_KEY = "wulin_agent_drawer_width";
+
+function getStoredDrawerWidth() {
+  const stored = parseInt(localStorage.getItem(DRAWER_WIDTH_KEY), 10);
+  if (!Number.isFinite(stored)) return DRAWER_DEFAULT_WIDTH;
+  return Math.max(DRAWER_MIN_WIDTH, stored);
+}
+
 export function AgentApp() {
   const [open, setOpen] = useState(false);
   const [toggleSlot, setToggleSlot] = useState(null);
   const [model, setModel] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(true);
   const [approvalMode, setApprovalMode] = useState(
     () => getStoredApprovalMode() ?? "confirm_writes"
   );
+  const [drawerWidth, setDrawerWidth] = useState(getStoredDrawerWidth);
+  const drawerWidthRef = useRef(drawerWidth);
+  drawerWidthRef.current = drawerWidth;
+
+  const handleResizeStart = useCallback((event) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = drawerWidthRef.current;
+
+    const onMove = (moveEvent) => {
+      const next = Math.min(
+        window.innerWidth,
+        Math.max(DRAWER_MIN_WIDTH, startWidth + (startX - moveEvent.clientX))
+      );
+      setDrawerWidth(next);
+    };
+
+    const onUp = () => {
+      localStorage.setItem(DRAWER_WIDTH_KEY, String(drawerWidthRef.current));
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
 
   useEffect(() => {
     const ul = document.querySelector("nav .nav-wrapper ul.right");
@@ -88,8 +129,16 @@ export function AgentApp() {
 
       <aside
         className={`wulin-agent-drawer${open ? " wulin-agent-drawer--open" : ""}`}
+        style={{width: drawerWidth}}
         aria-hidden={!open}
       >
+        <div
+          className="wulin-agent-drawer__resize"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionner le panneau"
+          onMouseDown={handleResizeStart}
+        />
         <div className="wulin-agent-panel">
           <header className="wulin-agent-panel__header">
             <div className="wulin-agent-panel__header-row">
@@ -114,10 +163,14 @@ export function AgentApp() {
               onChange={handleApprovalModeChange}
             />
           </header>
-          <ConversationHistory
-            onApprovalModeChange={handleConversationApprovalMode}
-          />
-          <Thread />
+          <div className="wulin-agent-body">
+            <ConversationHistory
+              open={historyOpen}
+              onToggle={() => setHistoryOpen((v) => !v)}
+              onApprovalModeChange={handleConversationApprovalMode}
+            />
+            <Thread />
+          </div>
         </div>
       </aside>
     </WulinAgentProvider>
