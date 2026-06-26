@@ -30,6 +30,7 @@ module WulinAgent
     initializer "wulin_agent.ruby_llm" do |app|
       RubyLLM.configure do |config|
         config.use_new_acts_as = true
+        
       end
 
       app.config.after_initialize do
@@ -45,6 +46,9 @@ module WulinAgent
             gemini&.dig(:access_token) || gemini&.dig(:api_key)
 
           config.default_model = ENV.fetch("WULIN_AGENT_MODEL", WulinAgent::DEFAULT_MODEL)
+
+          # config.logger = Rails.logger
+          # config.log_level = Logger::DEBUG
         end
       end
     end

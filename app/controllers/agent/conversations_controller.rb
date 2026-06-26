@@ -22,17 +22,29 @@ module Agent
       conversation = user_conversations.find(params[:id])
       rating = params[:rating].to_s
       return head :unprocessable_entity unless %w[up down].include?(rating)
+    
+      message = rated_message(conversation)
 
-      message =
-        if params[:message_id].present?
-          Message.find_by(id: params[:message_id])
-        else
-          Message.order(:created_at).last
-        end
+
       return head :not_found unless message
-
+    
       message.update!(rating: rating)
-      render json: {message_id: message.id, rating: message.rating}
+      existing = Agent::Skill.find_by(id: (message.metadata || {})["skill_id"])
+
+      if rating == "up"
+        skill = existing || WulinAgent::SkillDistiller.call(message: message, user: current_user)
+        message.update!(metadata: message.metadata.merge("skill_id" => skill&.id))
+
+        render json: {
+        message_id: message.id,
+        rating: message.rating,
+        skill: skill&.as_json(only: %i[name description])
+      }
+      else # down
+        existing&.destroy
+        message.update!(metadata: message.metadata.except("skill_id"))
+        render json: {message_id: message.id, rating: message.rating, skill: nil}
+      end
     end
 
     def update
@@ -74,6 +86,7 @@ module Agent
     end
 
     private
+
     def conversation_title(conversation)
       conversation.title.presence ||
         conversation.messages.chronological.first&.content&.truncate(80) ||
@@ -206,6 +219,14 @@ module Agent
     def tool_result_approval_token(tool_result)
       result = tool_result["result"]
       result["approval_token"] if result.is_a?(Hash)
+    end
+
+    def rated_message(conversation)
+      if params[:message_id].present?
+        conversation.messages.find_by(id: params[:message_id])
+      else
+        conversation.messages.chronological.last
+      end
     end
 
   end
