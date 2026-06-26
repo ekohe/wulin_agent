@@ -279,4 +279,67 @@ RSpec.describe Agent::ConversationsController, type: :controller do
       )
     end
   end
+
+  describe "POST #feedback" do
+    let(:conversation) { Agent::Conversation.create!(user: user) }
+    let(:message) do
+      conversation.messages.create!(
+        role: "assistant",
+        content: "Here you go",
+        metadata: {"tool_calls" => [], "tool_results" => []}
+      )
+    end
+
+    it "rejects an invalid rating" do
+      post :feedback, params: {id: conversation.id, message_id: message.id, rating: "meh"}
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    it "returns not found when the message does not belong to the conversation" do
+      post :feedback, params: {id: conversation.id, message_id: 0, rating: "up"}
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    context "positive feedback" do
+      let(:skill) { Agent::Skill.create!(name: "saved", description: "d", instructions: "i") }
+
+      it "records the rating, distills a skill and links it to the message" do
+        allow(WulinAgent::SkillDistiller).to receive(:call).and_return(skill)
+
+        post :feedback, params: {id: conversation.id, message_id: message.id, rating: "up"}
+
+        expect(response).to have_http_status(:ok)
+        payload = JSON.parse(response.body)
+        expect(payload["rating"]).to eq("up")
+        expect(payload["skill"]).to eq("name" => "saved", "description" => "d")
+        expect(message.reload.rating).to eq("up")
+        expect(message.metadata["skill_id"]).to eq(skill.id)
+      end
+
+      it "is idempotent: a second positive feedback does not distill again" do
+        allow(WulinAgent::SkillDistiller).to receive(:call).and_return(skill)
+        message.update!(metadata: message.metadata.merge("skill_id" => skill.id))
+
+        post :feedback, params: {id: conversation.id, message_id: message.id, rating: "up"}
+
+        expect(WulinAgent::SkillDistiller).not_to have_received(:call)
+        expect(message.reload.metadata["skill_id"]).to eq(skill.id)
+      end
+    end
+
+    context "negative feedback after a skill was created" do
+      it "destroys the linked skill and clears the link" do
+        skill = Agent::Skill.create!(name: "to_delete", description: "d", instructions: "i")
+        message.update!(metadata: message.metadata.merge("skill_id" => skill.id))
+
+        post :feedback, params: {id: conversation.id, message_id: message.id, rating: "down"}
+
+        expect(Agent::Skill.find_by(id: skill.id)).to be_nil
+        expect(message.reload.metadata).not_to have_key("skill_id")
+        expect(message.reload.rating).to eq("down")
+      end
+    end
+  end
 end

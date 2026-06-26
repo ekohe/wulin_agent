@@ -18,7 +18,7 @@ module WulinAgent
 
     class << self
       def build
-        [build_list, build_read, build_create, build_update]
+        [build_list, build_read, build_create, build_update, build_delete]
       end
 
       private
@@ -98,6 +98,24 @@ module WulinAgent
         )
       end
       
+      def build_delete
+        ToolSpec.new(
+          name: "skill_delete",
+          controller: nil,
+          operation: "delete",
+          description: "Delete a skill by name. Only do this when the user explicitly asks to remove it.",
+          mutating: true,
+          permission: nil,
+          params_schema: {
+            properties: {
+              name: {type: "string", description: "Name of the skill to delete"}
+            },
+            required: ["name"]
+          },
+          callable: ->(params, _user) { delete(params) }
+        )
+      end
+
       def create(params, user = nil)
         skill = Agent::Skill.new(
           name: params["name"],
@@ -121,6 +139,14 @@ module WulinAgent
         detail(skill)
       rescue ActiveRecord::RecordInvalid => e
         {"error" => e.record.errors.full_messages.join(", ")}
+      end
+
+      def delete(params)
+        skill = Agent::Skill.find_by("name ILIKE ?", params["name"])
+        return {"error" => "skill not found"} unless skill
+
+        skill.destroy!
+        {"deleted" => skill.name}
       end
 
       def list
