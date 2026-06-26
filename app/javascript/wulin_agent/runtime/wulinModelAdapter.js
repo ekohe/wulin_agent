@@ -24,6 +24,7 @@ async function* streamResponse(body, existingToolCalls = []) {
   const toolCalls = [];
   const newToolCalls = [];
   let accumulatedText = "";
+  let savedMessageId = null;
 
   function allCalls() {
     return isResume ? newToolCalls : toolCalls;
@@ -135,6 +136,11 @@ async function* streamResponse(body, existingToolCalls = []) {
         }
         break;
       }
+
+      case "message_saved":
+        savedMessageId = event.messageId;
+        yield {...snapshot(), metadata: {custom: {messageId: savedMessageId}}};
+        break;
 
       case "error":
         accumulatedText += `\n\nErreur : ${event.message}`;

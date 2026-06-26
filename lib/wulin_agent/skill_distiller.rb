@@ -7,7 +7,7 @@ module WulinAgent
       Reply with STRICT JSON only, no prose, no markdown fences:
       {"reusable": true|false, "name": "snake_case_id",
        "description": "one line: when to use it", "instructions": "markdown steps"}
-      Set "reusable": false if the task is too trivial or one-off to be worth saving.
+      Set "reusable": false if the task is really too trivial or one-off to be worth saving.
     PROMPT
 
     def self.call(message:, user:)

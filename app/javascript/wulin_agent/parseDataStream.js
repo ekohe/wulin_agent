@@ -40,6 +40,9 @@ export async function* parseDataStream(readableStream) {
           case "d":
             yield {type: "done", ...JSON.parse(payload)};
             break;
+          case "8":
+            yield {type: "message_saved", messageId: JSON.parse(payload).messageId};
+            break;
           case "3":
             yield {type: "error", message: JSON.parse(payload)};
             break;

@@ -33,6 +33,10 @@ module WulinAgent
       close
     end
 
+    def write_message_saved(id)
+      write_line("8", {messageId: id}.to_json)
+    end
+
     def assistant_text
       @text_parts.join
     end

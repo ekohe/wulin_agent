@@ -7,6 +7,21 @@ module WulinAgent
     SKIP_STATUSES = %w[approval_required rejected].freeze
 
     def self.steps_from(message)
+      turn_messages(message).flat_map { |m| steps_for_message(m) }
+    end
+
+    # Les messages assistant du tour courant : du message noté jusqu'au
+    # dernier message user (utile car un flux avec approbation est coupé en
+    # plusieurs messages assistant : les tool_calls vivent sur le premier).
+    def self.turn_messages(message)
+      msgs = message.conversation.messages.chronological.to_a
+      idx = msgs.index { |m| m.id == message.id } || (msgs.length - 1)
+      start = idx
+      start -= 1 while start.positive? && msgs[start - 1].role == "assistant"
+      msgs[start..idx].select { |m| m.role == "assistant" }
+    end
+
+    def self.steps_for_message(message)
       metadata = message.metadata || {}
       calls = metadata["tool_calls"] || []
       results_by_id = (metadata["tool_results"] || []).index_by { |r| r["id"] }

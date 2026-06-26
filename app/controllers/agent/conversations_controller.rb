@@ -105,11 +105,12 @@ module Agent
 
       resolve_pending_approval!(conversation, writer) if %w[approve reject].include?(action_name)
 
-      conversation.messages.create!(
+      message = conversation.messages.create!(
         role: "assistant",
         content: writer.assistant_text.presence || assistant_content.to_s,
         metadata: writer.metadata
       )
+      writer.write_message_saved(message.id)
     rescue => e
       Rails.logger.error(
         "[wulin_agent] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
@@ -222,11 +223,9 @@ module Agent
     end
 
     def rated_message(conversation)
-      if params[:message_id].present?
-        conversation.messages.find_by(id: params[:message_id])
-      else
-        conversation.messages.chronological.last
-      end
+      return nil if params[:message_id].blank?
+
+      conversation.messages.find_by(id: params[:message_id])
     end
 
   end
