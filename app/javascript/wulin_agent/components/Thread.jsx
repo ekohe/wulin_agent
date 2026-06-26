@@ -1,13 +1,53 @@
+import {useState} from "react";
 import {
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  useAuiState,
 } from "@assistant-ui/react";
 import {ApprovalCard} from "./ApprovalCard";
 import { GridResultTable } from "./GridResultTable";
 import { isGridResult } from "../gridResult";
+import { sendFeedback } from "../api";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+
+function MessageFeedback() {
+  const messageId = useAuiState((s) => s.message.metadata?.custom?.messageId);
+  const rating0 = useAuiState((s) => s.message.metadata?.custom?.rating);
+  const [rating, setRating] = useState(rating0 ?? null);
+
+  const send = async (value) => {
+    setRating(value);
+    try {
+      await sendFeedback(value, messageId);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return (
+    <div className="wulin-agent-feedback">
+      <button
+        type="button"
+        className={`wulin-agent-feedback__btn${rating === "up" ? " is-active" : ""}`}
+        aria-label="Bonne réponse"
+        onClick={() => send("up")}
+      >
+        <i className="material-icons" aria-hidden="true">thumb_up</i>
+      </button>
+      <button
+        type="button"
+        className={`wulin-agent-feedback__btn${rating === "down" ? " is-active" : ""}`}
+        aria-label="Mauvaise réponse"
+        onClick={() => send("down")}
+      >
+        <i className="material-icons" aria-hidden="true">thumb_down</i>
+      </button>
+    </div>
+  );
+}
 
 function UserMessage() {
   return (
@@ -89,6 +129,7 @@ function AssistantMessage() {
           tools: { Fallback: ToolFallback },
         }}
       />
+      <MessageFeedback />
     </MessagePrimitive.Root>
   );
 }

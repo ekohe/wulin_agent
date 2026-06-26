@@ -91,6 +91,10 @@ export function toAssistantUiMessages(apiMessages) {
       parts.push({type: "text", text: msg.content});
     }
 
-    return {role: "assistant", content: parts};
+    return {
+      role: "assistant",
+      content: parts,
+      metadata: { custom: { rating: msg.rating ?? null, messageId: msg.id ?? null } },
+    };
   });
 }

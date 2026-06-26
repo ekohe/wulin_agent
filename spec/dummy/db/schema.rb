@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_25_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_26_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_120000) do
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
     t.jsonb "metadata", default: {}, null: false
+    t.string "rating"
     t.string "role", null: false
     t.datetime "updated_at", null: false
     t.index ["conversation_id", "created_at"], name: "index_agent_messages_on_conversation_id_and_created_at"
@@ -49,9 +50,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_120000) do
 
   create_table "agent_skills", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "created_by"
     t.text "description", null: false
     t.text "instructions", null: false
     t.string "name", null: false
+    t.jsonb "tool_sequence", default: [], null: false
     t.datetime "updated_at", null: false
     t.integer "usage_count", default: 0, null: false
     t.index ["name"], name: "index_agent_skills_on_name", unique: true

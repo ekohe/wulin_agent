@@ -8,6 +8,7 @@ Rails.application.routes.draw do
       member do
         post :approve
         post :reject
+        post :feedback
       end
     end
   end

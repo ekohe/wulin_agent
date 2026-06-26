@@ -2,6 +2,20 @@
 
 module WulinAgent
   class SkillTools
+    TOOL_SEQUENCE_SCHEMA = {
+      type: "array",
+      description: "Optional ordered list of tool steps used to accomplish the task. " \
+                    "Each item: {tool, params}.",
+      items: {
+        type: "object",
+        properties: {
+          tool: {type: "string", description: "Tool name (e.g. list_records)"},
+          params: {type: "object", description: "Arguments passed to the tool"}
+        },
+        required: ["tool"]
+      }
+    }.freeze
+
     class << self
       def build
         [build_list, build_read, build_create, build_update]
@@ -54,11 +68,12 @@ module WulinAgent
             properties: {
               name: {type: "string", description: "Short unique identifier (snake_case)"},
               description: {type: "string", description: "One line: when to use this skill"},
-              instructions: {type: "string", description: "Markdown playbook the agent will follow"}
+              instructions: {type: "string", description: "Markdown playbook the agent will follow"},
+              tool_sequence: TOOL_SEQUENCE_SCHEMA
             },
             required: %w[name description instructions]
           },
-          callable: ->(params, _user) { create(params) }
+          callable: ->(params, user) { create(params, user) }
         )
       end
       
@@ -74,7 +89,8 @@ module WulinAgent
             properties: {
               name: {type: "string", description: "Name of the skill to update"},
               description: {type: "string"},
-              instructions: {type: "string"}
+              instructions: {type: "string"},
+              tool_sequence: TOOL_SEQUENCE_SCHEMA
             },
             required: ["name"]
           },
@@ -82,11 +98,13 @@ module WulinAgent
         )
       end
       
-      def create(params)
+      def create(params, user = nil)
         skill = Agent::Skill.new(
           name: params["name"],
           description: params["description"],
-          instructions: params["instructions"]
+          instructions: params["instructions"],
+          tool_sequence: params["tool_sequence"] || [],
+          created_by: user&.id
         )
         skill.save!
         detail(skill)
@@ -98,7 +116,7 @@ module WulinAgent
         skill = Agent::Skill.find_by("name ILIKE ?", params["name"])
         return {"error" => "skill not found"} unless skill
       
-        attrs = params.slice("description", "instructions").compact
+        attrs = params.slice("description", "instructions", "tool_sequence").compact
         skill.update!(attrs)
         detail(skill)
       rescue ActiveRecord::RecordInvalid => e
@@ -125,7 +143,7 @@ module WulinAgent
       end
 
       def detail(skill)
-        skill.as_json(only: %w[name description instructions usage_count])
+        skill.as_json(only: %w[name description instructions usage_count tool_sequence])
       end
     end
   end

@@ -100,7 +100,7 @@ export async function sendMessage(message, explicitConversationId, {signal} = {}
   if (id == null && newConversationId != null) {
     onConversationCreated?.(newConversationId);
   }
-  
+
   return {body: response.body, conversationId: newConversationId};
 }
 
@@ -140,6 +140,25 @@ export async function runRejected({ token, reason, signal } = {}) {
   }
 
   return { body: response.body };
+}
+
+export async function sendFeedback(rating, messageId, { signal } = {}) {
+  const id = conversationId;
+  if (id == null) throw new Error("No conversation");
+
+  const response = await fetch(`${BASE}/${id}/feedback`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders(),
+    body: JSON.stringify({ rating, message_id: messageId }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json(); // { message_id, rating }
 }
 
 export async function listConversations({ signal } = {}) {

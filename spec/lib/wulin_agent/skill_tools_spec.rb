@@ -47,7 +47,8 @@ RSpec.describe WulinAgent::SkillTools do
         "name" => "attach_seats",
         "description" => "d",
         "instructions" => "1. do this",
-        "usage_count" => 1
+        "usage_count" => 1,
+        "tool_sequence" => []
       )
     end
 
@@ -88,7 +89,8 @@ RSpec.describe WulinAgent::SkillTools do
         "name" => "new_skill",
         "description" => "d",
         "instructions" => "i",
-        "usage_count" => 0
+        "usage_count" => 0,
+        "tool_sequence" => []
       )
       expect(Agent::Skill.find_by(name: "new_skill")).to be_present
     end
@@ -102,6 +104,21 @@ RSpec.describe WulinAgent::SkillTools do
       expect(result["status"]).to eq("approval_required")
       expect(result["tool"]).to eq("skill_create")
       expect(Agent::Skill.find_by(name: "new_skill")).to be_nil
+    end
+
+    it "persists tool_sequence and created_by" do
+      sequence = [{"tool" => "list_records", "params" => {"controller" => "people"}}]
+
+      result = tool.execute(
+        {"name" => "seq_skill", "description" => "d", "instructions" => "i", "tool_sequence" => sequence},
+        admin,
+        approved: true
+      )
+
+      expect(result["tool_sequence"]).to eq(sequence)
+      skill = Agent::Skill.find_by(name: "seq_skill")
+      expect(skill.tool_sequence).to eq(sequence)
+      expect(skill.created_by).to eq(admin.id)
     end
 
     it "returns an error for a duplicate name" do

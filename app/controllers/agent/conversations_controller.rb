@@ -18,6 +18,23 @@ module Agent
       stream_conversation_turn
     end
 
+    def feedback
+      conversation = user_conversations.find(params[:id])
+      rating = params[:rating].to_s
+      return head :unprocessable_entity unless %w[up down].include?(rating)
+
+      message =
+        if params[:message_id].present?
+          Message.find_by(id: params[:message_id])
+        else
+          Message.order(:created_at).last
+        end
+      return head :not_found unless message
+
+      message.update!(rating: rating)
+      render json: {message_id: message.id, rating: message.rating}
+    end
+
     def update
       conversation = user_conversations.find(params[:id])
       conversation.update!(approval_mode: params.require(:approval_mode))
@@ -30,7 +47,7 @@ module Agent
         id: conversation.id,
         approval_mode: conversation.approval_mode,
         messages: conversation.messages.chronological.map do |message|
-          {role: message.role, content: message.content, metadata: message.metadata}
+          {id: message.id, role: message.role, content: message.content, metadata: message.metadata, rating: message.rating}
         end
       }
     end 
