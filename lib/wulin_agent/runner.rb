@@ -127,6 +127,10 @@ module WulinAgent
         - Call list_grids to discover tables.
         - Call get_columns before create, update, or filtering.
         - Use controller names exactly as returned by list_grids.
+        - Call only ONE tool at a time. Never request multiple tool calls in a
+          single turn: issue one tool call, wait for its result, then decide the
+          next one. This is required for write actions (create, update, delete)
+          that need user approval, even when the user asks for several at once.
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,

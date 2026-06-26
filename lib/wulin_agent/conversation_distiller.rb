@@ -14,6 +14,8 @@ module WulinAgent
     # dernier message user (utile car un flux avec approbation est coupé en
     # plusieurs messages assistant : les tool_calls vivent sur le premier).
     def self.turn_messages(message)
+      return [message] unless message.respond_to?(:conversation)
+
       msgs = message.conversation.messages.chronological.to_a
       idx = msgs.index { |m| m.id == message.id } || (msgs.length - 1)
       start = idx
