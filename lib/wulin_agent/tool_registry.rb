@@ -23,6 +23,7 @@ module WulinAgent
 
       def custom_tools
         @custom_tools ||= Catalog.all.flat_map { |grid| ActionInferer.build(grid) }
+                                     .uniq(&:name)
       end
 
       def filter_meta_tools(tools, user)
