@@ -3,7 +3,7 @@
 require "mcp"
 
 module Agent
-  class McpController < ApplicationController
+  class McpController < ActionController::Base
     skip_forgery_protection
     before_action :authenticate_token!
 
