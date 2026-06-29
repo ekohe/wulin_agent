@@ -46,6 +46,26 @@ RSpec.describe Agent::McpController, type: :controller do
       expect { rpc("tools/list", token: api_token.token) }
         .to change { api_token.reload.last_used_at }.from(nil)
     end
+
+    it "returns unauthorized with a revoked token" do
+      api_token = Agent::ApiToken.create!(user: User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true))
+      api_token.revoke!
+
+      rpc("tools/list", token: api_token.token)
+
+      expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "returns unauthorized with an expired token" do
+      api_token = Agent::ApiToken.create!(
+        user: User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true),
+        expires_at: 1.hour.ago
+      )
+
+      rpc("tools/list", token: api_token.token)
+
+      expect(response).to have_http_status(:unauthorized)
+    end
   end
 
   describe "tools/list" do
