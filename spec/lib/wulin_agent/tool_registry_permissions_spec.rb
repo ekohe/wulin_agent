@@ -43,10 +43,19 @@ RSpec.describe WulinAgent::ToolRegistry, "permissions" do
         "list_records",
         "read_record",
         "knowledge_search",
-        "knowledge_upsert",
-        "knowledge_delete"
+        "skill_list",
+        "skill_read"
       )
-      expect(names).not_to include("create_record", "update_record", "destroy_record")
+      expect(names).not_to include(
+        "create_record",
+        "update_record",
+        "destroy_record",
+        "knowledge_upsert",
+        "knowledge_delete",
+        "skill_create",
+        "skill_update",
+        "skill_delete"
+      )
     end
 
     it "returns mutating meta tools for a user with person#cud" do

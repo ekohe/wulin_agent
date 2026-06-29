@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_26_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_27_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "agent_api_tokens", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at", precision: nil
+    t.string "name"
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["token"], name: "index_agent_api_tokens_on_token", unique: true
+    t.index ["user_id"], name: "index_agent_api_tokens_on_user_id"
+  end
 
   create_table "agent_conversations", force: :cascade do |t|
     t.string "approval_mode", default: "confirm_writes", null: false
@@ -145,6 +156,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_120100) do
     t.integer "user_id"
   end
 
+  add_foreign_key "agent_api_tokens", "users"
   add_foreign_key "agent_conversations", "users"
   add_foreign_key "agent_messages", "agent_conversations", column: "conversation_id"
 end

@@ -32,7 +32,7 @@ module WulinAgent
         can_write = Catalog.all.any? { |grid| GridAccess.authorized?(user, grid, "create") }
 
         tools.select do |tool|
-          next true if knowledge_tool?(tool) || skill_tool?(tool)
+          next true if (knowledge_tool?(tool) || skill_tool?(tool)) && !tool.mutating
 
           if tool.name == "list_grids"
             can_read || can_write
