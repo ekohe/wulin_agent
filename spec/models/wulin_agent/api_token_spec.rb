@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::ApiToken do
+RSpec.describe WulinAgent::ApiToken do
   let(:user) { User.create!(email: "user-#{SecureRandom.hex(4)}@example.com") }
 
   it "generates a token on creation" do

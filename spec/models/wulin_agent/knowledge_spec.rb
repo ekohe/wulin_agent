@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::Knowledge do
+RSpec.describe WulinAgent::Knowledge do
   describe "validations" do
     it "requires key, value, and a valid category" do
       entry = described_class.new

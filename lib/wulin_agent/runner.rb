@@ -145,18 +145,18 @@ module WulinAgent
     end
 
     def knowledge_prompt_section
-      return unless defined?(Agent::Knowledge)
+      return unless defined?(WulinAgent::Knowledge)
 
-      lines = Agent::Knowledge.for_prompt.map { |key, value| "- #{key}: #{value}" }
+      lines = WulinAgent::Knowledge.for_prompt.map { |key, value| "- #{key}: #{value}" }
       return if lines.empty?
 
       "\n\nDomain acronyms:\n#{lines.join("\n")}"
     end
 
     def skill_prompt_section
-      return unless defined?(Agent::Skill)
+      return unless defined?(WulinAgent::Skill)
     
-      lines = Agent::Skill.for_prompt.map { |name, desc| "- #{name}: #{desc}" }
+      lines = WulinAgent::Skill.for_prompt.map { |name, desc| "- #{name}: #{desc}" }
       return if lines.empty?
     
       "\n\nAvailable skills (call skill_read to load instructions):\n#{lines.join("\n")}"

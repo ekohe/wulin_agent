@@ -30,7 +30,7 @@ module WulinAgent
               },
               category: {
                 type: "string",
-                enum: Agent::Knowledge::CATEGORIES,
+                enum: WulinAgent::Knowledge::CATEGORIES,
                 description: "Optional category filter"
               },
               scope: {
@@ -55,7 +55,7 @@ module WulinAgent
             properties: {
               key: {type: "string", description: "Short identifier (e.g. NHK, MRL)"},
               value: {type: "string", description: "Definition or mapping"},
-              category: {type: "string", enum: Agent::Knowledge::CATEGORIES},
+              category: {type: "string", enum: WulinAgent::Knowledge::CATEGORIES},
               scope: {type: "string", description: "Optional grid scope (e.g. orders)"}
             },
             required: %w[key value category]
@@ -84,14 +84,14 @@ module WulinAgent
       end
 
       def search(params)
-        scope = Agent::Knowledge.all
+        scope = WulinAgent::Knowledge.all
         scope = scope.by_category(params["category"]) if params["category"].present?
         scope = scope.for_scope(params["scope"]) if params["scope"].present?
 
         query = params["query"].to_s.strip
         query = nil if query.in?(["*", "%"])
         if query.present?
-          q = "%#{Agent::Knowledge.sanitize_sql_like(query)}%"
+          q = "%#{WulinAgent::Knowledge.sanitize_sql_like(query)}%"
           scope = scope.where("key ILIKE ? OR value ILIKE ?", q, q)
         end
 
@@ -104,7 +104,7 @@ module WulinAgent
         return {"error" => "value is required"} if attrs[:value].blank?
         return {"error" => "category is required"} if attrs[:category].blank?
 
-        entry = Agent::Knowledge.upsert_entry(**attrs)
+        entry = WulinAgent::Knowledge.upsert_entry(**attrs)
         serialize(entry)
       rescue ActiveRecord::RecordInvalid => e
         {"error" => e.record.errors.full_messages.join(", ")}
@@ -114,7 +114,7 @@ module WulinAgent
         key = params["key"]
         return {"error" => "key is required"} if key.blank?
 
-        record = Agent::Knowledge.find_by(key: key, scope: params["scope"].presence)
+        record = WulinAgent::Knowledge.find_by(key: key, scope: params["scope"].presence)
         return {"error" => "entry not found"} unless record
 
         record.destroy!

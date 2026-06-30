@@ -5,7 +5,7 @@ require "ruby_llm"
 
 RSpec.describe WulinAgent::SkillDistiller do
   let(:user) { User.create!(email: "distill-#{SecureRandom.hex(4)}@example.com", admin: true) }
-  let(:conversation) { Agent::Conversation.create!(user: user) }
+  let(:conversation) { WulinAgent::Conversation.create!(user: user) }
 
   let(:message) do
     conversation.messages.create!(role: "user", content: "Show people named Martin")
@@ -34,7 +34,7 @@ RSpec.describe WulinAgent::SkillDistiller do
     skill = nil
     expect {
       skill = described_class.call(message: message, user: user)
-    }.to change(Agent::Skill, :count).by(1)
+    }.to change(WulinAgent::Skill, :count).by(1)
 
     expect(skill.name).to eq("list_people")
     expect(skill.description).to eq("Find people")
@@ -43,7 +43,7 @@ RSpec.describe WulinAgent::SkillDistiller do
   end
 
   it "deduplicates the name when it already exists" do
-    Agent::Skill.create!(name: "list_people", description: "d", instructions: "i")
+    WulinAgent::Skill.create!(name: "list_people", description: "d", instructions: "i")
     stub_llm('{"reusable": true, "name": "List People", "description": "d", "instructions": "i"}')
 
     skill = described_class.call(message: message, user: user)
@@ -64,7 +64,7 @@ RSpec.describe WulinAgent::SkillDistiller do
 
     expect {
       expect(described_class.call(message: message, user: user)).to be_nil
-    }.not_to change(Agent::Skill, :count)
+    }.not_to change(WulinAgent::Skill, :count)
   end
 
   it "returns nil when the model reply is not valid JSON" do

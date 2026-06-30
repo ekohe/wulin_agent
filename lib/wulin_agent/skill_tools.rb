@@ -117,7 +117,7 @@ module WulinAgent
       end
 
       def create(params, user = nil)
-        skill = Agent::Skill.new(
+        skill = WulinAgent::Skill.new(
           name: params["name"],
           description: params["description"],
           instructions: params["instructions"],
@@ -131,7 +131,7 @@ module WulinAgent
       end
       
       def update(params)
-        skill = Agent::Skill.find_by("name ILIKE ?", params["name"])
+        skill = WulinAgent::Skill.find_by("name ILIKE ?", params["name"])
         return {"error" => "skill not found"} unless skill
       
         attrs = params.slice("description", "instructions", "tool_sequence").compact
@@ -142,7 +142,7 @@ module WulinAgent
       end
 
       def delete(params)
-        skill = Agent::Skill.find_by("name ILIKE ?", params["name"])
+        skill = WulinAgent::Skill.find_by("name ILIKE ?", params["name"])
         return {"error" => "skill not found"} unless skill
 
         skill.destroy!
@@ -150,14 +150,14 @@ module WulinAgent
       end
 
       def list
-        Agent::Skill.order(:name).limit(50).map { |skill| summary(skill) }
+        WulinAgent::Skill.order(:name).limit(50).map { |skill| summary(skill) }
       end
 
       def read(params)
         name = params["name"]
         return {"error" => "name is required"} if name.blank?
 
-        skill = Agent::Skill.find_by("name ILIKE ?", name)
+        skill = WulinAgent::Skill.find_by("name ILIKE ?", name)
         return {"error" => "skill not found"} unless skill
 
         skill.increment!(:usage_count)

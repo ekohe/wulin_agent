@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Agent
+module WulinAgent
   class ApiToken < ApplicationRecord
     self.table_name = "agent_api_tokens"
 

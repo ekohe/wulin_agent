@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Agent
+module WulinAgent
   class Conversation < ApplicationRecord
     self.table_name = "agent_conversations"
 
@@ -8,7 +8,7 @@ module Agent
 
     belongs_to :user
     has_many :messages,
-      class_name: "Agent::Message",
+      class_name: "WulinAgent::Message",
       foreign_key: :conversation_id,
       dependent: :destroy,
       inverse_of: :conversation

@@ -24,7 +24,7 @@ module WulinAgent
       return if steps.empty?
       data = ask_llm(steps)
       return unless data && data["reusable"]
-      Agent::Skill.create!(
+      WulinAgent::Skill.create!(
         name: unique_name(data["name"]),
         description: data["description"],
         instructions: data["instructions"],
@@ -60,7 +60,7 @@ module WulinAgent
       base = name.to_s.parameterize(separator: "_").presence || "skill"
       candidate = base
       i = 2
-      while Agent::Skill.where("name ILIKE ?", candidate).exists?
+      while WulinAgent::Skill.where("name ILIKE ?", candidate).exists?
         candidate = "#{base}_#{i}"
         i += 1
       end

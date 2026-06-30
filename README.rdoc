@@ -103,7 +103,7 @@ scoped or non-acronym entries stay in the DB.
 
 Seed common acronyms after migrate:
 
-  Agent::Knowledge.create!(
+  WulinAgent::Knowledge.create!(
     key: "NHK",
     value: "Customer — Nippon Hoso Kyokai",
     category: "acronym"
@@ -234,6 +234,70 @@ Available endpoint:
 
 No manual configuration is required in the host application's
 +config/routes.rb+.
+
+== MCP server
+
+The engine also exposes its tools through the
+{Model Context Protocol}[https://modelcontextprotocol.io] so external clients
+(Cursor, Claude Desktop, …) can call the same grid CRUD, custom actions and
+knowledge tools as the in-app agent.
+
+=== Endpoint
+
+  /agent/mcp
+
+It speaks the streamable HTTP transport (stateless) and accepts +POST+ and
++DELETE+. The exposed tools are exactly +WulinAgent::ToolRegistry.for(user)+ for
+the authenticated token's user, so the same +wulin_permits+ gating applies: a
+client only sees the tools that user is allowed to run.
+
+Mutating tools are annotated (+destructive_hint+) and run in +:auto+ approval
+mode — there is no interactive confirmation step over MCP, so only hand out
+tokens to trusted users/clients.
+
+=== Tokens
+
+MCP requests authenticate with a bearer token (+WulinAgent::ApiToken+) instead of a
+session. Manage tokens with the rake tasks:
+
+  # Create a token for a user (printed once, copy it now)
+  rake 'wulin_agent:token:create[user@example.com,Cursor]'
+
+  # List tokens (optionally for one user)
+  rake 'wulin_agent:token:list'
+  rake 'wulin_agent:token:list[user@example.com]'
+
+  # Revoke a token by id
+  rake 'wulin_agent:token:revoke[12]'
+
+Tokens can also carry an +expires_at+; the +active+ scope ignores revoked or
+expired tokens. Each successful request bumps +last_used_at+.
+
+=== Client configuration
+
+Point the MCP client at the host app's endpoint and pass the token in the
++Authorization+ header. Example +mcp.json+ (Cursor):
+
+  {
+    "mcpServers": {
+      "wulin_agent": {
+        "url": "https://your-app.example.com/agent/mcp",
+        "headers": {
+          "Authorization": "Bearer <token>"
+        }
+      }
+    }
+  }
+
+Quick smoke test with +curl+ (JSON-RPC +tools/list+):
+
+  curl -sS https://your-app.example.com/agent/mcp \
+    -H "Authorization: Bearer <token>" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+A missing or invalid token returns +401 Unauthorized+.
 
 == Development
 

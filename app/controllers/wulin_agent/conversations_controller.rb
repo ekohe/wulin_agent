@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Agent
+module WulinAgent
   class ConversationsController < ApplicationController
     include ActionController::Live
 
@@ -29,7 +29,7 @@ module Agent
       return head :not_found unless message
     
       message.update!(rating: rating)
-      existing = Agent::Skill.find_by(id: (message.metadata || {})["skill_id"])
+      existing = WulinAgent::Skill.find_by(id: (message.metadata || {})["skill_id"])
 
       if rating == "up"
         skill = existing || WulinAgent::SkillDistiller.call(message: message, user: current_user)
@@ -154,11 +154,11 @@ module Agent
 
     def approval_mode_for_create
       mode = params[:approval_mode].to_s
-      Agent::Conversation::APPROVAL_MODES.include?(mode) ? mode : "confirm_writes"
+      WulinAgent::Conversation::APPROVAL_MODES.include?(mode) ? mode : "confirm_writes"
     end
 
     def user_conversations
-      Agent::Conversation.where(user_id: current_user.id)
+      WulinAgent::Conversation.where(user_id: current_user.id)
     end
 
     def assistant_error_text(error)

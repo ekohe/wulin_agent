@@ -28,8 +28,8 @@ RSpec.describe WulinAgent::Runner do
     end
 
     it "injects global acronyms into the system prompt" do
-      Agent::Knowledge.create!(key: "NHK", value: "Customer NHK", category: "acronym")
-      Agent::Knowledge.create!(key: "X", value: "scoped", category: "acronym", scope: "orders")
+      WulinAgent::Knowledge.create!(key: "NHK", value: "Customer NHK", category: "acronym")
+      WulinAgent::Knowledge.create!(key: "X", value: "scoped", category: "acronym", scope: "orders")
 
       prompt = described_class.new(user: admin).send(:system_prompt)
 

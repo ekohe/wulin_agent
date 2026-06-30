@@ -2,7 +2,7 @@
 
 require "mcp"
 
-module Agent
+module WulinAgent
   class McpController < ActionController::Base
     skip_forgery_protection
     before_action :authenticate_token!
@@ -47,7 +47,7 @@ module Agent
       return @api_token if defined?(@api_token)
 
       token = request.headers["Authorization"].to_s.delete_prefix("Bearer ").strip
-      @api_token = token.present? ? Agent::ApiToken.active.find_by(token: token) : nil
+      @api_token = token.present? ? WulinAgent::ApiToken.active.find_by(token: token) : nil
     end
   end
 end

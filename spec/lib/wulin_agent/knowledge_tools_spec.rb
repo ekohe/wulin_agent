@@ -13,9 +13,9 @@ RSpec.describe WulinAgent::KnowledgeTools do
     let(:tool) { find_tool("knowledge_search") }
 
     before do
-      Agent::Knowledge.create!(key: "NHK", value: "Customer — Nippon Hoso Kyokai", category: "schema", scope: "orders")
-      Agent::Knowledge.create!(key: "MRL", value: "Media Rights Licensee", category: "acronym")
-      Agent::Knowledge.create!(key: "SAD", value: "Service Access Device", category: "acronym", scope: "people")
+      WulinAgent::Knowledge.create!(key: "NHK", value: "Customer — Nippon Hoso Kyokai", category: "schema", scope: "orders")
+      WulinAgent::Knowledge.create!(key: "MRL", value: "Media Rights Licensee", category: "acronym")
+      WulinAgent::Knowledge.create!(key: "SAD", value: "Service Access Device", category: "acronym", scope: "people")
     end
 
     it "is not mutating" do
@@ -75,7 +75,7 @@ RSpec.describe WulinAgent::KnowledgeTools do
     end
 
     it "updates an existing entry when approved" do
-      Agent::Knowledge.create!(key: "MP", value: "old", category: "acronym")
+      WulinAgent::Knowledge.create!(key: "MP", value: "old", category: "acronym")
 
       result = tool.execute(
         {"key" => "MP", "value" => "Media Partner", "category" => "acronym"},
@@ -84,7 +84,7 @@ RSpec.describe WulinAgent::KnowledgeTools do
       )
 
       expect(result["value"]).to eq("Media Partner")
-      expect(Agent::Knowledge.count).to eq(1)
+      expect(WulinAgent::Knowledge.count).to eq(1)
     end
 
     it "requires approval under confirm_writes" do
@@ -112,7 +112,7 @@ RSpec.describe WulinAgent::KnowledgeTools do
     let(:tool) { find_tool("knowledge_delete") }
 
     before do
-      Agent::Knowledge.create!(key: "MP", value: "Media Partner", category: "acronym")
+      WulinAgent::Knowledge.create!(key: "MP", value: "Media Partner", category: "acronym")
     end
 
     it "is mutating" do
@@ -123,7 +123,7 @@ RSpec.describe WulinAgent::KnowledgeTools do
       result = tool.execute({"key" => "MP"}, admin, approved: true)
 
       expect(result).to eq("deleted" => "MP", "scope" => nil)
-      expect(Agent::Knowledge.find_by(key: "MP")).to be_nil
+      expect(WulinAgent::Knowledge.find_by(key: "MP")).to be_nil
     end
 
     it "returns an error when the entry is missing" do

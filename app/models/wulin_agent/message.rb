@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-module Agent
+module WulinAgent
   class Message < ApplicationRecord
     self.table_name = "agent_messages"
 
     ROLES = %w[user assistant].freeze
 
     belongs_to :conversation,
-      class_name: "Agent::Conversation",
+      class_name: "WulinAgent::Conversation",
       inverse_of: :messages
 
     validates :role, inclusion: {in: ROLES}

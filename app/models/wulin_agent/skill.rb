@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Agent
+module WulinAgent
   class Skill < ApplicationRecord
     self.table_name = "agent_skills"
 

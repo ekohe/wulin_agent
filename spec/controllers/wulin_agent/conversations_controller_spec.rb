@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::ConversationsController, type: :controller do
+RSpec.describe WulinAgent::ConversationsController, type: :controller do
   routes { Rails.application.routes }
 
   let(:user) { User.create!(email: "agent-#{SecureRandom.hex(4)}@example.com", admin: true) }
@@ -37,10 +37,10 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       expect {
         post :create, params: {message: "How many people?"}
-      }.to change(Agent::Conversation, :count).by(1)
-        .and change(Agent::Message, :count).by(2)
+      }.to change(WulinAgent::Conversation, :count).by(1)
+        .and change(WulinAgent::Message, :count).by(2)
 
-      conversation = Agent::Conversation.last
+      conversation = WulinAgent::Conversation.last
       expect(conversation.user).to eq(user)
       expect(conversation.approval_mode).to eq("confirm_writes")
       expect(conversation.messages.chronological.pluck(:role, :content)).to eq(
@@ -53,19 +53,19 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       post :create, params: {message: "Hello", approval_mode: "confirm_all"}
 
-      expect(Agent::Conversation.last.approval_mode).to eq("confirm_all")
+      expect(WulinAgent::Conversation.last.approval_mode).to eq("confirm_all")
       expect(WulinAgent::Runner).to have_received(:new).with(
         hash_including(approval_mode: :confirm_all)
       )
     end
 
     it "reuses an existing conversation" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       stub_runner_run(content: "OK")
 
       expect {
         post :create, params: {conversation_id: conversation.id, message: "Again"}
-      }.not_to change(Agent::Conversation, :count)
+      }.not_to change(WulinAgent::Conversation, :count)
 
       expect(conversation.messages.count).to eq(2)
     end
@@ -78,11 +78,11 @@ RSpec.describe Agent::ConversationsController, type: :controller do
       expect(response.body).to include('0:"Hi"')
       expect(response.body).to include("[DONE]")
       expect(response.media_type).to eq("text/plain")
-      expect(response.headers["X-Conversation-Id"]).to eq(Agent::Conversation.last.id.to_s)
+      expect(response.headers["X-Conversation-Id"]).to eq(WulinAgent::Conversation.last.id.to_s)
     end
 
     it "passes prior history to the runner excluding the new user message" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       conversation.messages.create!(role: "user", content: "First")
       conversation.messages.create!(role: "assistant", content: "Earlier reply")
       stub_runner_run
@@ -104,9 +104,9 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
       expect {
         post :create, params: {message: "List stories"}
-      }.to change(Agent::Message, :count).by(2)
+      }.to change(WulinAgent::Message, :count).by(2)
 
-      messages = Agent::Conversation.last.messages.chronological
+      messages = WulinAgent::Conversation.last.messages.chronological
       expect(messages.map(&:role)).to eq(%w[user assistant])
       expect(messages.last.content).to include("split")
     end
@@ -122,7 +122,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
     end
 
     it "includes the error reply in history for the next turn" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       conversation.messages.create!(role: "user", content: "First")
       conversation.messages.create!(role: "assistant", content: "OK")
 
@@ -136,7 +136,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
   describe "GET #show" do
     it "returns the conversation messages as json" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       conversation.messages.create!(role: "user", content: "Hi")
       conversation.messages.create!(role: "assistant", content: "Hello", metadata: {"tool_calls" => []})
 
@@ -151,7 +151,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
     it "does not expose another user's conversation" do
       other = User.create!(email: "other-#{SecureRandom.hex(4)}@example.com")
-      conversation = Agent::Conversation.create!(user: other)
+      conversation = WulinAgent::Conversation.create!(user: other)
 
       expect {
         get :show, params: {id: conversation.id}
@@ -161,7 +161,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
   describe "PATCH #update" do
     it "updates approval_mode" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
 
       patch :update, params: {id: conversation.id, approval_mode: "auto"}
 
@@ -173,7 +173,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
     it "does not expose another user's conversation" do
       other = User.create!(email: "other-#{SecureRandom.hex(4)}@example.com")
-      conversation = Agent::Conversation.create!(user: other)
+      conversation = WulinAgent::Conversation.create!(user: other)
 
       expect {
         patch :update, params: {id: conversation.id, approval_mode: "auto"}
@@ -183,7 +183,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
   describe "POST #approve" do
     it "streams the approved tool result and persists the assistant reply" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       allow(runner).to receive(:run_approved) do |**_args, &block|
         block&.call(type: :tool_result, name: "people__destroy", result: {"success" => true})
         block&.call(type: :text_delta, content: "Done.")
@@ -202,7 +202,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
     end
 
     it "resolves the pending approval on the original assistant message" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       conversation.messages.create!(
         role: "assistant",
         content: "",
@@ -238,7 +238,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
   describe "POST #reject" do
     it "streams the follow-up response" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       allow(runner).to receive(:run_rejected) do |**_args, &block|
         block&.call(type: :text_delta, content: "Understood.")
         block&.call(type: :done)
@@ -252,7 +252,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
     end
 
     it "marks the pending approval as rejected on the original assistant message" do
-      conversation = Agent::Conversation.create!(user: user)
+      conversation = WulinAgent::Conversation.create!(user: user)
       conversation.messages.create!(
         role: "assistant",
         content: "",
@@ -281,7 +281,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
   end
 
   describe "POST #feedback" do
-    let(:conversation) { Agent::Conversation.create!(user: user) }
+    let(:conversation) { WulinAgent::Conversation.create!(user: user) }
     let(:message) do
       conversation.messages.create!(
         role: "assistant",
@@ -303,7 +303,7 @@ RSpec.describe Agent::ConversationsController, type: :controller do
     end
 
     context "positive feedback" do
-      let(:skill) { Agent::Skill.create!(name: "saved", description: "d", instructions: "i") }
+      let(:skill) { WulinAgent::Skill.create!(name: "saved", description: "d", instructions: "i") }
 
       it "records the rating, distills a skill and links it to the message" do
         allow(WulinAgent::SkillDistiller).to receive(:call).and_return(skill)
@@ -331,12 +331,12 @@ RSpec.describe Agent::ConversationsController, type: :controller do
 
     context "negative feedback after a skill was created" do
       it "destroys the linked skill and clears the link" do
-        skill = Agent::Skill.create!(name: "to_delete", description: "d", instructions: "i")
+        skill = WulinAgent::Skill.create!(name: "to_delete", description: "d", instructions: "i")
         message.update!(metadata: message.metadata.merge("skill_id" => skill.id))
 
         post :feedback, params: {id: conversation.id, message_id: message.id, rating: "down"}
 
-        expect(Agent::Skill.find_by(id: skill.id)).to be_nil
+        expect(WulinAgent::Skill.find_by(id: skill.id)).to be_nil
         expect(message.reload.metadata).not_to have_key("skill_id")
         expect(message.reload.rating).to eq("down")
       end

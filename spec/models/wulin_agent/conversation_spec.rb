@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::Conversation do
+RSpec.describe WulinAgent::Conversation do
   let(:user) { User.create!(email: "conv-#{SecureRandom.hex(4)}@example.com") }
 
   describe "validations" do
@@ -34,7 +34,7 @@ RSpec.describe Agent::Conversation do
       conversation = described_class.create!(user: user)
       conversation.messages.create!(role: "user", content: "hi")
 
-      expect { conversation.destroy }.to change(Agent::Message, :count).by(-1)
+      expect { conversation.destroy }.to change(WulinAgent::Message, :count).by(-1)
     end
   end
 

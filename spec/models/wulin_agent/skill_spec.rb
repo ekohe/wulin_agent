@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::Skill do
+RSpec.describe WulinAgent::Skill do
   describe "validations" do
     it "requires name, description, and instructions" do
       skill = described_class.new

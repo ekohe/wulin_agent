@@ -2,9 +2,9 @@
 
 require "rails_helper"
 
-RSpec.describe Agent::Message do
+RSpec.describe WulinAgent::Message do
   let(:user) { User.create!(email: "msg-#{SecureRandom.hex(4)}@example.com") }
-  let(:conversation) { Agent::Conversation.create!(user: user) }
+  let(:conversation) { WulinAgent::Conversation.create!(user: user) }
 
   describe "validations" do
     it "rejects invalid roles" do

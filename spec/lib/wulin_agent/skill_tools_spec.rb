@@ -13,8 +13,8 @@ RSpec.describe WulinAgent::SkillTools do
     let(:tool) { find_tool("skill_list") }
 
     before do
-      Agent::Skill.create!(name: "zebra", description: "last", instructions: "i")
-      Agent::Skill.create!(name: "alpha", description: "first", instructions: "i")
+      WulinAgent::Skill.create!(name: "zebra", description: "last", instructions: "i")
+      WulinAgent::Skill.create!(name: "alpha", description: "first", instructions: "i")
     end
 
     it "is not mutating" do
@@ -33,7 +33,7 @@ RSpec.describe WulinAgent::SkillTools do
     let(:tool) { find_tool("skill_read") }
 
     before do
-      Agent::Skill.create!(name: "attach_seats", description: "d", instructions: "1. do this")
+      WulinAgent::Skill.create!(name: "attach_seats", description: "d", instructions: "1. do this")
     end
 
     it "is not mutating" do
@@ -92,7 +92,7 @@ RSpec.describe WulinAgent::SkillTools do
         "usage_count" => 0,
         "tool_sequence" => []
       )
-      expect(Agent::Skill.find_by(name: "new_skill")).to be_present
+      expect(WulinAgent::Skill.find_by(name: "new_skill")).to be_present
     end
 
     it "requires approval under confirm_writes" do
@@ -103,7 +103,7 @@ RSpec.describe WulinAgent::SkillTools do
 
       expect(result["status"]).to eq("approval_required")
       expect(result["tool"]).to eq("skill_create")
-      expect(Agent::Skill.find_by(name: "new_skill")).to be_nil
+      expect(WulinAgent::Skill.find_by(name: "new_skill")).to be_nil
     end
 
     it "persists tool_sequence and created_by" do
@@ -116,13 +116,13 @@ RSpec.describe WulinAgent::SkillTools do
       )
 
       expect(result["tool_sequence"]).to eq(sequence)
-      skill = Agent::Skill.find_by(name: "seq_skill")
+      skill = WulinAgent::Skill.find_by(name: "seq_skill")
       expect(skill.tool_sequence).to eq(sequence)
       expect(skill.created_by).to eq(admin.id)
     end
 
     it "returns an error for a duplicate name" do
-      Agent::Skill.create!(name: "dup", description: "d", instructions: "i")
+      WulinAgent::Skill.create!(name: "dup", description: "d", instructions: "i")
 
       result = tool.execute(
         {"name" => "dup", "description" => "d2", "instructions" => "i2"},
@@ -138,7 +138,7 @@ RSpec.describe WulinAgent::SkillTools do
     let(:tool) { find_tool("skill_update") }
 
     before do
-      Agent::Skill.create!(name: "edit_me", description: "old", instructions: "old")
+      WulinAgent::Skill.create!(name: "edit_me", description: "old", instructions: "old")
     end
 
     it "is mutating" do
