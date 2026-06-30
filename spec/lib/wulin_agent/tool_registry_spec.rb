@@ -29,8 +29,16 @@ RSpec.describe WulinAgent::ToolRegistry do
         "knowledge_search",
         "knowledge_upsert",
         "knowledge_delete",
+        "render_chart",
         "people__greet"
       )
+    end
+
+    it "exposes render_chart as a safe (non-mutating) tool" do
+      tool = described_class.find("render_chart", admin)
+
+      expect(tool).to be_present
+      expect(tool.mutating).to be(false)
     end
   end
 

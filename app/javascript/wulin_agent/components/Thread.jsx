@@ -11,6 +11,8 @@ import { isGridResult } from "../gridResult";
 import { sendFeedback } from "../api";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { isChartResult } from "../chartResult";
+import { ChartResult } from "./ChartResult";
 
 
 function MessageFeedback() {
@@ -87,7 +89,10 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
   }
 
   return (
-    <details className={toolClass} open={isExecuting || undefined}>
+    <details
+      className={toolClass}
+      open={isExecuting || isChartResult(result) || undefined}
+    >
       <summary>
         {toolName}
         {isExecuting ? " — executing…" : ""}
@@ -96,7 +101,9 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
         <pre>{JSON.stringify(args, null, 2)}</pre>
       )}
       {result != null && (
-        isGridResult(result) ? (
+        isChartResult(result) ? (
+          <ChartResult result={result} />
+        ) : isGridResult(result) ? (
           <GridResultTable result={result} />
         ) : (
           <pre>{JSON.stringify(result, null, 2)}</pre>

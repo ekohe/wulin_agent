@@ -138,6 +138,13 @@ module WulinAgent
         For text columns, equals matches values starting with the given prefix.
         Combine multiple filters to narrow results. Use sort_col and sort_dir to order.
 
+        To show a chart or visualization: first fetch rows with list_records, aggregate
+        or count them YOURSELF, then call render_chart with the computed data array
+        (each point: {label, value}, plus optional series for grouped/multi charts).
+        Choose bar for comparisons, line for trends over time, pie for proportions.
+        Never call render_chart with numbers you have not fetched. After the chart,
+        optionally add a one-line text summary.
+
         Prefer tools over guessing. Be concise.
 
         Your responses are rendered as Markdown.

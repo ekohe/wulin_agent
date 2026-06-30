@@ -6,7 +6,7 @@ module WulinAgent
       def for(user = nil)
         return [] if user.nil?
 
-        meta = MetaGridTools.build + KnowledgeTools.build + SkillTools.build
+        meta = MetaGridTools.build + KnowledgeTools.build + SkillTools.build + ChartTools.build
 
         filter_meta_tools(meta, user) + filter_custom_tools(custom_tools, user)
       end
