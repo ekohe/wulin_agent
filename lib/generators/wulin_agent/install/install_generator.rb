@@ -35,7 +35,7 @@ module WulinAgent
 
     def show_post_install
       say_status :info, "wulin_agent installed", :green
-      say "  Routes: automatic with the gem (/agent/conversations)", :green
+      say "  Routes: automatic with the gem (/wulin_agent/conversations)", :green
       say "  Next steps:", :yellow
       say "    rails db:migrate"
       say "    rake wulin_permits:load_permission"

@@ -1,4 +1,4 @@
-const BASE = "/agent/conversations";
+const BASE = "/wulin_agent/conversations";
 const STORAGE_CONVERSATION_KEY = "wulin_agent_conversation_id";
 const STORAGE_APPROVAL_MODE_KEY = "wulin_agent_approval_mode";
 

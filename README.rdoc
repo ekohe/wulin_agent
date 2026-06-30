@@ -51,7 +51,7 @@ You should see:
 
   wulin_agent installed
 
-  Routes: automatic with the gem (/agent/conversations)
+  Routes: automatic with the gem (/wulin_agent/conversations)
 
   Next steps:
     rails db/migrate
@@ -230,7 +230,7 @@ The engine exposes its routes automatically.
 
 Available endpoint:
 
-  /agent/conversations
+  /wulin_agent/conversations
 
 No manual configuration is required in the host application's
 +config/routes.rb+.
@@ -244,7 +244,7 @@ knowledge tools as the in-app agent.
 
 === Endpoint
 
-  /agent/mcp
+  /wulin_agent/mcp
 
 It speaks the streamable HTTP transport (stateless) and accepts +POST+ and
 +DELETE+. The exposed tools are exactly +WulinAgent::ToolRegistry.for(user)+ for
@@ -281,7 +281,7 @@ Point the MCP client at the host app's endpoint and pass the token in the
   {
     "mcpServers": {
       "wulin_agent": {
-        "url": "https://your-app.example.com/agent/mcp",
+        "url": "https://your-app.example.com/wulin_agent/mcp",
         "headers": {
           "Authorization": "Bearer <token>"
         }
@@ -291,7 +291,7 @@ Point the MCP client at the host app's endpoint and pass the token in the
 
 Quick smoke test with +curl+ (JSON-RPC +tools/list+):
 
-  curl -sS https://your-app.example.com/agent/mcp \
+  curl -sS https://your-app.example.com/wulin_agent/mcp \
     -H "Authorization: Bearer <token>" \
     -H "Content-Type: application/json" \
     -H "Accept: application/json, text/event-stream" \
