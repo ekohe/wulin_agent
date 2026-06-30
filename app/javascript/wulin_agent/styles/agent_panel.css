@@ -274,6 +274,10 @@ nav ul.right .wulin-agent-toggle-slot {
   background: var(--wulin-agent-row-odd);
   color: var(--wulin-agent-text);
 }
+.wulin-agent-history__toggle:focus {
+  background: transparent;
+  outline: none;
+}
 
 .wulin-agent-history__toggle .material-icons {
   font-size: 18px;
@@ -297,10 +301,21 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
+  user-select: none;
 }
 
 .wulin-agent-history__new:hover {
   background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-history__new:focus:not(:hover) {
+  background: transparent;
+  outline: none;
+}
+
+.wulin-agent-history__new:focus-visible {
+  outline: 2px solid var(--wulin-agent-main);
+  outline-offset: -2px;
 }
 
 .wulin-agent-history__list {
@@ -837,6 +852,28 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-grid-result__table tbody tr:nth-child(odd) {
   background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-chart {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--wulin-agent-bg);
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+}
+
+.wulin-agent-chart__title {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-chart__empty {
+  margin: 0.5rem 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--wulin-agent-text-muted);
 }
 
 .wulin-agent-feedback {

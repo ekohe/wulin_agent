@@ -145,6 +145,8 @@ module WulinAgent
         Never call render_chart with numbers you have not fetched. After the chart,
         optionally add a one-line text summary.
 
+        Don't return charts in the chat, these are automatically shown by the tool result.
+
         Prefer tools over guessing. Be concise.
 
         Your responses are rendered as Markdown.
