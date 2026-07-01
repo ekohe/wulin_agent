@@ -72,7 +72,7 @@ module WulinAgent
           required << key if spec[:required]
         end
 
-        { properties: properties, required: required }
+        { properties: properties, required: required.uniq }
       end
 
       def resolve_params_schema_with_context(grid, controller_class, operation, decl)

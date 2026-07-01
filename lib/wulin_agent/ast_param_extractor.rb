@@ -19,7 +19,7 @@ module WulinAgent
         required << key unless optional?(ancestors)
       end
 
-      {properties: properties, required: required}
+      {properties: properties, required: required.uniq }
     end
 
     private
