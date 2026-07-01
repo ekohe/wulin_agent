@@ -84,8 +84,8 @@ This creates:
 * +agent_messages+
 * +agent_knowledge+
 
-+agent_conversations+ references +users+; ensure a +users+ table exists before
-migrating.
++agent_conversations+ stores +user_id+ as a plain integer (no foreign key), consistent
+with other Wulin apps that use OAuth users without a local +users+ table.
 
 == Knowledge
 

@@ -6,7 +6,7 @@ module WulinAgent
 
     APPROVAL_MODES = %w[auto confirm_writes confirm_all].freeze
 
-    belongs_to :user
+    belongs_to :user, optional: true
     has_many :messages,
       class_name: "WulinAgent::Message",
       foreign_key: :conversation_id,

@@ -4,7 +4,7 @@ module WulinAgent
   class ApiToken < ApplicationRecord
     self.table_name = "agent_api_tokens"
 
-    belongs_to :user
+    belongs_to :user, optional: true
     has_secure_token :token
 
     scope :active, -> {
