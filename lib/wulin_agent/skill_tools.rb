@@ -10,7 +10,7 @@ module WulinAgent
         type: "object",
         properties: {
           tool: {type: "string", description: "Tool name (e.g. list_records)"},
-          params: {type: "object", description: "Arguments passed to the tool"}
+          params: {type: "object", description: "Arguments passed to the tool", properties: {}}
         },
         required: ["tool"]
       }

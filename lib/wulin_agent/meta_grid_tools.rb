@@ -187,7 +187,8 @@ module WulinAgent
             properties: CONTROLLER.merge(
               attributes: {
                 type: "object",
-                description: "Field values — call get_columns first to see valid fields"
+                description: "Field values — call get_columns first to see valid fields",
+                properties: {}
               }
             ),
             required: ["controller", "attributes"]
@@ -211,7 +212,8 @@ module WulinAgent
               id: {type: "integer", description: "Record id"},
               attributes: {
                 type: "object",
-                description: "Fields to update — call get_columns first to see valid fields"
+                description: "Fields to update — call get_columns first to see valid fields",
+                properties: {}
               }
             ),
             required: ["controller", "id", "attributes"]
