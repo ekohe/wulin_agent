@@ -57,7 +57,7 @@ module WulinAgent
       end
 
       def controller_by_plural(grid_class)
-        plural = grid_class.model.model_name.plural
+        plural = ModelNaming.for(grid_class.model).plural
         WulinMaster::ScreenController.descendants.find do |controller|
           controller.controller_name == plural
         end

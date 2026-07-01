@@ -42,7 +42,7 @@ module WulinAgent
 
         GridDescriptor.new(
           grid_class: grid_class,
-          controller: grid_class.model.model_name.plural,
+          controller: ModelNaming.for(grid_class.model).plural,
           controller_class: ControllerResolver.for_grid(grid_class),
           screen_name: screen_name_for(grid_class),
           columns: build_columns(grid_class),
@@ -100,7 +100,7 @@ module WulinAgent
         if screen_class
           WulinMaster::Utilities.get_screen_name(screen_class.name)
         else
-          grid_class.model.model_name.singular
+          ModelNaming.for(grid_class.model).singular
         end
       end
     end
