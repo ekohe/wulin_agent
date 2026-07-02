@@ -100,7 +100,7 @@ module WulinAgent
       Rails.logger.info("[wulin_agent] model=#{resolved_model}")
 
       chat = RubyLLM.chat(model: resolved_model)
-        .with_tools(*tools)
+        .with_tools(*tools, calls: :one)
         .with_instructions(system_prompt)
         .on_tool_call { |tc| emit_tool_call(tc) }
         .on_tool_result { |result| emit_tool_result(result) }
