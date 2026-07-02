@@ -80,9 +80,11 @@ Run the engine migrations:
 
 This creates:
 
-* +agent_conversations+
-* +agent_messages+
-* +agent_knowledge+
+* +agent_conversations+ — chat sessions (+approval_mode+ per conversation)
+* +agent_messages+ — user/assistant turns (+metadata+ for tool calls, +rating+)
+* +agent_knowledge+ — domain glossary and schema mappings
+* +agent_skills+ — reusable playbooks distilled from successful tasks
+* +agent_api_tokens+ — bearer tokens for MCP clients
 
 +agent_conversations+ stores +user_id+ as a plain integer (no foreign key), consistent
 with other Wulin apps that use OAuth users without a local +users+ table.
@@ -101,6 +103,12 @@ Categories: +acronym+, +schema+, +goal+, +glossary+. Optional +scope+ limits an
 entry to a grid context (e.g. +orders+). Only global acronyms are injected;
 scoped or non-acronym entries stay in the DB.
 
+Tools:
+
+* +knowledge_search+ — read-only; search by query, category, and/or scope
+* +knowledge_upsert+ — create or update an entry (mutating)
+* +knowledge_delete+ — remove an entry by key (mutating)
+
 Seed common acronyms after migrate:
 
   WulinAgent::Knowledge.create!(
@@ -111,6 +119,62 @@ Seed common acronyms after migrate:
 
 Knowledge tools are available to any authenticated agent user (not gated by
 grid permissions). Mutating calls still go through the approval flow.
+
+== Skills
+
+Reusable playbooks live in +agent_skills+. A skill is a named workflow the agent
+can follow on demand: a short description (advertised in the system prompt) and
+full markdown instructions (loaded when needed).
+
+Each skill stores:
+
+* +name+ — unique identifier (snake_case)
+* +description+ — one-line summary shown in the system prompt (up to 30 skills)
+* +instructions+ — markdown playbook the agent follows after +skill_read+
+* +tool_sequence+ — optional JSON array of +{tool, params}+ steps from a past run
+* +usage_count+ — incremented each time +skill_read+ is called
+* +created_by+ — user id when created via the UI or +skill_create+
+
+Tools:
+
+* +skill_list+ — read-only; list available skills
+* +skill_read+ — read-only; load a skill's full instructions by name
+* +skill_create+ — create a skill (mutating; requires approval in +confirm_writes+)
+* +skill_update+ — update an existing skill (mutating)
+* +skill_delete+ — delete a skill by name (mutating)
+
+Skill names and descriptions are injected into the system prompt (like global
+acronyms). The agent calls +skill_read+ to load the full instructions before
+following a playbook.
+
+=== Self-improvement (thumbs-up)
+
+After a successful assistant reply, the user can rate it with the thumbs-up
+button in the chat panel. This triggers +WulinAgent::SkillDistiller+, which:
+
+* extracts the tool sequence from the conversation turn
+* asks the LLM whether the workflow is worth saving
+* creates a new +agent_skills+ row when the answer is reusable
+
+A thumbs-down removes any skill linked to that message. Skills can also be
+created or edited manually:
+
+  WulinAgent::Skill.create!(
+    name: "list_nhk_orders_by_match",
+    description: "Show NHK orders grouped by match",
+    instructions: <<~MD,
+      1. Call knowledge_search if the user mentions domain terms.
+      2. Call get_columns on orders.
+      3. Call list_records with filters for the NHK customer.
+      4. Aggregate by match, then call render_chart.
+    MD
+    tool_sequence: [
+      {"tool" => "list_records", "params" => {"controller" => "orders"}}
+    ]
+  )
+
+Skill tools are available to any authenticated agent user (not gated by grid
+permissions). Mutating calls still go through the approval flow.
 
 === Permissions
 
@@ -239,8 +303,8 @@ No manual configuration is required in the host application's
 
 The engine also exposes its tools through the
 {Model Context Protocol}[https://modelcontextprotocol.io] so external clients
-(Cursor, Claude Desktop, …) can call the same grid CRUD, custom actions and
-knowledge tools as the in-app agent.
+(Cursor, Claude Desktop, …) can call the same grid CRUD, custom actions,
+knowledge, and skill tools as the in-app agent.
 
 === Endpoint
 
