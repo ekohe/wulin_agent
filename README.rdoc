@@ -28,8 +28,11 @@ Install dependencies:
 
 For other developers after cloning the project:
 
-  git submodule update --init --recursive
+  git submodule update --init vendor/gems/wulin_agent
   bundle install
+
+Do not use +--recursive+ on the host app: +wulin_agent+ has no nested submodules.
+Declare +wulin_master+ and +wulin_permits+ at the app level (same as other Wulin gems).
 
 == Integration
 
@@ -365,11 +368,7 @@ A missing or invalid token returns +401 Unauthorized+.
 
 == Development
 
-Clone dependencies:
-
-  git submodule update --init --recursive
-
-Install gems:
+Install gems (+wulin_master+ and +wulin_permits+ are fetched from GitLab via the Gemfile):
 
   bundle install
 
@@ -383,7 +382,7 @@ Run tests:
 
   bundle exec rspec
 
-Wulin gems are vendored as git submodules under +vendor/gems/+ (same layout as
-wulintest). +wulin_master+ is a sibling repo on GitLab
-(+../wulin_master.git+).
+Host apps vendor Wulin gems at the top level (+vendor/gems/wulin_master+,
++vendor/gems/wulin_permits+, etc.). This repo's Gemfile pulls them from GitLab
+for local development and CI only.
 

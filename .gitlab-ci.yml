@@ -4,7 +4,6 @@ services:
   - postgres:latest
 
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive
   POSTGRES_DB: wulin_agent_test
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: ""
