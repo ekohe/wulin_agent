@@ -34,6 +34,8 @@ module WulinAgent
       app.config.after_initialize do
         RubyLLM.configure do |config|
           openai = Rails.application.credentials[:openai]
+          config.openai_organization_id ||= openai&.dig(:organization_id)
+          config.openai_project_id ||= openai&.dig(:project_id)
           config.openai_api_key ||= ENV["OPENAI_API_KEY"].presence ||
             openai&.dig(:access_token) || openai&.dig(:api_key)
           anthropic = Rails.application.credentials[:anthropic]
