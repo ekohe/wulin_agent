@@ -115,6 +115,22 @@ Override to switch provider, e.g. Claude or Gemini:
 
   WULIN_AGENT_MODEL=claude-sonnet-4-6
   WULIN_AGENT_MODEL=gemini-2.0-flash
+  WULIN_AGENT_MODEL=gpt-5.6-luna
+
+Optional generation settings (unset by default):
+
+  WULIN_AGENT_TEMPERATURE=0.7
+  WULIN_AGENT_THINKING=high
+
++WULIN_AGENT_TEMPERATURE+ sets sampling temperature when supported by the
+model. +WULIN_AGENT_THINKING+ sets reasoning effort for thinking-capable
+models (e.g. +none+, +low+, +medium+, +high+ on GPT-5.6 Luna). You can also
+set these in +config/initializers/wulin_agent.rb+:
+
+  WulinAgent.setup do |config|
+    config.temperature = 0.7
+    config.thinking_effort = "high"
+  end
 
 Restart the app after changing env vars. Only configure keys for providers you
 actually use.

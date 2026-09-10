@@ -100,11 +100,22 @@ module WulinAgent
       Rails.logger.info("[wulin_agent] model=#{resolved_model}")
 
       chat = RubyLLM.chat(model: resolved_model)
+      chat = apply_llm_options(chat)
+      chat = chat
         .with_tools(*tools, calls: :one)
         .with_instructions(system_prompt)
         .on_tool_call { |tc| emit_tool_call(tc) }
         .on_tool_result { |result| emit_tool_result(result) }
       @history.each { |msg| replay_message!(chat, msg) }
+      chat
+    end
+
+    def apply_llm_options(chat)
+      config = WulinAgent.config
+      chat = chat.with_temperature(config.temperature) unless config.temperature.nil?
+      if config.thinking_effort.present?
+        chat = chat.with_thinking(effort: config.thinking_effort)
+      end
       chat
     end
 

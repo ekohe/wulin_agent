@@ -2,6 +2,7 @@
 
 require "wulin_agent/version"
 require "wulin_agent/column_descriptor"
+require "wulin_agent/column_metadata"
 require "wulin_agent/grid_descriptor"
 require "wulin_agent/controller_resolver"
 require "wulin_agent/catalog"
@@ -27,16 +28,29 @@ require "wulin_agent/skill_distiller"
 require "wulin_agent/mcp_adapter"
 require "wulin_agent/chart_tools"
 require "wulin_agent/model_naming"
+require "wulin_agent/configuration"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent
   DEFAULT_MODEL = "gpt-4o-mini"
 
+  def self.config
+    @config ||= Configuration.new
+  end
+
   def self.setup
-    yield self if block_given?
+    yield config if block_given?
   end
 
   def self.current_model
     RubyLLM.config.default_model
+  end
+
+  def self.apply_llm_options_from_env!
+    if (temperature = ENV["WULIN_AGENT_TEMPERATURE"]).present?
+      config.temperature = Float(temperature)
+    end
+
+    config.thinking_effort = ENV["WULIN_AGENT_THINKING"].presence
   end
 end

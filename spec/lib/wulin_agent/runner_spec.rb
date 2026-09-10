@@ -63,6 +63,8 @@ RSpec.describe WulinAgent::Runner do
       tool_result_handler = nil
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:with_thinking).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:on_tool_call) do |&block|
@@ -105,7 +107,7 @@ RSpec.describe WulinAgent::Runner do
       response = runner.run("How many people?")
 
       expect(RubyLLM).to have_received(:chat).with(model: RubyLLM.config.default_model)
-      expect(chat).to have_received(:with_tools).with(*runner.tools)
+      expect(chat).to have_received(:with_tools).with(*runner.tools, calls: :one)
       expect(chat).to have_received(:on_tool_call)
       expect(chat).to have_received(:on_tool_result)
       expect(chat).to have_received(:ask).with("How many people?")
@@ -118,6 +120,20 @@ RSpec.describe WulinAgent::Runner do
       described_class.new(user: admin, model: "claude-sonnet-4-6").run("hi")
 
       expect(RubyLLM).to have_received(:chat).with(model: "claude-sonnet-4-6")
+    end
+
+    it "applies temperature and thinking from WulinAgent config" do
+      chat = stub_chat(message_content: "ok")
+      WulinAgent.config.temperature = 0.7
+      WulinAgent.config.thinking_effort = "high"
+
+      described_class.new(user: admin).run("hi")
+
+      expect(chat).to have_received(:with_temperature).with(0.7)
+      expect(chat).to have_received(:with_thinking).with(effort: "high")
+    ensure
+      WulinAgent.config.temperature = nil
+      WulinAgent.config.thinking_effort = nil
     end
 
     it "keeps the system prompt and only the last 10 non-system messages" do
@@ -219,6 +235,8 @@ RSpec.describe WulinAgent::Runner do
       tool_result_handler = nil
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:with_thinking).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:on_tool_call) do |&block|
@@ -382,6 +400,8 @@ RSpec.describe WulinAgent::Runner do
       message = instance_double("RubyLLM::Message", content: message_content)
 
       allow(RubyLLM).to receive(:chat).and_return(chat)
+      allow(chat).to receive(:with_temperature).and_return(chat)
+      allow(chat).to receive(:with_thinking).and_return(chat)
       allow(chat).to receive(:with_tools).and_return(chat)
       allow(chat).to receive(:with_instructions).and_return(chat)
       allow(chat).to receive(:on_tool_call).and_return(chat)

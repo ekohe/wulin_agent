@@ -40,7 +40,9 @@ module WulinAgent
       say "    rails db:migrate"
       say "    rake wulin_permits:load_permission"
       say "    export OPENAI_API_KEY=sk-..."
-      say "    # optional: export WULIN_AGENT_MODEL=claude-sonnet-4-6"
+      say "    # optional: export WULIN_AGENT_MODEL=gpt-5.6-luna"
+      say "    # optional: export WULIN_AGENT_TEMPERATURE=0.7"
+      say "    # optional: export WULIN_AGENT_THINKING=high"
     end
 
     private

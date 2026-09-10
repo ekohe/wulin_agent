@@ -1,8 +1,14 @@
+# Copy to database.yml (gitignored) and adjust username for your machine.
+# Local Postgres 16 example:
+#   username: postgres
+#   host: localhost
+
 common: &common
   adapter: postgresql
   encoding: utf8
-  username: username
+  username: postgres
   password:
+  host: localhost
 
 development:
   <<: *common

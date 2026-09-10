@@ -47,6 +47,8 @@ module WulinAgent
 
           config.default_model = ENV.fetch("WULIN_AGENT_MODEL", WulinAgent::DEFAULT_MODEL)
 
+          WulinAgent.apply_llm_options_from_env!
+
           # config.logger = Rails.logger
           # config.log_level = Logger::DEBUG
         end

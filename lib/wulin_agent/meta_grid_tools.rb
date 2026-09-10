@@ -94,16 +94,8 @@ module WulinAgent
           mutating: false,
           params_schema: {properties: CONTROLLER, required: ["controller"]}
         ) do |grid, _params, _user|
-          grid.columns.map do |column|
-            {
-              name: column.name.to_s,
-              label: column.label,
-              sql_type: column.sql_type.to_s,
-              filterable: column.filterable,
-              sortable: column.sortable,
-              choices: column.choices
-            }
-          end
+          model = grid.grid_class.model
+          grid.columns.map { |column| ColumnMetadata.serialize(column, model: model) }
         end
       end
 
