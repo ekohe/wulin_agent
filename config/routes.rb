@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     resources :conversations, only: [:index, :create, :show, :update] do
       collection do
         get :agent_config
+        post :upload_archive
       end
       member do
         post :approve

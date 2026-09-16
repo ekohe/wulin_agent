@@ -16,7 +16,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
   end
 
   def stub_runner_run(content: "Hi", chunks: [content])
-    allow(runner).to receive(:run) do |_message, &block|
+    allow(runner).to receive(:run) do |_message, archive_id: nil, &block|
       chunks.each { |chunk| block&.call(type: :text_delta, content: chunk) }
       block&.call(type: :done)
       content
@@ -79,6 +79,25 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       expect(response.body).to include("[DONE]")
       expect(response.media_type).to eq("text/plain")
       expect(response.headers["X-Conversation-Id"]).to eq(WulinAgent::Conversation.last.id.to_s)
+    end
+
+    it "accepts an archive-only turn and stores archive metadata" do
+      stub_runner_run(content: "Archive received.")
+
+      post :create, params: {archive_id: "abc-123"}
+
+      expect(response).to have_http_status(:ok)
+      expect(runner).to have_received(:run).with("", archive_id: "abc-123")
+      user_message = WulinAgent::Conversation.last.messages.chronological.first
+      expect(user_message.content).to eq("")
+      expect(user_message.metadata).to include("archive_id" => "abc-123")
+      expect(user_message.metadata["inject_mode"]).to eq("error")
+    end
+
+    it "rejects a create turn with no message and no archive" do
+      post :create, params: {message: ""}
+
+      expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it "passes prior history to the runner excluding the new user message" do
@@ -340,6 +359,68 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
         expect(message.reload.metadata).not_to have_key("skill_id")
         expect(message.reload.rating).to eq("down")
       end
+    end
+  end
+
+  describe "POST #upload_archive" do
+    def build_zip(entries)
+      buffer = StringIO.new
+      buffer.set_encoding(Encoding::BINARY)
+      Zip::OutputStream.write_buffer(buffer) do |zip|
+        entries.each do |path, content|
+          zip.put_next_entry(path)
+          zip.write(content)
+        end
+      end
+      buffer.string
+    end
+
+    before { WulinAgent::ArchiveService.reset! }
+    after { WulinAgent::ArchiveService.reset! }
+
+    it "accepts a zip upload and returns the archive manifest" do
+      file = Rack::Test::UploadedFile.new(
+        StringIO.new(build_zip("docs/readme.md" => "# Hello")),
+        "application/zip",
+        original_filename: "export.zip"
+      )
+
+      post :upload_archive, params: {file: file}
+
+      expect(response).to have_http_status(:ok)
+      payload = JSON.parse(response.body)
+      expect(payload["archive_id"]).to be_present
+      expect(payload["file_count"]).to eq(1)
+      expect(payload["inject_mode"]).to eq("full")
+      expect(payload["inject_message"]).to include("Content included in the message")
+    end
+
+    it "accepts a single text file upload" do
+      file = Rack::Test::UploadedFile.new(
+        StringIO.new("hello"),
+        "text/plain",
+        original_filename: "notes.txt"
+      )
+
+      post :upload_archive, params: {file: file}
+
+      expect(response).to have_http_status(:ok)
+      payload = JSON.parse(response.body)
+      expect(payload["archive_id"]).to be_present
+      expect(payload["file_count"]).to eq(1)
+    end
+
+    it "rejects unsupported file types" do
+      file = Rack::Test::UploadedFile.new(
+        StringIO.new("binary"),
+        "image/png",
+        original_filename: "photo.png"
+      )
+
+      post :upload_archive, params: {file: file}
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(JSON.parse(response.body)).to eq("error" => "file must be a .zip or a supported text file")
     end
   end
 end

@@ -85,6 +85,15 @@ module WulinAgent
       render json: { model: WulinAgent.current_model }
     end
 
+    def upload_archive
+      result = ArchiveService.upload(file: params[:file], user: current_user)
+      if result["error"]
+        render json: result, status: :unprocessable_entity
+      else
+        render json: result
+      end
+    end
+
     private
 
     def conversation_title(conversation)
@@ -95,7 +104,15 @@ module WulinAgent
 
     def stream_conversation_turn
       conversation = find_or_create_conversation
-      conversation.messages.create!(role: "user", content: message_param) if action_name == "create"
+      if action_name == "create"
+        return head :unprocessable_entity unless create_turn_valid?
+
+        conversation.messages.create!(
+          role: "user",
+          content: message_param,
+          metadata: user_message_metadata
+        )
+      end
 
       setup_stream_headers!(conversation)
       writer = WulinAgent::DataStreamWriter.new(response.stream)
@@ -132,7 +149,7 @@ module WulinAgent
     def run_runner_turn(runner, &on_event)
       case action_name
       when "create"
-        runner.run(message_param, &on_event)
+        runner.run(message_param, archive_id: params[:archive_id], &on_event)
       when "approve"
         runner.run_approved(token: params[:token], params: params[:params], &on_event)
       when "reject"
@@ -169,7 +186,20 @@ module WulinAgent
     end
 
     def message_param
-      params[:message].presence || params.require(:message)
+      params[:message].to_s
+    end
+
+    def create_turn_valid?
+      message_param.strip.present? || params[:archive_id].present?
+    end
+
+    def user_message_metadata
+      archive_id = params[:archive_id].to_s.strip
+      return {} if archive_id.empty?
+
+      {"archive_id" => archive_id}.merge(
+        ArchiveService.attachment_metadata(archive_id: archive_id, user: current_user)
+      )
     end
 
     def setup_stream_headers!(conversation)

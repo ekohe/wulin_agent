@@ -45,9 +45,23 @@ export function toAssistantUiMessages(apiMessages) {
 
   return apiMessages.map((msg) => {
     if (msg.role === "user") {
+      const metadata = msg.metadata ?? {};
+      const archive = metadata.archive_id
+        ? {
+            archive_id: metadata.archive_id,
+            filename: metadata.archive_filename || "archive.zip",
+            file_count: metadata.archive_file_count,
+            inject_mode: metadata.inject_mode,
+            inject_message: metadata.inject_message,
+          }
+        : null;
+
       return {
         role: "user",
         content: [{type: "text", text: msg.content}],
+        ...(archive
+          ? {metadata: {custom: {archive}}}
+          : {}),
       };
     }
 

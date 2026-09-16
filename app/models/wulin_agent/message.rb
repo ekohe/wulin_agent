@@ -11,12 +11,17 @@ module WulinAgent
       inverse_of: :messages
 
     validates :role, inclusion: {in: ROLES}
-    validates :content, presence: true, unless: :tool_only_assistant_message?
+    validates :content, presence: true, unless: :content_optional?
 
     def tool_only_assistant_message?
       role == "assistant" &&
         metadata.is_a?(Hash) &&
         metadata["tool_calls"].present?
+    end
+
+    def content_optional?
+      tool_only_assistant_message? ||
+        (role == "user" && metadata.is_a?(Hash) && metadata["archive_id"].present?)
     end
 
     scope :chronological, -> { order(:created_at) }

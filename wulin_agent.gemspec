@@ -19,6 +19,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency "mcp"
   s.add_dependency "rails"
+  s.add_dependency "rubyzip"
   s.add_dependency "ruby_llm"
   s.add_dependency "wulin_master"
   s.add_development_dependency "dotenv-rails"

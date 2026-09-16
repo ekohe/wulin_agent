@@ -66,9 +66,12 @@ function getHeaders() {
   };
 }
 
-export async function sendMessage(message, explicitConversationId, {signal} = {}) {
+export async function sendMessage(message, explicitConversationId, {archiveId, signal} = {}) {
   const id = explicitConversationId ?? conversationId;
   const body = {message};
+  if (archiveId) {
+    body.archive_id = archiveId;
+  }
   if (id != null) {
     body.conversation_id = id;
   } else {
@@ -84,7 +87,7 @@ export async function sendMessage(message, explicitConversationId, {signal} = {}
   });
 
   if (response.status === 401) {
-    throw new Error("Non authentifié (401)");
+    throw new Error("Unauthorized (401)");
   }
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -217,6 +220,33 @@ export async function fetchAgentConfig({ signal } = {}) {
 }
 
 
+
+export async function uploadArchive(file, { signal } = {}) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${BASE}/upload_archive`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "X-CSRF-Token": csrfToken(),
+    },
+    body: formData,
+    signal,
+  });
+
+  if (response.status === 401) {
+    throw new Error("Unauthorized (401)");
+  }
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || `HTTP ${response.status}`);
+  }
+
+  return data;
+}
 
 export async function updateApprovalMode(id, approvalMode, { signal } = {}) {
   const response = await fetch(`${BASE}/${id}`, {

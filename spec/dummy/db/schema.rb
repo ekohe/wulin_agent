@@ -145,6 +145,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_120000) do
     t.integer "user_id"
   end
 
+  create_table "user_preferences", id: :serial, force: :cascade do |t|
+    t.datetime "created_at", precision: nil, null: false
+    t.string "name", null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.integer "user_id", null: false
+    t.text "value"
+    t.index ["user_id", "name"], name: "index_user_preferences_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_user_preferences_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
     t.datetime "created_at", null: false

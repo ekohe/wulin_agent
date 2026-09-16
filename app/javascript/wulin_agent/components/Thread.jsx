@@ -13,6 +13,11 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { isChartResult } from "../chartResult";
 import { ChartResult } from "./ChartResult";
+import {ArchiveUploadButton} from "./ArchiveUploadButton";
+import {ComposerSendButton} from "./ComposerSendButton";
+import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
+import {PendingArchiveChip} from "./PendingArchiveChip";
+import {lookupSentArchive} from "../sentMessageArchives";
 
 
 function MessageFeedback() {
@@ -34,7 +39,7 @@ function MessageFeedback() {
       <button
         type="button"
         className={`wulin-agent-feedback__btn${rating === "up" ? " is-active" : ""}`}
-        aria-label="Bonne réponse"
+        aria-label="Good response"
         onClick={() => send("up")}
       >
         <i className="material-icons" aria-hidden="true">thumb_up</i>
@@ -42,7 +47,7 @@ function MessageFeedback() {
       <button
         type="button"
         className={`wulin-agent-feedback__btn${rating === "down" ? " is-active" : ""}`}
-        aria-label="Mauvaise réponse"
+        aria-label="Bad response"
         onClick={() => send("down")}
       >
         <i className="material-icons" aria-hidden="true">thumb_down</i>
@@ -52,10 +57,20 @@ function MessageFeedback() {
 }
 
 function UserMessage() {
+  const archiveFromMeta = useAuiState((state) => state.message.metadata?.custom?.archive);
+  const text = useAuiState((state) =>
+    state.message.content
+      .filter((part) => part.type === "text")
+      .map((part) => part.text)
+      .join("")
+  );
+  const archive = archiveFromMeta || lookupSentArchive(text, archiveFromMeta?.archive_id);
+
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--user">
       <div className="wulin-agent-message__role">User</div>
       <div className="wulin-agent-message__bubble">
+        <MessageArchiveAttachment archive={archive} />
         <MessagePrimitive.Parts />
       </div>
     </MessagePrimitive.Root>
@@ -155,14 +170,14 @@ export function Thread() {
       </ThreadPrimitive.Viewport>
 
       <footer className="wulin-agent-thread__footer">
+        <PendingArchiveChip />
         <ComposerPrimitive.Root className="wulin-agent-composer">
+          <ArchiveUploadButton />
           <ComposerPrimitive.Input
             className="wulin-agent-composer__input"
             placeholder="Ex: How many people in the database ?"
           />
-          <ComposerPrimitive.Send className="wulin-agent-composer__send">
-            Send
-          </ComposerPrimitive.Send>
+          <ComposerSendButton />
         </ComposerPrimitive.Root>
       </footer>
     </ThreadPrimitive.Root>

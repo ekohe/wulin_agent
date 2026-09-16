@@ -10,6 +10,7 @@ spec/dummy/.env
 spec/dummy/config/wulin_agent_actions.rb
 spec/dummy/tmp/cache/*
 spec/dummy/tmp/pids/*
+spec/dummy/tmp/wulin_agent/
 # ignore the bundle folder
 vendor/bundle/
 # JavaScript dependencies (reinstall with npm ci in app/)

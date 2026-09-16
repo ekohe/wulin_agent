@@ -1,6 +1,21 @@
 import {getConversationId, runApproved, runRejected, sendMessage} from "../api";
 import {parseDataStream} from "../parseDataStream";
 import { getApprovalDraft, clearApprovalDraft } from "../approvalDrafts";
+import {takePendingArchive} from "../pendingArchive";
+import {registerSentArchive} from "../sentMessageArchives";
+
+function archiveFromLastUserMessage(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+
+    const archive = message.metadata?.custom?.archive;
+    if (archive?.archive_id) return archive;
+    break;
+  }
+
+  return null;
+}
 
 function lastUserText(messages) {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -143,7 +158,7 @@ async function* streamResponse(body, existingToolCalls = []) {
         break;
 
       case "error":
-        accumulatedText += `\n\nErreur : ${event.message}`;
+        accumulatedText += `\n\nError : ${event.message}`;
         yield snapshot();
         return;
     }
@@ -193,12 +208,22 @@ export const wulinModelAdapter = {
     }
 
     const text = lastUserText(messages);
-    if (!text) {
+    const pendingArchive = takePendingArchive();
+    const archiveFromMessage = archiveFromLastUserMessage(messages);
+    const archive = pendingArchive || archiveFromMessage;
+    const archiveId = archive?.archive_id;
+
+    if (pendingArchive && !archiveFromMessage) {
+      registerSentArchive(text, pendingArchive);
+    }
+
+    if (!text && !archiveId) {
       yield {content: [{type: "text", text: ""}]};
       return;
     }
 
     const {body} = await sendMessage(text, getConversationId(), {
+      archiveId,
       signal: abortSignal,
     });
     yield* streamResponse(body);

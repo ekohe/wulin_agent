@@ -6,7 +6,7 @@ require "wulin_agent/tool_registry"
 
 module WulinAgent
   class Runner
-    MAX_CONTEXT_MESSAGES = 10
+    MAX_CONTEXT_MESSAGES = 20
 
     def initialize(user:, model: nil, approval_mode: :confirm_writes, history: [])
       @user = user
@@ -15,10 +15,11 @@ module WulinAgent
       @history = history
     end
 
-    def run(message, &block)
+    def run(message, archive_id: nil, &block)
       @on_event = block
       scope_messages_for_completion!
-      response = chat.ask(message) { |chunk| emit_text_delta(chunk) }
+      payload = ArchiveService.enrich_message(message, archive_id: archive_id, user: @user)
+      response = chat.ask(payload) { |chunk| emit_text_delta(chunk) }
       emit(type: :done)
       response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
     ensure
@@ -158,6 +159,10 @@ module WulinAgent
 
         Don't return charts in the chat, these are automatically shown by the tool result.
 
+        To analyze attached text files: the user may attach a .zip archive or a
+        single text file (.md, .csv, .html, etc.). The file contents are included
+        directly in the user message. Use that content to answer; do not guess.
+
         Prefer tools over guessing. Be concise.
 
         Your responses are rendered as Markdown.
@@ -207,9 +212,20 @@ module WulinAgent
         return
       end
 
-      return if msg[:content].blank?
+      return if msg[:content].blank? && msg.dig(:metadata, "archive_id").blank?
 
-      chat.add_message(role: msg[:role], content: msg[:content])
+      content =
+        if msg[:role].to_s == "user" && msg.dig(:metadata, "archive_id").present?
+          ArchiveService.enrich_message(
+            msg[:content],
+            archive_id: msg.dig(:metadata, "archive_id"),
+            user: @user
+          )
+        else
+          msg[:content]
+        end
+
+      chat.add_message(role: msg[:role], content: content)
     end
 
     def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)

@@ -190,7 +190,7 @@ export function AgentApp() {
       type="button"
       className={`wulin-agent-toggle${open ? " wulin-agent-toggle--open" : ""}`}
       aria-expanded={open}
-      aria-label={open ? "Fermer l'agent" : "Ouvrir l'agent"}
+      aria-label={open ? "Close agent" : "Open agent"}
       onClick={() => setOpen((v) => !v)}
     >
       <i className="material-icons" aria-hidden="true">
@@ -207,7 +207,7 @@ export function AgentApp() {
         <button
           type="button"
           className="wulin-agent-backdrop"
-          aria-label="Fermer"
+          aria-label="Close"
           onClick={() => setOpen(false)}
         />
       )}
@@ -221,7 +221,7 @@ export function AgentApp() {
           className="wulin-agent-drawer__resize"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Redimensionner le panneau"
+          aria-label="Resize panel"
           onMouseDown={handleDrawerResizeStart}
         />
         <div className="wulin-agent-panel">
@@ -231,7 +231,7 @@ export function AgentApp() {
               <button
                 type="button"
                 className="wulin-agent-panel__close"
-                aria-label="Fermer"
+                aria-label="Close"
                 onClick={() => setOpen(false)}
               >
                 ×

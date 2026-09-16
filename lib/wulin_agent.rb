@@ -27,6 +27,7 @@ require "wulin_agent/conversation_distiller"
 require "wulin_agent/skill_distiller"
 require "wulin_agent/mcp_adapter"
 require "wulin_agent/chart_tools"
+require "wulin_agent/archive_service"
 require "wulin_agent/model_naming"
 require "wulin_agent/configuration"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5

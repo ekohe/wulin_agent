@@ -21,6 +21,17 @@ RSpec.describe WulinAgent::Message do
       expect(message.errors[:content]).to be_present
     end
 
+    it "allows empty content for user messages with an attached archive" do
+      message = described_class.new(
+        conversation: conversation,
+        role: "user",
+        content: "",
+        metadata: {"archive_id" => SecureRandom.uuid}
+      )
+
+      expect(message).to be_valid
+    end
+
     it "allows empty content for assistant messages with tool calls" do
       message = described_class.new(
         conversation: conversation,

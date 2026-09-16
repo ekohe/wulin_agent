@@ -125,7 +125,7 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
           className="wulin-agent-history__resize"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Redimensionner l'historique"
+          aria-label="Resize history"
           onMouseDown={onResizeStart}
         />
       )}

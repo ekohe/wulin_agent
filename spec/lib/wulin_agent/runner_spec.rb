@@ -136,9 +136,9 @@ RSpec.describe WulinAgent::Runner do
       WulinAgent.config.thinking_effort = nil
     end
 
-    it "keeps the system prompt and only the last 10 non-system messages" do
+    it "keeps the system prompt and only the last #{described_class::MAX_CONTEXT_MESSAGES} non-system messages" do
       system_msg = instance_double("RubyLLM::Message", role: :system)
-      rest_msgs = (1..12).map do |i|
+      rest_msgs = (1..(described_class::MAX_CONTEXT_MESSAGES + 2)).map do |i|
         instance_double("RubyLLM::Message", role: :user, content: "msg #{i}", tool_result?: false)
       end
       all_messages = [system_msg, *rest_msgs]
@@ -150,7 +150,7 @@ RSpec.describe WulinAgent::Runner do
       chat = RubyLLM.chat
       expect(chat).to have_received(:instance_variable_set).with(
         :@messages,
-        [system_msg, *rest_msgs.last(10)]
+        [system_msg, *rest_msgs.last(described_class::MAX_CONTEXT_MESSAGES)]
       )
     end
 
