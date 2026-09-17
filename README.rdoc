@@ -220,6 +220,63 @@ Options:
 +agent_action+ blocks into your grid classes, fill in +params:+, then delete
 the draft.
 
+== Host tools
+
+Host apps can register their own LLM tools without creating a Wulin grid or
+controller action. Use this for domain services (validation, provisioning,
+reports, …) that do not map cleanly to CRUD.
+
+Register builders in +config/initializers/wulin_agent.rb+. Each builder is a
+lambda +->(user) { [ToolSpec, ...] }+ called when the tool registry is built
+for that user:
+
+  WulinAgent.setup do |config|
+    config.extra_tool_builders << lambda { |user|
+      ThemeConfig::AgentTools.build(user)
+    }
+  end
+
+Each +ToolSpec+ must set +controller: :host+ so the registry treats it as a
+host-app tool (not a grid action). Use a plain tool name (e.g.
++analyze_config_flow+), not +controller__action+.
+
+Example tool class in the host app:
+
+  module ThemeConfig
+    class AgentTools
+      def self.build(_user = nil)
+        [
+          WulinAgent::ToolSpec.new(
+            name: "analyze_config_flow",
+            controller: :host,
+            operation: "analyze_config_flow",
+            description: "Validate a theme config plan JSON for orphan variables and broken chains.",
+            mutating: false,
+            permission: nil,
+            params_schema: {
+              properties: {
+                plan: { type: "object", description: "Theme config plan JSON" }
+              },
+              required: ["plan"]
+            },
+            callable: ->(params, _user) { ThemeConfig::FlowAnalyzer.call(params["plan"]) }
+          )
+        ]
+      end
+    end
+  end
+
+Visibility and approval:
+
+* +mutating: false+ — read-only host tools are available like +knowledge_search+
+  (no grid permission required; any user who can use the agent sees them)
+* +mutating: true+ — write host tools follow the same approval rules as grid
+  writes (+confirm_writes+ in chat; auto over MCP)
+
+Host tools are included in +WulinAgent::ToolRegistry.for(user)+ alongside grid
+CRUD, custom actions, knowledge, skills, and charts. They appear in the in-app
+chat agent and on the MCP endpoint (+/wulin_agent/mcp+) for the same user.
+
 == Routes
 
 The engine exposes its routes automatically.
@@ -235,8 +292,8 @@ No manual configuration is required in the host application's
 
 The engine also exposes its tools through the
 {Model Context Protocol}[https://modelcontextprotocol.io] so external clients
-(Cursor, Claude Desktop, …) can call the same grid CRUD, custom actions,
-knowledge, and skill tools as the in-app agent.
+(Cursor, Claude Desktop, …) can call the same grid CRUD, custom actions, host
+tools, knowledge, and skill tools as the in-app agent.
 
 === Endpoint
 
