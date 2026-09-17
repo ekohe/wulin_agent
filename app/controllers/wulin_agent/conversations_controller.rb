@@ -203,6 +203,7 @@ module WulinAgent
     end
 
     def setup_stream_headers!(conversation)
+      request.env["rack.etag"] = false
       response.headers["Content-Type"] = "text/plain; charset=utf-8"
       response.headers["Cache-Control"] = "no-cache"
       response.headers["X-Accel-Buffering"] = "no"
