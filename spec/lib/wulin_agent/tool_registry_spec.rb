@@ -14,6 +14,39 @@ RSpec.describe WulinAgent::ToolRegistry do
     PersonGrid
   end
 
+  describe "extra_tool_builders" do
+    let(:host_tool) do
+      WulinAgent::ToolSpec.new(
+        name: "demo_host_tool",
+        controller: :host,
+        operation: "demo",
+        description: "Demo host tool",
+        mutating: false,
+        permission: nil,
+        params_schema: {properties: {}, required: []},
+        callable: ->(_params, _user) { {"ok" => true} }
+      )
+    end
+
+    around do |example|
+      WulinAgent.config.extra_tool_builders << ->(_user) { [host_tool] }
+      example.run
+      WulinAgent.config.extra_tool_builders.clear
+    end
+
+    it "includes host tools for an admin user" do
+      names = described_class.for(admin).map(&:name)
+
+      expect(names).to include("demo_host_tool")
+    end
+
+    it "executes a host tool" do
+      tool = described_class.find("demo_host_tool", admin)
+
+      expect(tool.execute({}, admin)).to eq("ok" => true)
+    end
+  end
+
   describe ".for" do
     it "exposes meta tools and custom actions for an admin user" do
       names = described_class.for(admin).map(&:name)

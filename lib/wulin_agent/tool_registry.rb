@@ -7,7 +7,7 @@ module WulinAgent
         return [] if user.nil?
 
         meta = MetaGridTools.build + KnowledgeTools.build + SkillTools.build +
-               ChartTools.build
+               ChartTools.build + host_tools(user)
 
         filter_meta_tools(meta, user) + filter_custom_tools(custom_tools, user)
       end
@@ -55,7 +55,17 @@ module WulinAgent
       end
 
       def meta_read_tool?(tool)
-        (knowledge_tool?(tool) || skill_tool?(tool)) && !tool.mutating
+        return false if tool.mutating
+
+        knowledge_tool?(tool) || skill_tool?(tool) || host_tool?(tool)
+      end
+
+      def host_tools(user)
+        WulinAgent.config.extra_tool_builders.flat_map { |builder| builder.call(user) }
+      end
+
+      def host_tool?(tool)
+        tool.controller == :host
       end
 
       def filter_custom_tools(tools, user)
