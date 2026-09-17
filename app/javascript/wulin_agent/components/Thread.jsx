@@ -18,19 +18,25 @@ import {ComposerSendButton} from "./ComposerSendButton";
 import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
 import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
+import {useThreadBusy} from "../useThreadBusy";
 
 
 function MessageFeedback() {
   const messageId = useAuiState((s) => s.message.metadata?.custom?.messageId);
+  const statusType = useAuiState((s) => s.message.status?.type);
   const rating0 = useAuiState((s) => s.message.metadata?.custom?.rating);
   const [rating, setRating] = useState(rating0 ?? null);
+  const canFeedback = Boolean(messageId) && statusType !== "running";
 
   const send = async (value) => {
+    if (!canFeedback) return;
+
     setRating(value);
     try {
       await sendFeedback(value, messageId);
     } catch (error) {
       console.error(error);
+      setRating(rating0 ?? null);
     }
   };
 
@@ -40,6 +46,7 @@ function MessageFeedback() {
         type="button"
         className={`wulin-agent-feedback__btn${rating === "up" ? " is-active" : ""}`}
         aria-label="Good response"
+        disabled={!canFeedback}
         onClick={() => send("up")}
       >
         <i className="material-icons" aria-hidden="true">thumb_up</i>
@@ -48,6 +55,7 @@ function MessageFeedback() {
         type="button"
         className={`wulin-agent-feedback__btn${rating === "down" ? " is-active" : ""}`}
         aria-label="Bad response"
+        disabled={!canFeedback}
         onClick={() => send("down")}
       >
         <i className="material-icons" aria-hidden="true">thumb_down</i>
@@ -156,6 +164,25 @@ function AssistantMessage() {
   );
 }
 
+function ThreadComposer() {
+  const threadBusy = useThreadBusy();
+
+  return (
+    <footer className="wulin-agent-thread__footer">
+      <PendingArchiveChip />
+      <ComposerPrimitive.Root className="wulin-agent-composer">
+        <ArchiveUploadButton disabled={threadBusy} />
+        <ComposerPrimitive.Input
+          className="wulin-agent-composer__input"
+          placeholder="Ex: How many people in the database ?"
+          disabled={threadBusy}
+        />
+        <ComposerSendButton />
+      </ComposerPrimitive.Root>
+    </footer>
+  );
+}
+
 export function Thread() {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
@@ -169,17 +196,7 @@ export function Thread() {
         />
       </ThreadPrimitive.Viewport>
 
-      <footer className="wulin-agent-thread__footer">
-        <PendingArchiveChip />
-        <ComposerPrimitive.Root className="wulin-agent-composer">
-          <ArchiveUploadButton />
-          <ComposerPrimitive.Input
-            className="wulin-agent-composer__input"
-            placeholder="Ex: How many people in the database ?"
-          />
-          <ComposerSendButton />
-        </ComposerPrimitive.Root>
-      </footer>
+      <ThreadComposer />
     </ThreadPrimitive.Root>
   );
 }

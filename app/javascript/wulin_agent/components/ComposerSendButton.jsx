@@ -6,14 +6,13 @@ import {
   subscribePendingArchive,
   takePendingArchive,
 } from "../pendingArchive";
+import {useThreadBusy} from "../useThreadBusy";
 
 export function ComposerSendButton() {
   const aui = useAui();
   const text = useAuiState((state) => state.composer.text);
   const canSend = useAuiState((state) => state.composer.canSend);
-  const isRunning = useAuiState(
-    (state) => state.thread.isRunning && !state.thread.capabilities.queue
-  );
+  const threadBusy = useThreadBusy();
   const thread = useThreadRuntime();
   const [pendingArchive, setPendingArchive] = useState(getPendingArchive);
 
@@ -21,7 +20,7 @@ export function ComposerSendButton() {
 
   const hasText = text.trim().length > 0;
   const hasArchive = Boolean(pendingArchive);
-  const canSubmit = !isRunning && ((hasText && canSend) || (hasArchive && !hasText));
+  const canSubmit = !threadBusy && ((hasText && canSend) || (hasArchive && !hasText));
 
   const sendWithArchive = () => {
     const archive = takePendingArchive();

@@ -857,6 +857,11 @@ nav ul.right .wulin-agent-toggle-slot {
   border-color: var(--wulin-agent-main);
 }
 
+.wulin-agent-composer__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .wulin-agent-composer__attach {
   flex-shrink: 0;
   align-self: flex-end;
@@ -1069,8 +1074,13 @@ nav ul.right .wulin-agent-toggle-slot {
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.wulin-agent-feedback__btn:hover {
+.wulin-agent-feedback__btn:hover:not(:disabled) {
   opacity: 1;
+}
+
+.wulin-agent-feedback__btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
 }
 
 .wulin-agent-feedback__btn.is-active {

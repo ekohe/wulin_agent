@@ -3,7 +3,7 @@ import {uploadArchive} from "../api";
 import {ATTACH_ACCEPT} from "../attachmentTypes";
 import {setPendingArchive} from "../pendingArchive";
 
-export function ArchiveUploadButton() {
+export function ArchiveUploadButton({disabled = false}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -51,7 +51,7 @@ export function ArchiveUploadButton() {
         className="wulin-agent-composer__attach"
         aria-label="Attach a file"
         title="Attach a zip or text file"
-        disabled={uploading}
+        disabled={disabled || uploading}
         onClick={handleClick}
       >
         <i className="material-icons" aria-hidden="true">
