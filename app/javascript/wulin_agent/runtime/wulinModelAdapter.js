@@ -195,7 +195,10 @@ export const wulinModelAdapter = {
     }
 
     const rejectedCall = existingToolCalls.findLast(
-      (part) => part.approval?.approved === false && part.approval?.id
+      (part) =>
+        part.approval?.approved === false &&
+        part.approval?.id &&
+        part.result === undefined
     );
     if (rejectedCall) {
       const {body} = await runRejected({

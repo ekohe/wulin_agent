@@ -60,10 +60,10 @@ module WulinAgent
       grant = Approvals.fetch!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
     
-      message = reason || "User declined #{grant[:tool]}"
+      message = reason.presence || "User declined #{grant[:tool]}"
       replace_tool_result!(
         grant[:tool_call_id],
-        {"status" => "rejected", "reason" => message}
+        Approvals.rejection_result(tool: grant[:tool], reason: message)
       )
 
       response = continue_agent_turn
@@ -143,6 +143,12 @@ module WulinAgent
           single turn: issue one tool call, wait for its result, then decide the
           next one. This is required for write actions (create, update, delete)
           that need user approval, even when the user asks for several at once.
+
+        User approval:
+        - Write tools may pause for user approval before running.
+        - If a tool result has status "rejected", the user declined that action.
+          Do not retry that tool or call other tools. Reply in text only and
+          briefly acknowledge what was not done.
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,

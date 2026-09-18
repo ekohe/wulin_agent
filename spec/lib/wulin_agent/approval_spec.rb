@@ -67,4 +67,17 @@ RSpec.describe WulinAgent::Approvals do
       expect(described_class.fetch!(token, user_id: user.id)).to include(tool: "list_grids")
     end
   end
+
+  describe ".rejection_result" do
+    it "returns a tool result that tells the agent not to retry tools" do
+      result = described_class.rejection_result(tool: "destroy_record", reason: "No thanks")
+
+      expect(result).to eq(
+        "status" => "rejected",
+        "tool" => "destroy_record",
+        "reason" => "No thanks",
+        "instruction" => "The user declined this action. Do not retry this tool or call any other tools. Reply in plain text only: briefly acknowledge what was declined."
+      )
+    end
+  end
 end

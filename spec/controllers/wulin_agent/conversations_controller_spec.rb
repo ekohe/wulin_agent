@@ -333,8 +333,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       post :reject, params: {id: conversation.id, token: "tok-1", reason: "No thanks"}
 
       expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq(
-        "status" => "rejected",
-        "reason" => "No thanks"
+        WulinAgent::Approvals.rejection_result(tool: "people__destroy", reason: "No thanks")
       )
     end
   end

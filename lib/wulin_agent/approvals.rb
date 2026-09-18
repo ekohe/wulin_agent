@@ -38,6 +38,15 @@ module WulinAgent
       grant
     end
 
+    def self.rejection_result(tool:, reason:)
+      {
+        "status" => "rejected",
+        "tool" => tool,
+        "reason" => reason,
+        "instruction" => "The user declined this action. Do not retry this tool or call any other tools. Reply in plain text only: briefly acknowledge what was declined."
+      }
+    end
+
     def self.store
       @store ||= {}
     end

@@ -286,20 +286,22 @@ module WulinAgent
       token = params[:token]
       return if token.blank?
 
-      result =
-        if action_name == "approve"
-          writer.metadata["tool_results"]&.find { |tr| tr["result"].present? }&.dig("result")
-        else
-          {"status" => "rejected", "reason" => params[:reason].presence || "User declined"}
-        end
-      return unless result
-
       message = conversation.messages.chronological.reverse.find do |msg|
         msg.metadata.fetch("tool_results", []).any? do |tr|
           tool_result_approval_token(tr) == token
         end
       end
       return unless message
+
+      result =
+        if action_name == "approve"
+          writer.metadata["tool_results"]&.find { |tr| tr["result"].present? }&.dig("result")
+        else
+          tool = pending_tool_name(message, token)
+          reason = params[:reason].presence || "User declined #{tool}"
+          WulinAgent::Approvals.rejection_result(tool: tool, reason: reason)
+        end
+      return unless result
 
       tool_results = message.metadata["tool_results"].map do |tr|
         if tool_result_approval_token(tr) == token
@@ -315,6 +317,18 @@ module WulinAgent
     def tool_result_approval_token(tool_result)
       result = tool_result["result"]
       result["approval_token"] if result.is_a?(Hash)
+    end
+
+    def pending_tool_name(message, token)
+      tool_calls = message.metadata.fetch("tool_calls", [])
+      message.metadata.fetch("tool_results", []).each do |tool_result|
+        next unless tool_result_approval_token(tool_result) == token
+
+        call = tool_calls.find { |tc| tc["id"] == tool_result["id"] }
+        return call["name"] if call&.dig("name").present?
+      end
+
+      "tool"
     end
 
     def rated_message(conversation)
