@@ -94,7 +94,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
 
       post :create, params: {message: "Hello"}
 
-      expect(conversation.status).to eq("idle")
+      expect(conversation.reload.status).to eq("idle")
     end
 
     it "accepts an archive-only turn and stores archive metadata" do

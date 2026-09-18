@@ -122,6 +122,7 @@ module WulinAgent
     def stream_conversation_turn
       @stream_client_connected = true
       conversation = find_or_create_conversation
+      runner_history = nil
       if action_name == "create"
         return head :unprocessable_entity unless create_turn_valid?
 
@@ -130,6 +131,7 @@ module WulinAgent
           content: message_param,
           metadata: user_message_metadata
         )
+        runner_history = conversation.history_for_runner(exclude_last: true)
       end
 
       conversation.mark_running!
@@ -155,7 +157,7 @@ module WulinAgent
           )
         end
       )
-      runner = build_runner(conversation)
+      runner = build_runner(conversation, history: runner_history)
 
       assistant_content = run_runner_turn(runner) { |event| stream_write { writer.write(event) } }
 
@@ -272,11 +274,11 @@ module WulinAgent
       @stream_client_connected = false
     end
 
-    def build_runner(conversation)
+    def build_runner(conversation, history: nil)
       WulinAgent::Runner.new(
         user: current_user,
         approval_mode: conversation.approval_mode_sym,
-        history: conversation.history_for_runner(exclude_last: action_name == "create")
+        history: history || conversation.history_for_runner
       )
     end
 

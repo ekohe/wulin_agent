@@ -31,13 +31,46 @@ function buildApprovalResolutions(apiMessages) {
 
       if (later.some((m) => m.role === "assistant")) {
         resolutions.set(token, {approved: false});
-      } else {
-        resolutions.set(token, {approved: false, resolution: "expired"});
       }
     }
   });
 
   return resolutions;
+}
+
+export function hasPendingApproval(messages) {
+  return messages.some(
+    (msg) =>
+      msg.role === "assistant" &&
+      msg.content?.some(
+        (part) =>
+          part.type === "tool-call" &&
+          part.approval?.id &&
+          part.approval.approved === undefined &&
+          part.approval.resolution === undefined
+      )
+  );
+}
+
+export function hasPendingApprovalInApi(apiMessages) {
+  const resolutions = buildApprovalResolutions(apiMessages);
+
+  return apiMessages.some((msg) => {
+    if (msg.role !== "assistant") return false;
+
+    const toolCalls = msg.metadata?.tool_calls ?? [];
+    const toolResults = msg.metadata?.tool_results ?? [];
+
+    return toolCalls.some((tc) => {
+      const tr = toolResults.find((r) => r.id === tc.id);
+      const token = tr?.result?.approval_token;
+      return (
+        tr?.result?.status === "approval_required" &&
+        token &&
+        !resolutions.has(token)
+      );
+    });
+  });
 }
 
 export function toAssistantUiMessages(apiMessages) {
@@ -85,11 +118,10 @@ export function toAssistantUiMessages(apiMessages) {
         if (resolved?.approved) {
           part.approval = {approved: true};
           if (resolved.result) part.result = resolved.result;
+        } else if (resolved) {
+          part.approval = {approved: false};
         } else {
-          part.approval = {
-            approved: false,
-            ...(resolved?.resolution ? {resolution: resolved.resolution} : {}),
-          };
+          part.approval = {id: result.approval_token};
         }
       } else if (result?.status === "rejected") {
         part.approval = {approved: false};
@@ -105,10 +137,16 @@ export function toAssistantUiMessages(apiMessages) {
       parts.push({type: "text", text: msg.content});
     }
 
-    return {
+    const assistant = {
       role: "assistant",
       content: parts,
       metadata: { custom: { rating: msg.rating ?? null, messageId: msg.id ?? null } },
     };
+
+    if (hasPendingApproval([assistant])) {
+      assistant.status = {type: "requires-action", reason: "tool-calls"};
+    }
+
+    return assistant;
   });
 }

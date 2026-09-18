@@ -113,10 +113,20 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
     toolClass += " wulin-agent-tool--approved";
   }
 
+  const preserveScrollOnToggle = (event) => {
+    const viewport = event.currentTarget.closest(".wulin-agent-thread__viewport");
+    if (!viewport) return;
+    const scrollTop = viewport.scrollTop;
+    requestAnimationFrame(() => {
+      viewport.scrollTop = scrollTop;
+    });
+  };
+
   return (
     <details
       className={toolClass}
       open={isExecuting || isChartResult(result) || undefined}
+      onToggle={preserveScrollOnToggle}
     >
       <summary>
         {toolName}
@@ -200,7 +210,10 @@ function ThreadComposer() {
 export function Thread({conversationStatus = "idle"}) {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
-      <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
+      <ThreadPrimitive.Viewport
+        className="wulin-agent-thread__viewport"
+        autoScroll={false}
+      >
       <ThreadPrimitive.Empty>
         <div className="wulin-agent-thread__empty">Ask anything</div>
       </ThreadPrimitive.Empty>

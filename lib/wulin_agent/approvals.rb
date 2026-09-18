@@ -2,6 +2,8 @@
 
 module WulinAgent
   module Approvals
+    TTL = 10.minutes
+
     def self.needs_approval?(tool, mode:, approved: false)
       return false if approved
       return false if mode == :auto
@@ -12,7 +14,7 @@ module WulinAgent
 
     def self.issue!(tool:, params:, user_id:, tool_call_id: nil)
       token = SecureRandom.uuid
-      store[token] = {tool:, params:, user_id:, tool_call_id:, expires_at: 5.minutes.from_now}
+      store[token] = {tool:, params:, user_id:, tool_call_id:, expires_at: TTL.from_now}
       token
     end
 

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { useAui } from "@assistant-ui/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAui, useAuiState } from "@assistant-ui/react";
 import {
   deleteConversation,
   fetchConversation,
@@ -9,7 +9,11 @@ import {
   resetConversationId,
   setConversationId,
 } from "../api";
-import { toAssistantUiMessages } from "../messageMapper";
+import {
+  hasPendingApproval,
+  hasPendingApprovalInApi,
+  toAssistantUiMessages,
+} from "../messageMapper";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { useThreadRunning } from "../useThreadRunning";
 
@@ -52,6 +56,13 @@ export function ConversationHistory({
   const [viewedStatus, setViewedStatus] = useState("idle");
   const aui = useAui();
   const threadRunning = useThreadRunning();
+  const threadRunningRef = useRef(threadRunning);
+  threadRunningRef.current = threadRunning;
+  const threadPendingApproval = useAuiState((state) =>
+    hasPendingApproval(state.thread.messages)
+  );
+  const threadPendingRef = useRef(threadPendingApproval);
+  threadPendingRef.current = threadPendingApproval;
 
   const rootClass = open
     ? "wulin-agent-history"
@@ -66,9 +77,9 @@ export function ConversationHistory({
   }, []);
 
   const applyConversation = useCallback(
-    (data, { syncThread = true } = {}) => {
+    (data, { syncThread = true, force = false } = {}) => {
       const status = resolveStatus(data.status, {
-        threadRunning,
+        threadRunning: threadRunningRef.current,
         conversationId: data.id,
         selectedId: data.id,
       });
@@ -80,11 +91,11 @@ export function ConversationHistory({
       onStatusChange?.(status);
       syncItemStatus(data.id, status);
 
-      if (syncThread) {
+      if (syncThread && (force || !threadRunningRef.current)) {
         aui.thread().reset(toAssistantUiMessages(data.messages));
       }
     },
-    [aui, onApprovalModeChange, onStatusChange, syncItemStatus, threadRunning]
+    [aui, onApprovalModeChange, onStatusChange, syncItemStatus]
   );
 
   const loadListItems = useCallback(async () => {
@@ -161,7 +172,7 @@ export function ConversationHistory({
         if (cancelled) return;
 
         const status = resolveStatus(data.status, {
-          threadRunning,
+          threadRunning: threadRunningRef.current,
           conversationId: selectedId,
           selectedId,
         });
@@ -169,8 +180,14 @@ export function ConversationHistory({
         onStatusChange?.(status);
         syncItemStatus(selectedId, status);
 
-        if (!threadRunning) {
-          aui.thread().reset(toAssistantUiMessages(data.messages));
+        if (!threadRunningRef.current) {
+          const mapped = toAssistantUiMessages(data.messages);
+          const skipReset =
+            threadPendingRef.current && !hasPendingApprovalInApi(data.messages);
+
+          if (!skipReset) {
+            aui.thread().reset(mapped);
+          }
         }
 
         if (status === "running") {
@@ -191,7 +208,7 @@ export function ConversationHistory({
 
   async function handleClick(id) {
     const data = await fetchConversation(id);
-    applyConversation(data);
+    applyConversation(data, {force: true});
   }
 
   function startNew() {
