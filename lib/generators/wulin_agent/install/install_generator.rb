@@ -16,6 +16,10 @@ module WulinAgent
       require_wulin_agent_css
     end
 
+    def copy_migrations
+      rake "wulin_agent_engine:install:migrations"
+    end
+
     def add_layout_mount_point
       %w[haml erb].each do |ext|
         path = "app/views/layouts/application.html.#{ext}"
@@ -37,7 +41,8 @@ module WulinAgent
       say_status :info, "wulin_agent installed", :green
       say "  Routes: automatic with the gem (/wulin_agent/conversations)", :green
       say "  Next steps:", :yellow
-      say "    rails db:migrate"
+      say "    bin/rails db:migrate"
+      say "    # after gem updates: bin/rails wulin_agent_engine:install:migrations && bin/rails db:migrate"
       say "    rake wulin_permits:load_permission"
       say "    export OPENAI_API_KEY=sk-..."
       say "    # optional: export WULIN_AGENT_MODEL=gpt-5.6-luna"

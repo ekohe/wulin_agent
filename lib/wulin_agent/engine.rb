@@ -19,14 +19,6 @@ module WulinAgent
       app.config.assets.precompile += %w[wulin_agent.js wulin_agent.css]
     end
 
-    initializer :append_migrations do |app|
-      unless app.root.to_s.match root.to_s
-        config.paths["db/migrate"].expanded.each do |expanded_path|
-          app.config.paths["db/migrate"] << expanded_path
-        end
-      end
-    end
-
     initializer "wulin_agent.ruby_llm" do |app|
       RubyLLM.configure do |config|
         config.use_new_acts_as = true

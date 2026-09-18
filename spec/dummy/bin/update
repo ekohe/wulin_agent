@@ -17,5 +17,6 @@ chdir APP_ROOT do
   system("bundle check") || system!("bundle install")
 
   puts "\n== Updating database =="
+  system! "bin/rails wulin_agent_engine:install:migrations"
   system! "bin/rails db:migrate"
 end

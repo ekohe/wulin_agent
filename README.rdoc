@@ -77,8 +77,17 @@ menus, +rake wulin_permits:load_permission+ after adding grids).
 
 === Database
 
-Run the engine migrations:
+Copy engine migrations into the host app (each app gets its own timestamps,
+avoiding version collisions with local migrations):
 
+  bin/rails wulin_agent_engine:install:migrations
+  bin/rails db:migrate
+
++rails generate wulin_agent:install+ runs +install:migrations+ automatically.
+
+After upgrading the gem, copy any new migrations and migrate again:
+
+  bin/rails wulin_agent_engine:install:migrations
   bin/rails db:migrate
 
 This creates:
