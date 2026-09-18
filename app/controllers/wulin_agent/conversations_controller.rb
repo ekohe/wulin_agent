@@ -54,6 +54,12 @@ module WulinAgent
       render json: {id: conversation.id, approval_mode: conversation.approval_mode}
     end
 
+    def destroy
+      conversation = user_conversations.find(params[:id])
+      conversation.destroy!
+      head :no_content
+    end
+
     def show
       conversation = user_conversations.find(params[:id])
       render json: {

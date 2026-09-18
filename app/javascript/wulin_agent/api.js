@@ -248,6 +248,25 @@ export async function uploadArchive(file, { signal } = {}) {
   return data;
 }
 
+export async function deleteConversation(id, { signal } = {}) {
+  const response = await fetch(`${BASE}/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: getHeaders(),
+    signal,
+  });
+
+  if (response.status === 401) {
+    throw new Error("Not authenticated (401)");
+  }
+  if (response.status === 404) {
+    throw new Error("Conversation not found (404)");
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+}
+
 export async function updateApprovalMode(id, approvalMode, { signal } = {}) {
   const response = await fetch(`${BASE}/${id}`, {
     method: "PATCH",

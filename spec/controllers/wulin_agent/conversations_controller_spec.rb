@@ -178,6 +178,29 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
     end
   end
 
+  describe "DELETE #destroy" do
+    it "destroys the conversation" do
+      conversation = WulinAgent::Conversation.create!(user: user)
+      conversation.messages.create!(role: "user", content: "Hi")
+
+      expect {
+        delete :destroy, params: {id: conversation.id}
+      }.to change(WulinAgent::Conversation, :count).by(-1)
+        .and change(WulinAgent::Message, :count).by(-1)
+
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it "does not expose another user's conversation" do
+      other = User.create!(email: "other-#{SecureRandom.hex(4)}@example.com")
+      conversation = WulinAgent::Conversation.create!(user: other)
+
+      expect {
+        delete :destroy, params: {id: conversation.id}
+      }.to raise_error(ActiveRecord::RecordNotFound)
+    end
+  end
+
   describe "PATCH #update" do
     it "updates approval_mode" do
       conversation = WulinAgent::Conversation.create!(user: user)

@@ -1,19 +1,31 @@
 import { useEffect, useState } from "react";
 import { useAui } from "@assistant-ui/react";
 import {
+  deleteConversation,
   fetchConversation,
+  getConversationId,
   getStoredConversationId,
   listConversations,
   resetConversationId,
   setConversationId,
 } from "../api";
 import { toAssistantUiMessages } from "../messageMapper";
+import { LoadingSpinner } from "./LoadingSpinner";
+import { useThreadRunning } from "../useThreadRunning";
 
 export function ConversationHistory({open, width, historyVersion, onToggle, onResizeStart, onApprovalModeChange}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const aui = useAui();
+  const threadRunning = useThreadRunning();
+  const [activeConversationId, setActiveConversationId] = useState(
+    () => getConversationId() || null
+  );
+
+  useEffect(() => {
+    setActiveConversationId(getConversationId() || selectedId);
+  }, [selectedId, historyVersion, threadRunning]);
 
   const rootClass = open
     ? "wulin-agent-history"
@@ -62,7 +74,28 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
   function startNew() {
     resetConversationId();
     setSelectedId(null);
+    setActiveConversationId(null);
     aui.thread().reset([]);
+  }
+
+  async function handleDelete(id, event) {
+    event.stopPropagation();
+
+    if (threadRunning && String(activeConversationId) === String(id)) return;
+
+    try {
+      await deleteConversation(id);
+      setItems((prev) => prev.filter((item) => String(item.id) !== String(id)));
+
+      if (
+        String(getConversationId()) === String(id) ||
+        String(selectedId) === String(id)
+      ) {
+        startNew();
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -102,21 +135,43 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
 
       {open && !loading && (
         <ul className="wulin-agent-history__list">
-          {items.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className={
-                  selectedId === item.id
-                    ? "wulin-agent-history__item wulin-agent-history__item--active"
-                    : "wulin-agent-history__item"
-                }
-                onClick={() => handleClick(item.id)}
-              >
-                {item.title}
-              </button>
-            </li>
-          ))}
+          {items.map((item) => {
+            const isActive = String(selectedId) === String(item.id);
+            const isRunningHere =
+              threadRunning && String(activeConversationId) === String(item.id);
+
+            return (
+              <li key={item.id} className="wulin-agent-history__row">
+                <button
+                  type="button"
+                  className={
+                    isActive
+                      ? "wulin-agent-history__item wulin-agent-history__item--active"
+                      : "wulin-agent-history__item"
+                  }
+                  onClick={() => handleClick(item.id)}
+                >
+                  <span className="wulin-agent-history__item-text">{item.title}</span>
+                  {isRunningHere && (
+                    <LoadingSpinner
+                      className="wulin-agent-history__item-spinner"
+                      label="Réflexion en cours"
+                    />
+                  )}
+                </button>
+                {!isRunningHere && (
+                  <button
+                    type="button"
+                    className="wulin-agent-history__item-delete"
+                    aria-label="Supprimer la conversation"
+                    onClick={(event) => handleDelete(item.id, event)}
+                  >
+                    <i className="material-icons" aria-hidden="true">delete</i>
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

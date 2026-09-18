@@ -327,8 +327,67 @@ nav ul.right .wulin-agent-toggle-slot {
   padding: 0.25rem 6px;
 }
 
+.wulin-agent-history__row {
+  position: relative;
+}
+
+.wulin-agent-history__row:hover .wulin-agent-history__item,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item {
+  padding-right: 26px;
+}
+
+.wulin-agent-history__item-delete {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%);
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  box-shadow: none;
+}
+
+.wulin-agent-history__row:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-delete {
+  opacity: 1;
+  visibility: visible;
+}
+
+.wulin-agent-history__item-delete:hover {
+  background: color-mix(in srgb, var(--wulin-agent-error) 10%, transparent);
+  color: var(--wulin-agent-error);
+}
+
+.wulin-agent-history__item-delete:focus {
+  outline: none;
+}
+
+.wulin-agent-history__item-delete:focus-visible {
+  opacity: 1;
+  visibility: visible;
+  outline: 2px solid var(--wulin-agent-main);
+  outline-offset: -2px;
+}
+
+.wulin-agent-history__item-delete .material-icons {
+  font-size: 16px;
+}
+
 .wulin-agent-history__item {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   width: 100%;
   padding: 0.25rem 6px;
   border: none;
@@ -340,9 +399,21 @@ nav ul.right .wulin-agent-toggle-slot {
   line-height: 1.3;
   text-align: left;
   cursor: pointer;
-  white-space: nowrap;
+}
+
+.wulin-agent-history__item-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wulin-agent-history__item-spinner {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
 }
 
 .wulin-agent-history__item:hover {
@@ -402,6 +473,33 @@ nav ul.right .wulin-agent-toggle-slot {
   justify-content: center;
   color: var(--wulin-agent-text-muted);
   font-size: 20px;
+}
+
+.wulin-agent-thread__thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0;
+  font-size: 13px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--wulin-agent-border);
+  border-top-color: var(--wulin-agent-main);
+  border-radius: 50%;
+  animation: wulin-agent-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes wulin-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .wulin-agent-message {
