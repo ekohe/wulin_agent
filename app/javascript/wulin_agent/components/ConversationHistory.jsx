@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAui } from "@assistant-ui/react";
 import {
   deleteConversation,
@@ -13,23 +13,40 @@ import { toAssistantUiMessages } from "../messageMapper";
 import { LoadingSpinner } from "./LoadingSpinner";
 import { useThreadRunning } from "../useThreadRunning";
 
-export function ConversationHistory({open, width, historyVersion, onToggle, onResizeStart, onApprovalModeChange}) {
+const LIST_POLL_MS = 2000;
+const CONVERSATION_POLL_MS = 1500;
+
+export function ConversationHistory({
+  open,
+  width,
+  historyVersion,
+  onToggle,
+  onResizeStart,
+  onApprovalModeChange,
+  onStatusChange,
+}) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const aui = useAui();
   const threadRunning = useThreadRunning();
-  const [activeConversationId, setActiveConversationId] = useState(
-    () => getConversationId() || null
-  );
-
-  useEffect(() => {
-    setActiveConversationId(getConversationId() || selectedId);
-  }, [selectedId, historyVersion, threadRunning]);
 
   const rootClass = open
     ? "wulin-agent-history"
     : "wulin-agent-history wulin-agent-history--collapsed";
+
+  const applyConversation = useCallback(
+    (data, { syncThread = true } = {}) => {
+      setSelectedId(data.id);
+      setConversationId(data.id);
+      onApprovalModeChange?.(data.approval_mode);
+      onStatusChange?.(data.status || "idle");
+      if (syncThread) {
+        aui.thread().reset(toAssistantUiMessages(data.messages));
+      }
+    },
+    [aui, onApprovalModeChange, onStatusChange]
+  );
 
   useEffect(() => {
     if (historyVersion === 0) setLoading(true);
@@ -52,40 +69,106 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
     if (!storedId) return;
 
     fetchConversation(storedId)
-      .then((data) => {
-        setSelectedId(data.id);
-        setConversationId(data.id);
-        onApprovalModeChange?.(data.approval_mode);
-        aui.thread().reset(toAssistantUiMessages(data.messages));
-      })
+      .then((data) => applyConversation(data))
       .catch(() => {
         resetConversationId();
+        onStatusChange?.("idle");
       });
-  }, [aui, onApprovalModeChange]);
+  }, [applyConversation, onStatusChange]);
+
+  useEffect(() => {
+    if (!threadRunning || !selectedId) return;
+
+    listConversations()
+      .then(setItems)
+      .catch(console.error);
+  }, [threadRunning, selectedId]);
+
+  const hasRunningConversation = items.some((item) => item.status === "running");
+  const selectedStatus = items.find(
+    (item) => selectedId && String(item.id) === String(selectedId)
+  )?.status;
+
+  useEffect(() => {
+    if (!hasRunningConversation) return;
+
+    const timer = setInterval(() => {
+      listConversations()
+        .then(setItems)
+        .catch(console.error);
+    }, LIST_POLL_MS);
+
+    return () => clearInterval(timer);
+  }, [hasRunningConversation]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      onStatusChange?.("idle");
+      return;
+    }
+
+    onStatusChange?.(selectedStatus || "idle");
+
+    if (selectedStatus !== "running") return;
+
+    let cancelled = false;
+    let timer;
+
+    async function poll() {
+      try {
+        const data = await fetchConversation(selectedId);
+        if (cancelled) return;
+
+        onStatusChange?.(data.status || "idle");
+        setItems((prev) =>
+          prev.map((item) =>
+            String(item.id) === String(selectedId)
+              ? { ...item, status: data.status }
+              : item
+          )
+        );
+
+        if (!threadRunning) {
+          aui.thread().reset(toAssistantUiMessages(data.messages));
+        }
+
+        if (data.status === "running") {
+          timer = setTimeout(poll, CONVERSATION_POLL_MS);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [selectedId, selectedStatus, threadRunning, aui, onStatusChange]);
 
   async function handleClick(id) {
-    setSelectedId(id);
     const data = await fetchConversation(id);
-    setConversationId(data.id);
-    onApprovalModeChange?.(data.approval_mode);
-    aui.thread().reset(toAssistantUiMessages(data.messages));
+    applyConversation(data);
   }
 
   function startNew() {
     resetConversationId();
     setSelectedId(null);
-    setActiveConversationId(null);
+    onStatusChange?.("idle");
     aui.thread().reset([]);
   }
 
   async function handleDelete(id, event) {
     event.stopPropagation();
 
-    if (threadRunning && String(activeConversationId) === String(id)) return;
+    const item = items.find((entry) => String(entry.id) === String(id));
+    if (item?.status === "running") return;
 
     try {
       await deleteConversation(id);
-      setItems((prev) => prev.filter((item) => String(item.id) !== String(id)));
+      setItems((prev) => prev.filter((entry) => String(entry.id) !== String(id)));
 
       if (
         String(getConversationId()) === String(id) ||
@@ -137,11 +220,17 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
         <ul className="wulin-agent-history__list">
           {items.map((item) => {
             const isActive = String(selectedId) === String(item.id);
-            const isRunningHere =
-              threadRunning && String(activeConversationId) === String(item.id);
+            const isRunning = item.status === "running";
 
             return (
-              <li key={item.id} className="wulin-agent-history__row">
+              <li
+                key={item.id}
+                className={
+                  isRunning
+                    ? "wulin-agent-history__row wulin-agent-history__row--running"
+                    : "wulin-agent-history__row"
+                }
+              >
                 <button
                   type="button"
                   className={
@@ -152,23 +241,24 @@ export function ConversationHistory({open, width, historyVersion, onToggle, onRe
                   onClick={() => handleClick(item.id)}
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
-                  {isRunningHere && (
+                </button>
+                <div className="wulin-agent-history__item-actions">
+                  {isRunning ? (
                     <LoadingSpinner
                       className="wulin-agent-history__item-spinner"
-                      label="Réflexion en cours"
+                      label="Working in progress"
                     />
+                  ) : (
+                    <button
+                      type="button"
+                      className="wulin-agent-history__item-delete"
+                      aria-label="Delete conversation"
+                      onClick={(event) => handleDelete(item.id, event)}
+                    >
+                      <i className="material-icons" aria-hidden="true">delete</i>
+                    </button>
                   )}
-                </button>
-                {!isRunningHere && (
-                  <button
-                    type="button"
-                    className="wulin-agent-history__item-delete"
-                    aria-label="Supprimer la conversation"
-                    onClick={(event) => handleDelete(item.id, event)}
-                  >
-                    <i className="material-icons" aria-hidden="true">delete</i>
-                  </button>
-                )}
+                </div>
               </li>
             );
           })}

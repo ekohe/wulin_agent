@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_30_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -30,9 +30,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_120000) do
   create_table "agent_conversations", force: :cascade do |t|
     t.string "approval_mode", default: "confirm_writes", null: false
     t.datetime "created_at", null: false
+    t.datetime "running_started_at", precision: nil
+    t.string "status", default: "idle", null: false
     t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["status"], name: "index_agent_conversations_on_status"
     t.index ["user_id", "updated_at"], name: "index_agent_conversations_on_user_id_and_updated_at"
     t.index ["user_id"], name: "index_agent_conversations_on_user_id"
   end

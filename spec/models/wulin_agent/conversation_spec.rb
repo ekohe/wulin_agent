@@ -27,6 +27,37 @@ RSpec.describe WulinAgent::Conversation do
 
       expect(conversation.approval_mode).to eq("confirm_writes")
     end
+
+    it "defaults status to idle" do
+      conversation = described_class.create!(user: user)
+
+      expect(conversation.status).to eq("idle")
+      expect(conversation).not_to be_running
+    end
+  end
+
+  describe "running status" do
+    it "marks running and idle" do
+      conversation = described_class.create!(user: user)
+
+      conversation.mark_running!
+      expect(conversation).to be_running
+
+      conversation.mark_idle!
+      expect(conversation.status).to eq("idle")
+      expect(conversation).not_to be_running
+    end
+
+    it "auto-clears stale running status" do
+      conversation = described_class.create!(
+        user: user,
+        status: "running",
+        running_started_at: 15.minutes.ago
+      )
+
+      expect(conversation.running?).to be false
+      expect(conversation.status).to eq("idle")
+    end
   end
 
   describe "associations" do

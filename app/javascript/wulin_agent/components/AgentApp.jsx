@@ -54,6 +54,7 @@ export function AgentApp() {
   const [historyWidth, setHistoryWidth] = useState(() =>
     getStoredHistoryWidth(getStoredDrawerWidth())
   );
+  const [conversationStatus, setConversationStatus] = useState("idle");
   const drawerWidthRef = useRef(drawerWidth);
   const historyWidthRef = useRef(historyWidth);
   drawerWidthRef.current = drawerWidth;
@@ -261,8 +262,9 @@ export function AgentApp() {
               onToggle={() => setHistoryOpen((v) => !v)}
               onResizeStart={handleHistoryResizeStart}
               onApprovalModeChange={handleConversationApprovalMode}
+              onStatusChange={setConversationStatus}
             />
-            <Thread />
+            <Thread conversationStatus={conversationStatus} />
           </div>
         </div>
       </aside>

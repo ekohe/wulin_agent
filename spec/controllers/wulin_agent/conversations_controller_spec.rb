@@ -79,6 +79,22 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       expect(response.body).to include("[DONE]")
       expect(response.media_type).to eq("text/plain")
       expect(response.headers["X-Conversation-Id"]).to eq(WulinAgent::Conversation.last.id.to_s)
+      expect(WulinAgent::Conversation.last.status).to eq("idle")
+    end
+
+    it "marks the conversation running during the stream" do
+      conversation = nil
+      allow(runner).to receive(:run) do |_message, archive_id: nil, &block|
+        conversation = WulinAgent::Conversation.last
+        expect(conversation.status).to eq("running")
+        block&.call(type: :text_delta, content: "Hi")
+        block&.call(type: :done)
+        "Hi"
+      end
+
+      post :create, params: {message: "Hello"}
+
+      expect(conversation.status).to eq("idle")
     end
 
     it "accepts an archive-only turn and stores archive metadata" do
@@ -164,6 +180,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       expect(response).to have_http_status(:ok)
       payload = JSON.parse(response.body)
       expect(payload["id"]).to eq(conversation.id)
+      expect(payload["status"]).to eq("idle")
       expect(payload["messages"].size).to eq(2)
       expect(payload["messages"].last["metadata"]).to eq({"tool_calls" => []})
     end

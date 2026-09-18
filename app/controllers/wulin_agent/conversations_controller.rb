@@ -62,13 +62,7 @@ module WulinAgent
 
     def show
       conversation = user_conversations.find(params[:id])
-      render json: {
-        id: conversation.id,
-        approval_mode: conversation.approval_mode,
-        messages: conversation.messages.chronological.map do |message|
-          {id: message.id, role: message.role, content: message.content, metadata: message.metadata, rating: message.rating}
-        end
-      }
+      render json: conversation_payload(conversation)
     end 
 
     def index
@@ -83,7 +77,8 @@ module WulinAgent
           id: conversation.id,
           title: conversation_title(conversation),
           updated_at: conversation.updated_at.iso8601,
-          approval_mode: conversation.approval_mode
+          approval_mode: conversation.approval_mode,
+          status: conversation_status(conversation)
         }
       }
     end
@@ -103,6 +98,21 @@ module WulinAgent
 
     private
 
+    def conversation_status(conversation)
+      conversation.running? ? "running" : "idle"
+    end
+
+    def conversation_payload(conversation)
+      {
+        id: conversation.id,
+        approval_mode: conversation.approval_mode,
+        status: conversation_status(conversation),
+        messages: conversation.messages.chronological.map do |message|
+          {id: message.id, role: message.role, content: message.content, metadata: message.metadata, rating: message.rating}
+        end
+      }
+    end
+
     def conversation_title(conversation)
       conversation.title.presence ||
         conversation.messages.chronological.first&.content&.truncate(80) ||
@@ -121,6 +131,8 @@ module WulinAgent
           metadata: user_message_metadata
         )
       end
+
+      conversation.mark_running!
 
       setup_stream_headers!(conversation)
       writer = WulinAgent::DataStreamWriter.new(response.stream)
@@ -153,6 +165,7 @@ module WulinAgent
         metadata: writer&.metadata || {}
       )
     ensure
+      conversation&.mark_idle!
       response.stream.close
     end
 

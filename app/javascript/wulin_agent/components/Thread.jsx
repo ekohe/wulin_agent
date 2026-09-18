@@ -19,7 +19,6 @@ import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
 import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
-import {useThreadThinking} from "../useThreadRunning";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
@@ -166,15 +165,13 @@ function AssistantMessage() {
   );
 }
 
-function ThreadThinkingIndicator() {
-  const thinking = useThreadThinking();
-
-  if (!thinking) return null;
+function ThreadWorkingIndicator({conversationStatus}) {
+  if (conversationStatus !== "running") return null;
 
   return (
-    <div className="wulin-agent-thread__thinking" role="status" aria-live="polite">
+    <div className="wulin-agent-thread__working" role="status" aria-live="polite">
       <LoadingSpinner />
-      <span>Réflexion…</span>
+      <span>Working…</span>
     </div>
   );
 }
@@ -198,7 +195,7 @@ function ThreadComposer() {
   );
 }
 
-export function Thread() {
+export function Thread({conversationStatus = "idle"}) {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
@@ -209,7 +206,7 @@ export function Thread() {
         <ThreadPrimitive.Messages
           components={{UserMessage, AssistantMessage}}
         />
-        <ThreadThinkingIndicator />
+        <ThreadWorkingIndicator conversationStatus={conversationStatus} />
       </ThreadPrimitive.Viewport>
 
       <ThreadComposer />

@@ -5,6 +5,8 @@ module WulinAgent
     self.table_name = "agent_conversations"
 
     APPROVAL_MODES = %w[auto confirm_writes confirm_all].freeze
+    STATUSES = %w[idle running].freeze
+    RUNNING_TIMEOUT = 10.minutes
 
     belongs_to :user, optional: true
     has_many :messages,
@@ -14,6 +16,26 @@ module WulinAgent
       inverse_of: :conversation
 
     validates :approval_mode, inclusion: {in: APPROVAL_MODES}
+    validates :status, inclusion: {in: STATUSES}
+
+    def running?
+      return false unless status == "running"
+
+      if running_started_at && running_started_at < RUNNING_TIMEOUT.ago
+        update!(status: "idle", running_started_at: nil)
+        return false
+      end
+
+      true
+    end
+
+    def mark_running!
+      update!(status: "running", running_started_at: Time.current)
+    end
+
+    def mark_idle!
+      update!(status: "idle", running_started_at: nil)
+    end
 
     def approval_mode_sym
       approval_mode.to_sym
