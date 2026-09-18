@@ -20,15 +20,19 @@ import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
 import {useThreadRunning} from "../useThreadRunning";
+import {useShowTurnFeedback} from "../useShowTurnFeedback";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
 function MessageFeedback() {
+  const show = useShowTurnFeedback();
   const messageId = useAuiState((s) => s.message.metadata?.custom?.messageId);
   const statusType = useAuiState((s) => s.message.status?.type);
   const rating0 = useAuiState((s) => s.message.metadata?.custom?.rating);
   const [rating, setRating] = useState(rating0 ?? null);
   const canFeedback = Boolean(messageId) && statusType !== "running";
+
+  if (!show) return null;
 
   const send = async (value) => {
     if (!canFeedback) return;
@@ -113,20 +117,10 @@ function ToolFallback({toolName, args, result, approval, respondToApproval}) {
     toolClass += " wulin-agent-tool--approved";
   }
 
-  const preserveScrollOnToggle = (event) => {
-    const viewport = event.currentTarget.closest(".wulin-agent-thread__viewport");
-    if (!viewport) return;
-    const scrollTop = viewport.scrollTop;
-    requestAnimationFrame(() => {
-      viewport.scrollTop = scrollTop;
-    });
-  };
-
   return (
     <details
       className={toolClass}
       open={isExecuting || isChartResult(result) || undefined}
-      onToggle={preserveScrollOnToggle}
     >
       <summary>
         {toolName}
