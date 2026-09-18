@@ -5,6 +5,7 @@ module WulinAgent
     include ActionController::Live
 
     before_action :require_current_user!
+    before_action :disable_stream_caching, only: %i[create approve reject]
 
     def create
       stream_conversation_turn
@@ -103,6 +104,7 @@ module WulinAgent
     end
 
     def stream_conversation_turn
+      @stream_client_connected = true
       conversation = find_or_create_conversation
       if action_name == "create"
         return head :unprocessable_entity unless create_turn_valid?
@@ -118,7 +120,7 @@ module WulinAgent
       writer = WulinAgent::DataStreamWriter.new(response.stream)
       runner = build_runner(conversation)
 
-      assistant_content = run_runner_turn(runner) { |event| writer.write(event) }
+      assistant_content = run_runner_turn(runner) { |event| stream_write { writer.write(event) } }
 
       resolve_pending_approval!(conversation, writer) if %w[approve reject].include?(action_name)
 
@@ -127,15 +129,17 @@ module WulinAgent
         content: writer.assistant_text.presence || assistant_content.to_s,
         metadata: writer.metadata
       )
-      writer.write_message_saved(message.id)
+      stream_write { writer.write_message_saved(message.id) }
     rescue => e
       Rails.logger.error(
         "[wulin_agent] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
       )
       error_text = assistant_error_text(e)
       if writer
-        writer.write(type: :text_delta, content: error_text)
-        writer.close
+        stream_write do
+          writer.write(type: :text_delta, content: error_text)
+          writer.close
+        end
       end
       conversation.messages.create!(
         role: "assistant",
@@ -202,12 +206,26 @@ module WulinAgent
       )
     end
 
-    def setup_stream_headers!(conversation)
+    def disable_stream_caching
       request.env["rack.etag"] = false
+    end
+
+    def setup_stream_headers!(conversation)
       response.headers["Content-Type"] = "text/plain; charset=utf-8"
       response.headers["Cache-Control"] = "no-cache"
       response.headers["X-Accel-Buffering"] = "no"
+      response.headers["Last-Modified"] = Time.now.httpdate
       response.headers["X-Conversation-Id"] = conversation.id.to_s
+    end
+
+    def stream_write
+      return unless @stream_client_connected
+
+      yield
+      response.stream.flush if response.stream.respond_to?(:flush)
+    rescue ActionController::Live::ClientDisconnected
+      Rails.logger.info "[wulin_agent] Client disconnected during stream"
+      @stream_client_connected = false
     end
 
     def build_runner(conversation)
