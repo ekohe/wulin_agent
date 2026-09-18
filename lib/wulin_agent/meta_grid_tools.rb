@@ -68,6 +68,18 @@ module WulinAgent
         block.call(grid, params, user)
       rescue GridAccess::Error => e
         {"error" => e.message}
+      rescue ActiveRecord::StatementInvalid => e
+        {"error" => sql_query_error_message(e)}
+      end
+
+      def sql_query_error_message(error)
+        message = error.message.to_s
+        if message.include?("bind variables")
+          "Invalid filter or sort: one or more columns cannot be queried in SQL. " \
+            "Call get_columns and use only columns with filterable: true."
+        else
+          "Database query failed: #{message}"
+        end
       end
 
       def build_list_grids

@@ -92,5 +92,55 @@ RSpec.describe WulinAgent::ColumnMetadata do
       expect(result[:sql_type]).to eq("belongs_to")
       expect(result).not_to have_key(:foreign_key)
     end
+
+    it "marks computed columns as not filterable or sortable" do
+      column = double(
+        "Column",
+        name: :"includes_chain?",
+        label: "Chained",
+        sql_type: :unknown,
+        filterable: true,
+        sortable: true,
+        choices: nil,
+        options: {},
+        table_column?: false,
+        reflection: nil,
+        source: :"includes_chain?"
+      )
+
+      result = described_class.serialize(column, model: model)
+
+      expect(result).to include(
+        name: "includes_chain?",
+        sql_type: "unknown",
+        filterable: false,
+        sortable: false,
+        value_hint: described_class::COMPUTED_COLUMN_HINT
+      )
+    end
+
+    it "keeps sql_expression columns filterable" do
+      column = double(
+        "Column",
+        name: :display_name,
+        label: "Display name",
+        sql_type: :unknown,
+        filterable: true,
+        sortable: true,
+        choices: nil,
+        options: {sql_expression: "CONCAT(first_name, ' ', last_name)"},
+        table_column?: false,
+        reflection: nil,
+        source: :display_name
+      )
+
+      result = described_class.serialize(column, model: model)
+
+      expect(result).to include(
+        filterable: true,
+        sortable: true
+      )
+      expect(result).not_to have_key(:value_hint)
+    end
   end
 end

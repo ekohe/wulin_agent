@@ -128,6 +128,22 @@ RSpec.describe WulinAgent::ToolRegistry do
 
       expect(tool.mutating).to be(false)
     end
+
+    it "returns a structured error when SQL filtering fails" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_raise(
+        ActiveRecord::StatementInvalid.new(
+          "wrong number of bind variables (1 for 2) in: CAST(includes_chain? AS TEXT) ILIKE ?"
+        )
+      )
+
+      result = tool.execute(people.merge("filters" => [{"column" => "includes_chain?", "value" => "true"}]), admin)
+
+      expect(result).to eq(
+        "error" => "Invalid filter or sort: one or more columns cannot be queried in SQL. " \
+                   "Call get_columns and use only columns with filterable: true."
+      )
+    end
   end
 
   describe "read_record" do
