@@ -135,11 +135,12 @@ module WulinAgent
       conversation.mark_running!
 
       setup_stream_headers!(conversation)
-      @assistant_message = conversation.messages.create!(
+      @assistant_message = conversation.messages.new(
         role: "assistant",
         content: "",
         metadata: {}
       )
+      @assistant_message.save!(validate: false)
       last_persist_at = Time.current
       writer = WulinAgent::DataStreamWriter.new(
         response.stream,

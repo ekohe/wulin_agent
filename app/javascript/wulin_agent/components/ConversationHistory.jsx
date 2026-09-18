@@ -16,6 +16,27 @@ import { useThreadRunning } from "../useThreadRunning";
 const LIST_POLL_MS = 2000;
 const CONVERSATION_POLL_MS = 1500;
 
+function resolveStatus(serverStatus, {threadRunning, conversationId, selectedId}) {
+  const status = serverStatus || "idle";
+  if (
+    status === "idle" &&
+    threadRunning &&
+    selectedId &&
+    String(conversationId) === String(selectedId)
+  ) {
+    return "running";
+  }
+  return status;
+}
+
+function withLocalRunning(items, {threadRunning, selectedId}) {
+  if (!threadRunning || !selectedId) return items;
+
+  return items.map((item) =>
+    String(item.id) === String(selectedId) ? {...item, status: "running"} : item
+  );
+}
+
 export function ConversationHistory({
   open,
   width,
@@ -46,7 +67,11 @@ export function ConversationHistory({
 
   const applyConversation = useCallback(
     (data, { syncThread = true } = {}) => {
-      const status = data.status || "idle";
+      const status = resolveStatus(data.status, {
+        threadRunning,
+        conversationId: data.id,
+        selectedId: data.id,
+      });
 
       setSelectedId(data.id);
       setConversationId(data.id);
@@ -59,8 +84,13 @@ export function ConversationHistory({
         aui.thread().reset(toAssistantUiMessages(data.messages));
       }
     },
-    [aui, onApprovalModeChange, onStatusChange, syncItemStatus]
+    [aui, onApprovalModeChange, onStatusChange, syncItemStatus, threadRunning]
   );
+
+  const loadListItems = useCallback(async () => {
+    const nextItems = await listConversations();
+    setItems(withLocalRunning(nextItems, {threadRunning, selectedId}));
+  }, [threadRunning, selectedId]);
 
   useEffect(() => {
     if (historyVersion === 0) setLoading(true);
@@ -94,24 +124,24 @@ export function ConversationHistory({
   useEffect(() => {
     if (!threadRunning || !selectedId) return;
 
-    listConversations()
-      .then(setItems)
-      .catch(console.error);
-  }, [threadRunning, selectedId]);
+    setViewedStatus("running");
+    onStatusChange?.("running");
+    syncItemStatus(selectedId, "running");
+  }, [threadRunning, selectedId, onStatusChange, syncItemStatus]);
 
-  const hasRunningConversation = items.some((item) => item.status === "running");
+  const hasRunningConversation =
+    items.some((item) => item.status === "running") ||
+    Boolean(threadRunning && selectedId);
 
   useEffect(() => {
     if (!hasRunningConversation) return;
 
     const timer = setInterval(() => {
-      listConversations()
-        .then(setItems)
-        .catch(console.error);
+      loadListItems().catch(console.error);
     }, LIST_POLL_MS);
 
     return () => clearInterval(timer);
-  }, [hasRunningConversation]);
+  }, [hasRunningConversation, loadListItems]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -130,7 +160,11 @@ export function ConversationHistory({
         const data = await fetchConversation(selectedId);
         if (cancelled) return;
 
-        const status = data.status || "idle";
+        const status = resolveStatus(data.status, {
+          threadRunning,
+          conversationId: selectedId,
+          selectedId,
+        });
         setViewedStatus(status);
         onStatusChange?.(status);
         syncItemStatus(selectedId, status);
@@ -228,7 +262,8 @@ export function ConversationHistory({
         <ul className="wulin-agent-history__list">
           {items.map((item) => {
             const isActive = String(selectedId) === String(item.id);
-            const isRunning = item.status === "running";
+            const isRunning =
+              item.status === "running" || (isActive && threadRunning);
             const rowClass = [
               "wulin-agent-history__row",
               isActive ? "wulin-agent-history__row--active" : "",
@@ -242,7 +277,10 @@ export function ConversationHistory({
                 <button
                   type="button"
                   className="wulin-agent-history__item"
-                  onClick={() => handleClick(item.id)}
+                  onClick={(event) => {
+                    event.currentTarget.blur();
+                    handleClick(item.id);
+                  }}
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
                 </button>

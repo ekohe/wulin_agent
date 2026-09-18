@@ -19,6 +19,7 @@ import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
 import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
+import {useThreadRunning} from "../useThreadRunning";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
@@ -166,7 +167,8 @@ function AssistantMessage() {
 }
 
 function ThreadWorkingIndicator({conversationStatus}) {
-  if (conversationStatus !== "running") return null;
+  const threadRunning = useThreadRunning();
+  if (conversationStatus !== "running" && !threadRunning) return null;
 
   return (
     <div className="wulin-agent-thread__working" role="status" aria-live="polite">

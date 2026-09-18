@@ -324,14 +324,18 @@ nav ul.right .wulin-agent-toggle-slot {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0.25rem 6px;
+  padding: 0.25rem 0;
 }
 
 .wulin-agent-history__row {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  border-radius: var(--wulin-agent-radius);
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+.wulin-agent-history__row:hover:not(.wulin-agent-history__row--active) {
+  background: var(--wulin-agent-row-odd);
 }
 
 .wulin-agent-history__row--active {
@@ -344,12 +348,21 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-history__item-actions {
-  flex-shrink: 0;
+  position: absolute;
+  right: 6px;
+  top: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.wulin-agent-history__row--running .wulin-agent-history__item-actions,
+.wulin-agent-history__row:hover .wulin-agent-history__item-actions {
+  pointer-events: auto;
 }
 
 .wulin-agent-history__item-delete {
@@ -366,19 +379,37 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
   box-shadow: none;
 }
 
-.wulin-agent-history__row:hover .wulin-agent-history__item-delete,
-.wulin-agent-history__row:focus-within .wulin-agent-history__item-delete {
+.wulin-agent-history__row:hover .wulin-agent-history__item-delete {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item-delete {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .wulin-agent-history__item-delete:hover {
-  background: color-mix(in srgb, var(--wulin-agent-error) 10%, transparent);
-  color: var(--wulin-agent-error);
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item-delete:hover {
+  background: transparent;
+  color: var(--wulin-agent-main);
 }
 
 .wulin-agent-history__item-delete:focus {
@@ -397,8 +428,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-history__item {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   display: block;
   padding: 0.25rem 6px;
   border: none;
@@ -412,9 +442,13 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
 }
 
+.wulin-agent-history__row--running .wulin-agent-history__item,
+.wulin-agent-history__row:hover .wulin-agent-history__item {
+  padding-right: 28px;
+}
+
 .wulin-agent-history__item-text {
-  flex: 1;
-  min-width: 0;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -424,10 +458,6 @@ nav ul.right .wulin-agent-toggle-slot {
   width: 12px;
   height: 12px;
   border-width: 1.5px;
-}
-
-.wulin-agent-history__item:hover {
-  background: var(--wulin-agent-row-odd);
 }
 
 .wulin-agent-history__item:focus {
