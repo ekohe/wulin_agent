@@ -10,6 +10,16 @@ RSpec.describe WulinAgent::DataStreamWriter do
     writer.write(type: :done)
   end
 
+  it "calls on_persist when the draft changes" do
+    persisted = []
+    writer = described_class.new(output, on_persist: ->(draft) { persisted << draft.assistant_text })
+
+    writer.write(type: :text_delta, content: "Hello")
+    writer.write(type: :text_delta, content: " world")
+
+    expect(persisted).to eq(["Hello", "Hello world"])
+  end
+
   it "encodes text deltas and finishes the stream" do
     writer.write(type: :text_delta, content: "Hello ")
     writer.write(type: :text_delta, content: "world")

@@ -135,19 +135,36 @@ module WulinAgent
       conversation.mark_running!
 
       setup_stream_headers!(conversation)
-      writer = WulinAgent::DataStreamWriter.new(response.stream)
+      @assistant_message = conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {}
+      )
+      last_persist_at = Time.current
+      writer = WulinAgent::DataStreamWriter.new(
+        response.stream,
+        on_persist: lambda do |stream_writer|
+          next if Time.current - last_persist_at < 0.3
+
+          last_persist_at = Time.current
+          @assistant_message.update_columns(
+            content: stream_writer.assistant_text,
+            metadata: stream_writer.metadata,
+            updated_at: Time.current
+          )
+        end
+      )
       runner = build_runner(conversation)
 
       assistant_content = run_runner_turn(runner) { |event| stream_write { writer.write(event) } }
 
       resolve_pending_approval!(conversation, writer) if %w[approve reject].include?(action_name)
 
-      message = conversation.messages.create!(
-        role: "assistant",
+      @assistant_message.update!(
         content: writer.assistant_text.presence || assistant_content.to_s,
         metadata: writer.metadata
       )
-      stream_write { writer.write_message_saved(message.id) }
+      stream_write { writer.write_message_saved(@assistant_message.id) }
     rescue => e
       Rails.logger.error(
         "[wulin_agent] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
@@ -159,11 +176,18 @@ module WulinAgent
           writer.close
         end
       end
-      conversation.messages.create!(
-        role: "assistant",
-        content: writer&.assistant_text.presence || error_text,
-        metadata: writer&.metadata || {}
-      )
+      if @assistant_message
+        @assistant_message.update!(
+          content: writer&.assistant_text.presence || error_text,
+          metadata: writer&.metadata || {}
+        )
+      else
+        conversation.messages.create!(
+          role: "assistant",
+          content: writer&.assistant_text.presence || error_text,
+          metadata: writer&.metadata || {}
+        )
+      end
     ensure
       conversation&.mark_idle!
       response.stream.close

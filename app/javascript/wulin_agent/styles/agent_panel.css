@@ -331,6 +331,16 @@ nav ul.right .wulin-agent-toggle-slot {
   display: flex;
   align-items: center;
   gap: 0.125rem;
+  border-radius: var(--wulin-agent-radius);
+}
+
+.wulin-agent-history__row--active {
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item {
+  color: var(--wulin-agent-main);
+  font-weight: 500;
 }
 
 .wulin-agent-history__item-actions {
@@ -420,12 +430,6 @@ nav ul.right .wulin-agent-toggle-slot {
   background: var(--wulin-agent-row-odd);
 }
 
-.wulin-agent-history__item--active {
-  background: var(--wulin-agent-main-soft);
-  color: var(--wulin-agent-main);
-  font-weight: 500;
-}
-
 .wulin-agent-history__item:focus {
   background: transparent;
   outline: none;
@@ -434,10 +438,6 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-history__item:focus-visible {
   outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
-}
-
-.wulin-agent-history__item--active:focus {
-  background: var(--wulin-agent-main-soft);
 }
 
 .wulin-agent-history__status {

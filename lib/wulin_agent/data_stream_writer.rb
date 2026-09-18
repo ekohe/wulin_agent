@@ -2,8 +2,9 @@
 
 module WulinAgent
   class DataStreamWriter
-    def initialize(stream)
+    def initialize(stream, on_persist: nil)
       @stream = stream
+      @on_persist = on_persist
       @text_parts = []
       @tool_calls = []
       @tool_results = []
@@ -56,6 +57,7 @@ module WulinAgent
 
       @text_parts << text
       write_line("0", text.to_json)
+      persist!
     end
 
     def write_tool_call(event)
@@ -67,6 +69,7 @@ module WulinAgent
 
       write_line("b", {toolCallId: id, toolName: name}.to_json)
       write_line("c", arguments.to_json)
+      persist!
     end
 
     def write_tool_result(event)
@@ -76,6 +79,11 @@ module WulinAgent
       @tool_results << {id: event[:id], name: event[:name], result: result}
 
       write_line("a", {toolCallId: event[:id], result: result}.to_json)
+      persist!
+    end
+
+    def persist!
+      @on_persist&.call(self)
     end
 
     def write_line(prefix, payload)

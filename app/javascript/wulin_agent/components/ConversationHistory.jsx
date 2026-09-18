@@ -28,6 +28,7 @@ export function ConversationHistory({
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
+  const [viewedStatus, setViewedStatus] = useState("idle");
   const aui = useAui();
   const threadRunning = useThreadRunning();
 
@@ -35,17 +36,30 @@ export function ConversationHistory({
     ? "wulin-agent-history"
     : "wulin-agent-history wulin-agent-history--collapsed";
 
+  const syncItemStatus = useCallback((id, status) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        String(item.id) === String(id) ? { ...item, status } : item
+      )
+    );
+  }, []);
+
   const applyConversation = useCallback(
     (data, { syncThread = true } = {}) => {
+      const status = data.status || "idle";
+
       setSelectedId(data.id);
       setConversationId(data.id);
+      setViewedStatus(status);
       onApprovalModeChange?.(data.approval_mode);
-      onStatusChange?.(data.status || "idle");
+      onStatusChange?.(status);
+      syncItemStatus(data.id, status);
+
       if (syncThread) {
         aui.thread().reset(toAssistantUiMessages(data.messages));
       }
     },
-    [aui, onApprovalModeChange, onStatusChange]
+    [aui, onApprovalModeChange, onStatusChange, syncItemStatus]
   );
 
   useEffect(() => {
@@ -72,6 +86,7 @@ export function ConversationHistory({
       .then((data) => applyConversation(data))
       .catch(() => {
         resetConversationId();
+        setViewedStatus("idle");
         onStatusChange?.("idle");
       });
   }, [applyConversation, onStatusChange]);
@@ -85,9 +100,6 @@ export function ConversationHistory({
   }, [threadRunning, selectedId]);
 
   const hasRunningConversation = items.some((item) => item.status === "running");
-  const selectedStatus = items.find(
-    (item) => selectedId && String(item.id) === String(selectedId)
-  )?.status;
 
   useEffect(() => {
     if (!hasRunningConversation) return;
@@ -103,13 +115,12 @@ export function ConversationHistory({
 
   useEffect(() => {
     if (!selectedId) {
+      setViewedStatus("idle");
       onStatusChange?.("idle");
       return;
     }
 
-    onStatusChange?.(selectedStatus || "idle");
-
-    if (selectedStatus !== "running") return;
+    if (viewedStatus !== "running") return;
 
     let cancelled = false;
     let timer;
@@ -119,20 +130,16 @@ export function ConversationHistory({
         const data = await fetchConversation(selectedId);
         if (cancelled) return;
 
-        onStatusChange?.(data.status || "idle");
-        setItems((prev) =>
-          prev.map((item) =>
-            String(item.id) === String(selectedId)
-              ? { ...item, status: data.status }
-              : item
-          )
-        );
+        const status = data.status || "idle";
+        setViewedStatus(status);
+        onStatusChange?.(status);
+        syncItemStatus(selectedId, status);
 
         if (!threadRunning) {
           aui.thread().reset(toAssistantUiMessages(data.messages));
         }
 
-        if (data.status === "running") {
+        if (status === "running") {
           timer = setTimeout(poll, CONVERSATION_POLL_MS);
         }
       } catch (error) {
@@ -146,7 +153,7 @@ export function ConversationHistory({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [selectedId, selectedStatus, threadRunning, aui, onStatusChange]);
+  }, [selectedId, viewedStatus, threadRunning, aui, onStatusChange, syncItemStatus]);
 
   async function handleClick(id) {
     const data = await fetchConversation(id);
@@ -156,6 +163,7 @@ export function ConversationHistory({
   function startNew() {
     resetConversationId();
     setSelectedId(null);
+    setViewedStatus("idle");
     onStatusChange?.("idle");
     aui.thread().reset([]);
   }
@@ -163,8 +171,8 @@ export function ConversationHistory({
   async function handleDelete(id, event) {
     event.stopPropagation();
 
-    const item = items.find((entry) => String(entry.id) === String(id));
-    if (item?.status === "running") return;
+    const target = items.find((entry) => String(entry.id) === String(id));
+    if (target?.status === "running") return;
 
     try {
       await deleteConversation(id);
@@ -221,23 +229,19 @@ export function ConversationHistory({
           {items.map((item) => {
             const isActive = String(selectedId) === String(item.id);
             const isRunning = item.status === "running";
+            const rowClass = [
+              "wulin-agent-history__row",
+              isActive ? "wulin-agent-history__row--active" : "",
+              isRunning ? "wulin-agent-history__row--running" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
 
             return (
-              <li
-                key={item.id}
-                className={
-                  isRunning
-                    ? "wulin-agent-history__row wulin-agent-history__row--running"
-                    : "wulin-agent-history__row"
-                }
-              >
+              <li key={item.id} className={rowClass}>
                 <button
                   type="button"
-                  className={
-                    isActive
-                      ? "wulin-agent-history__item wulin-agent-history__item--active"
-                      : "wulin-agent-history__item"
-                  }
+                  className="wulin-agent-history__item"
                   onClick={() => handleClick(item.id)}
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
