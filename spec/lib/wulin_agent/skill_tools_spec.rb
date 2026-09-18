@@ -58,6 +58,26 @@ RSpec.describe WulinAgent::SkillTools do
       expect(result["name"]).to eq("attach_seats")
     end
 
+    it "sanitizes legacy tool_sequence payloads before returning them" do
+      WulinAgent::Skill.create!(
+        name: "legacy_plan",
+        description: "d",
+        instructions: "i",
+        tool_sequence: [
+          {
+            "tool" => "provision_prompt_config",
+            "params" => {"plan" => {"theme_id" => 39, "prompts" => [{"prompt" => "x" * 200}]}, "dry_run" => true}
+          }
+        ]
+      )
+
+      result = tool.execute({"name" => "legacy_plan"}, admin)
+
+      expect(result["tool_sequence"]).to eq(
+        [{"tool" => "provision_prompt_config", "params" => {"dry_run" => true}}]
+      )
+    end
+
     it "returns an error when the skill is missing" do
       result = tool.execute({"name" => "missing"}, admin)
 

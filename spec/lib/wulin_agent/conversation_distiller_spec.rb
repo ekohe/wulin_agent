@@ -30,6 +30,23 @@ RSpec.describe WulinAgent::ConversationDistiller do
       )
     end
 
+    it "drops tool calls whose structured result reports success: false" do
+      msg = message(
+        "tool_calls" => [
+          {"id" => "1", "name" => "analyze_config_flow", "arguments" => {"plan" => {"theme_id" => 1}}},
+          {"id" => "2", "name" => "analyze_config_flow", "arguments" => {"plan" => {"theme_id" => 1, "labels" => []}}}
+        ],
+        "tool_results" => [
+          {"id" => "1", "result" => {"success" => false, "summary" => "11 issues found."}},
+          {"id" => "2", "result" => {"success" => true, "summary" => "No flow issues found."}}
+        ]
+      )
+
+      expect(described_class.steps_from(msg)).to eq(
+        [{"tool" => "analyze_config_flow", "params" => {"plan" => {"theme_id" => 1, "labels" => []}}}]
+      )
+    end
+
     it "drops a call that has no matching result" do
       msg = message(
         "tool_calls" => [{"id" => "1", "name" => "list_records", "arguments" => {}}],
@@ -51,6 +68,41 @@ RSpec.describe WulinAgent::ConversationDistiller do
     it "returns an empty array when metadata has no tool calls" do
       expect(described_class.steps_from(message({}))).to eq([])
       expect(described_class.steps_from(message(nil))).to eq([])
+    end
+  end
+
+  describe ".skill_steps_from" do
+    it "returns a sanitized, reusable sequence" do
+      msg = message(
+        "tool_calls" => [
+          {
+            "id" => "1",
+            "name" => "list_records",
+            "arguments" => {
+              "controller" => "themes",
+              "filters" => [{"column" => "name", "operator" => "include", "value" => "Semiconductor"}]
+            }
+          },
+          {"id" => "2", "name" => "provision_prompt_config", "arguments" => {"plan" => {"theme_id" => 39}, "dry_run" => true}}
+        ],
+        "tool_results" => [
+          {"id" => "1", "result" => [{"id" => 39}]},
+          {"id" => "2", "result" => {"success" => true, "dry_run" => true}}
+        ]
+      )
+
+      expect(described_class.skill_steps_from(msg)).to eq(
+        [
+          {
+            "tool" => "list_records",
+            "params" => {
+              "controller" => "themes",
+              "filters" => [{"column" => "name", "operator" => "include"}]
+            }
+          },
+          {"tool" => "provision_prompt_config", "params" => {"dry_run" => true}}
+        ]
+      )
     end
   end
 end

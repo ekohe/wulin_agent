@@ -169,7 +169,9 @@ module WulinAgent
       end
 
       def detail(skill)
-        skill.as_json(only: %w[name description instructions usage_count tool_sequence])
+        skill.as_json(only: %w[name description instructions usage_count tool_sequence]).tap do |json|
+          json["tool_sequence"] = WulinAgent::SkillToolSequenceSanitizer.sanitize_sequence(json["tool_sequence"])
+        end
       end
     end
   end

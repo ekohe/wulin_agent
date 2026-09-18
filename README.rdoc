@@ -371,9 +371,13 @@ following a playbook.
 After a successful assistant reply, the user can rate it with the thumbs-up
 button in the chat panel. This triggers +WulinAgent::SkillDistiller+, which:
 
-* extracts the tool sequence from the conversation turn
-* asks the LLM whether the workflow is worth saving
+* extracts successful tool steps from the conversation turn
+* sanitizes them into a reusable skeleton (no large plans/prompt bodies or domain-specific filter values)
+* asks the LLM for generic instructions and an optional abstract +tool_sequence+
+* falls back to the sanitized skeleton when the model omits +tool_sequence+
 * creates a new +agent_skills+ row when the answer is reusable
+
++skill_read+ also sanitizes legacy +tool_sequence+ values before returning them.
 
 A thumbs-down removes any skill linked to that message. Skills can also be
 created or edited manually:

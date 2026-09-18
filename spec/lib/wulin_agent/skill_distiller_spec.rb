@@ -29,7 +29,7 @@ RSpec.describe WulinAgent::SkillDistiller do
   end
 
   it "creates a skill from the message tool sequence when reusable" do
-    stub_llm('{"reusable": true, "name": "List People", "description": "Find people", "instructions": "1. list_records"}')
+    stub_llm('{"reusable": true, "name": "List People", "description": "Find people", "instructions": "1. list_records", "tool_sequence": []}')
 
     skill = nil
     expect {
@@ -42,9 +42,30 @@ RSpec.describe WulinAgent::SkillDistiller do
     expect(skill.created_by).to eq(user.id)
   end
 
+  it "prefers a sanitized LLM tool_sequence when provided" do
+    stub_llm(
+      '{"reusable": true, "name": "list_people", "description": "d", "instructions": "i", ' \
+      '"tool_sequence": [{"tool": "list_records", "params": {"controller": "people", "filters": [{"column": "name", "operator": "include", "value": "Martin"}]}}]}'
+    )
+
+    skill = described_class.call(message: message, user: user)
+
+    expect(skill.tool_sequence).to eq(
+      [
+        {
+          "tool" => "list_records",
+          "params" => {
+            "controller" => "people",
+            "filters" => [{"column" => "name", "operator" => "include"}]
+          }
+        }
+      ]
+    )
+  end
+
   it "deduplicates the name when it already exists" do
     WulinAgent::Skill.create!(name: "list_people", description: "d", instructions: "i")
-    stub_llm('{"reusable": true, "name": "List People", "description": "d", "instructions": "i"}')
+    stub_llm('{"reusable": true, "name": "List People", "description": "d", "instructions": "i", "tool_sequence": []}')
 
     skill = described_class.call(message: message, user: user)
 
@@ -52,7 +73,7 @@ RSpec.describe WulinAgent::SkillDistiller do
   end
 
   it "strips markdown fences around the JSON reply" do
-    stub_llm("```json\n{\"reusable\": true, \"name\": \"fenced\", \"description\": \"d\", \"instructions\": \"i\"}\n```")
+    stub_llm("```json\n{\"reusable\": true, \"name\": \"fenced\", \"description\": \"d\", \"instructions\": \"i\", \"tool_sequence\": []}\n```")
 
     skill = described_class.call(message: message, user: user)
 
@@ -78,5 +99,36 @@ RSpec.describe WulinAgent::SkillDistiller do
 
     expect(RubyLLM).not_to receive(:chat)
     expect(described_class.call(message: empty, user: user)).to be_nil
+  end
+
+  it "does not persist failed analyze_config_flow attempts in the tool sequence" do
+    conversation.messages.create!(role: "user", content: "Provision L1 prompts")
+    msg = conversation.messages.create!(
+      role: "assistant",
+      content: "Done",
+      metadata: {
+        "tool_calls" => [
+          {"id" => "1", "name" => "analyze_config_flow", "arguments" => {"plan" => {"theme_id" => 1}}},
+          {"id" => "2", "name" => "analyze_config_flow", "arguments" => {"plan" => {"theme_id" => 1, "labels" => []}}},
+          {"id" => "3", "name" => "provision_prompt_config", "arguments" => {"plan" => {"theme_id" => 1}, "dry_run" => true}}
+        ],
+        "tool_results" => [
+          {"id" => "1", "result" => {"success" => false}},
+          {"id" => "2", "result" => {"success" => true}},
+          {"id" => "3", "result" => {"success" => true, "dry_run" => true}}
+        ]
+      }
+    )
+
+    stub_llm('{"reusable": true, "name": "provision_l1", "description": "d", "instructions": "i", "tool_sequence": []}')
+
+    skill = described_class.call(message: msg, user: user)
+
+    expect(skill.tool_sequence).to eq(
+      [
+        {"tool" => "analyze_config_flow", "params" => {}},
+        {"tool" => "provision_prompt_config", "params" => {"dry_run" => true}}
+      ]
+    )
   end
 end
