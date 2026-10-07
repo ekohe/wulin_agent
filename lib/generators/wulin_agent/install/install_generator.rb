@@ -40,6 +40,8 @@ module WulinAgent
     def show_post_install
       say_status :info, "wulin_agent installed", :green
       say "  Routes: automatic with the gem (/wulin_agent/conversations)", :green
+      say "  Full-page workspace: /wulin_agent; optional ApplicationController menu item:", :green
+      say '    item "Wulin Agent", url: "/wulin_agent", icon: :cognition'
       say "  Next steps:", :yellow
       say "    bin/rails db:migrate"
       say "    # after gem updates: bin/rails wulin_agent_engine:install:migrations && bin/rails db:migrate"

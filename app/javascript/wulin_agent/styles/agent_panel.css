@@ -1230,3 +1230,66 @@ nav ul.right .wulin-agent-toggle-slot {
   background: transparent;
   outline: none;
 }
+/* Dedicated workspace: fill the host screen while retaining its navigation. */
+#wulin-agent-page,
+#wulin-agent-page > #wulin-agent-root {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.wulin-agent-page {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--wulin-agent-bg);
+  font-family: var(--wulin-agent-font);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-page .wulin-agent-panel__meta {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .wulin-agent-page .wulin-agent-history {
+    max-width: 40vw;
+  }
+}
+
+/* Google Material Symbols cognition; the host Material Icons font lacks it.
+ * Source: google/material-design-icons symbols/web/cognition (Apache-2.0).
+ */
+.wulin-agent-toggle .material-icons.wulin-agent-cognition,
+#menu a[href="/wulin_agent"] .material-icons,
+#menu a[href="/wulin_agent/"] .material-icons {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  font-size: 0;
+  vertical-align: middle;
+  background-color: currentColor;
+  mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00OTEtMzM5cTcwIDAgMTE5LTQ1dDQ5LTEwOXEwLTU3LTM2LjUtOTYuNVQ1MzQtNjI5cS00NyAwLTc5LjUgMzBUNDIyLTUyNXEwIDE5IDcuNSAzN3QyMS41IDMzbDU3LTU3cS0zLTItNC41LTV0LTEuNS03cTAtMTEgOS0xNy41dDIzLTYuNXEyMCAwIDMzIDE2LjV0MTMgMzkuNXEwIDMxLTI1LjUgNTIuNVQ0OTItNDE4cS00NyAwLTc5LjUtMzhUMzgwLTU0OXEwLTI5IDExLTU1LjV0MzEtNDYuNWwtNTctNTdxLTMyIDMxLTQ5IDcydC0xNyA4NnEwIDg4IDU2IDE0OS41VDQ5MS0zMzlaTTI0MC04MHYtMTcycS01Ny01Mi04OC41LTEyMS41VDEyMC01MjBxMC0xNTAgMTA1LTI1NXQyNTUtMTA1cTEyNSAwIDIyMS41IDczLjVUODI3LTYxNWw1MiAyMDVxNSAxOS03IDM0LjVUODQwLTM2MGgtODB2MTIwcTAgMzMtMjMuNSA1Ni41VDY4MC0xNjBoLTgwdjgwaC04MHYtMTYwaDE2MHYtMjAwaDEwOGwtMzgtMTU1cS0yMy05MS05OC0xNDh0LTE3Mi01N3EtMTE2IDAtMTk4IDgxdC04MiAxOTdxMCA2MCAyNC41IDExNHQ2OS41IDk2bDI2IDI0djIwOGgtODBabTI1NC0zNjBaIi8+PC9zdmc+") center / contain no-repeat;
+}
+
+#navigation #menu li.submenu li.item a[href="/wulin_agent"],
+#navigation #menu li.submenu li.item a[href="/wulin_agent/"] {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
+  min-height: 36px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+#navigation #menu li.submenu li.item a[href="/wulin_agent"] .material-icons,
+#navigation #menu li.submenu li.item a[href="/wulin_agent/"] .material-icons {
+  box-sizing: content-box;
+  top: 0;
+  font-size: 0;
+  width: 21px;
+  height: 21px;
+  mask-origin: content-box;
+  mask-clip: content-box;
+}

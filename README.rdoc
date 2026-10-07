@@ -64,6 +64,28 @@ You should see:
 No manual mount is required in +routes.rb+. The engine routes are loaded
 automatically.
 
+=== Dedicated agent page and main menu
+
+The agent workspace is available at +/wulin_agent+. It fills the content area
+while keeping the host application's header and main menu. Direct visits and
+Wulin Master's AJAX menu navigation both work; switching between the page and
+the toolbar drawer preserves the current conversation.
+
+The toolbar drawer is enabled by default. To link the workspace from your
++ApplicationController+ menu, add an item inside your existing submenu:
+
+  item "Wulin Agent", url: "/wulin_agent", icon: :cognition
+
+For menu-only access, disable the toolbar in +config/initializers/wulin_agent.rb+:
+
+  WulinAgent.setup do |config|
+    config.toolbar_enabled = false
+  end
+
+The page uses the host's +application+ layout and +/header+ and +/menu+
+partials. Access requires a current user and inherits the host controller's
+authentication checks.
+
 === Prerequisites
 
 +wulin_agent+ is a Rails engine for Wulin Master apps. Host apps need:
@@ -471,4 +493,3 @@ Run tests:
 Host apps vendor Wulin gems at the top level (+vendor/gems/wulin_master+,
 +vendor/gems/wulin_permits+, etc.). This repo's Gemfile pulls them from GitLab
 for local development and CI only.
-

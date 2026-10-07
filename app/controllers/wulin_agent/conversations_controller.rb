@@ -84,7 +84,7 @@ module WulinAgent
     end
 
     def agent_config
-      render json: { model: WulinAgent.current_model }
+      render json: {model: WulinAgent.current_model, toolbar_enabled: WulinAgent.config.toolbar_enabled}
     end
 
     def upload_archive

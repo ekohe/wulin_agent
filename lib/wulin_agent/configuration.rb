@@ -2,10 +2,11 @@
 
 module WulinAgent
   class Configuration
-    attr_accessor :temperature, :thinking_effort
+    attr_accessor :temperature, :thinking_effort, :toolbar_enabled
 
     def initialize
       @extra_tool_builders = []
+      @toolbar_enabled = true
     end
 
     # Lambdas registered by the host app: ->(user) { [ToolSpec, ...] }

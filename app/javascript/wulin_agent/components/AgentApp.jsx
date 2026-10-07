@@ -41,10 +41,11 @@ function getStoredHistoryWidth(drawerWidth) {
   return Math.min(historyMaxWidth(drawerWidth), Math.max(HISTORY_MIN_WIDTH, width));
 }
 
-export function AgentApp() {
+export function AgentApp({fullPage = false}) {
   const [open, setOpen] = useState(false);
   const [toggleSlot, setToggleSlot] = useState(null);
   const [model, setModel] = useState(null);
+  const [toolbarEnabled, setToolbarEnabled] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [approvalMode, setApprovalMode] = useState(
@@ -55,6 +56,7 @@ export function AgentApp() {
     getStoredHistoryWidth(getStoredDrawerWidth())
   );
   const [conversationStatus, setConversationStatus] = useState("idle");
+  const panelRef = useRef(null);
   const drawerWidthRef = useRef(drawerWidth);
   const historyWidthRef = useRef(historyWidth);
   drawerWidthRef.current = drawerWidth;
@@ -103,7 +105,7 @@ export function AgentApp() {
 
     const onMove = (moveEvent) => {
       latestHistory = Math.min(
-        historyMaxWidth(drawerWidthRef.current),
+        historyMaxWidth(fullPage ? panelRef.current.clientWidth : drawerWidthRef.current),
         Math.max(HISTORY_MIN_WIDTH, startWidth + (moveEvent.clientX - startX))
       );
       setHistoryWidth(latestHistory);
@@ -121,7 +123,7 @@ export function AgentApp() {
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
-  }, []);
+  }, [fullPage]);
 
   useEffect(() => {
     const onWindowResize = () => {
@@ -129,16 +131,18 @@ export function AgentApp() {
         Math.min(viewportMaxWidth(), Math.max(DRAWER_MIN_WIDTH, current))
       );
       setHistoryWidth((current) => {
-        const max = historyMaxWidth(drawerWidthRef.current);
+        const max = historyMaxWidth(fullPage ? panelRef.current.clientWidth : drawerWidthRef.current);
         return Math.min(max, Math.max(HISTORY_MIN_WIDTH, current));
       });
     };
 
+    onWindowResize();
     window.addEventListener("resize", onWindowResize);
     return () => window.removeEventListener("resize", onWindowResize);
-  }, []);
+  }, [fullPage]);
 
   useEffect(() => {
+    if (!toolbarEnabled) return;
     const ul = document.querySelector("nav .nav-wrapper ul.right");
     if (!ul) return;
 
@@ -147,14 +151,24 @@ export function AgentApp() {
     ul.insertBefore(li, ul.firstChild);
     setToggleSlot(li);
 
-    return () => li.remove();
-  }, []);
+    return () => {
+      li.remove();
+      setToggleSlot(null);
+    };
+  }, [toolbarEnabled]);
 
   useEffect(() => {
     fetchAgentConfig()
-      .then((data) => setModel(data.model))
+      .then((data) => {
+        setModel(data.model);
+        setToolbarEnabled(data.toolbar_enabled !== false);
+      })
       .catch((err) => console.error(err));
   }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [fullPage]);
 
   const handleApprovalModeChange = useCallback(async (mode) => {
     setApprovalMode(mode);
@@ -189,22 +203,28 @@ export function AgentApp() {
   const toggleButton = (
     <button
       type="button"
-      className={`wulin-agent-toggle${open ? " wulin-agent-toggle--open" : ""}`}
-      aria-expanded={open}
-      aria-label={open ? "Close agent" : "Open agent"}
-      onClick={() => setOpen((v) => !v)}
+      className={`wulin-agent-toggle${fullPage || open ? " wulin-agent-toggle--open" : ""}`}
+      aria-expanded={fullPage || open}
+      aria-label={fullPage ? "Focus agent" : open ? "Close agent" : "Open agent"}
+      onClick={() => {
+        if (fullPage) {
+          panelRef.current.querySelector(".wulin-agent-composer__input")?.focus();
+        } else {
+          setOpen((v) => !v);
+        }
+      }}
     >
-      <i className="material-icons" aria-hidden="true">
-        android
+      <i className="material-icons wulin-agent-cognition" aria-hidden="true">
+        cognition
       </i>
     </button>
   );
 
   return (
     <WulinAgentProvider>
-      {toggleSlot && createPortal(toggleButton, toggleSlot)}
+      {toolbarEnabled && toggleSlot && createPortal(toggleButton, toggleSlot)}
 
-      {open && (
+      {!fullPage && open && (
         <button
           type="button"
           className="wulin-agent-backdrop"
@@ -214,29 +234,30 @@ export function AgentApp() {
       )}
 
       <aside
-        className={`wulin-agent-drawer${open ? " wulin-agent-drawer--open" : ""}`}
-        style={{width: drawerWidth}}
-        aria-hidden={!open}
+        ref={panelRef}
+        className={fullPage ? "wulin-agent-page" : `wulin-agent-drawer${open ? " wulin-agent-drawer--open" : ""}`}
+        style={fullPage ? undefined : {width: drawerWidth}}
+        aria-hidden={!fullPage && !open}
       >
-        <div
+        {!fullPage && <div
           className="wulin-agent-drawer__resize"
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize panel"
           onMouseDown={handleDrawerResizeStart}
-        />
+        />}
         <div className="wulin-agent-panel">
           <header className="wulin-agent-panel__header">
             <div className="wulin-agent-panel__header-row">
               <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
-              <button
+              {!fullPage && <button
                 type="button"
                 className="wulin-agent-panel__close"
                 aria-label="Close"
                 onClick={() => setOpen(false)}
               >
                 ×
-              </button>
+              </button>}
             </div>
             <div className="wulin-agent-panel__meta">
               {model && (

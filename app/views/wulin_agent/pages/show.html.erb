@@ -1,0 +1,11 @@
+<% unless request.xhr? %>
+  <%= render "/header" %>
+  <%= render "/menu" %>
+  <div id="content">
+    <div id="screen_content">
+<% end %>
+      <div id="wulin-agent-page" aria-label="Wulin Agent workspace" data-title="Wulin Agent | <%= WulinMaster.config.app_title %>"></div>
+<% unless request.xhr? %>
+    </div>
+  </div>
+<% end %>
