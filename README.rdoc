@@ -462,6 +462,9 @@ expired tokens. Each successful request bumps +last_used_at+.
 
 === Client configuration
 
+The engine requires MCP 1.7 or later within the 1.x series for this transport
+configuration. Update the host's bundle when upgrading the engine.
+
 For a deployed endpoint, configure its hostname in the host application's
 +config/initializers/wulin_agent.rb+:
 

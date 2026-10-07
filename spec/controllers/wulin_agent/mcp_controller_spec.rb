@@ -6,6 +6,7 @@ RSpec.describe WulinAgent::McpController, type: :controller do
   routes { Rails.application.routes }
 
   before do
+    request.host = "localhost"
     WulinAgent::Catalog.reset!
     WulinAgent::ToolRegistry.reset!
     Permission.find_or_create_by!(name: "person#read")
@@ -25,6 +26,29 @@ RSpec.describe WulinAgent::McpController, type: :controller do
 
   def tool_names(response)
     JSON.parse(response.body).dig("result", "tools").map { |tool| tool["name"] }
+  end
+
+  describe "host validation" do
+    let(:token) { WulinAgent::ApiToken.create!(user: User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true)).token }
+
+    it "accepts a hostname configured by the host application" do
+      allow(WulinAgent.config).to receive(:mcp_allowed_hosts).and_return(["agent.example.com"])
+      request.host = "agent.example.com"
+
+      rpc("tools/list", token: token)
+
+      expect(response).to have_http_status(:ok)
+      expect(tool_names(response)).to include("list_grids")
+    end
+
+    it "rejects a hostname not configured by the host application" do
+      request.host = "untrusted.example.com"
+
+      rpc("tools/list", token: token)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.body).to include("Invalid Host header")
+    end
   end
 
   describe "authentication" do

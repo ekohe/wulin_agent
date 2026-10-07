@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.executables = []
   s.require_paths = ["lib"]
 
-  s.add_dependency "mcp"
+  s.add_dependency "mcp", "~> 1.7"
   s.add_dependency "rails"
   s.add_dependency "rubyzip"
   s.add_dependency "ruby_llm"
