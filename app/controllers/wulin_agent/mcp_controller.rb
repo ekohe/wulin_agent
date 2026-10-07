@@ -30,7 +30,11 @@ module WulinAgent
           user: current_user
         )
       )
-      MCP::Server::Transports::StreamableHTTPTransport.new(server, stateless: true)
+      MCP::Server::Transports::StreamableHTTPTransport.new(
+        server,
+        stateless: true,
+        allowed_hosts: WulinAgent.config.mcp_allowed_hosts
+      )
     end
 
     def authenticate_token!

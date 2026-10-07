@@ -462,6 +462,19 @@ expired tokens. Each successful request bumps +last_used_at+.
 
 === Client configuration
 
+For a deployed endpoint, configure its hostname in the host application's
++config/initializers/wulin_agent.rb+:
+
+  WulinAgent.setup do |config|
+    config.mcp_allowed_hosts = ["your-app.example.com"]
+  end
+
+The MCP transport accepts only loopback hosts by default. Entries may be bare
+hostnames (any port) or +hostname:port+. Unlisted hosts return +403 Invalid Host
+header+. DNS rebinding protection stays enabled: browser requests with an
++Origin+ header must be same-origin; non-browser clients may omit it. Do not
+derive the allowlist from request headers.
+
 Point the MCP client at the host app's endpoint and pass the token in the
 +Authorization+ header. Example +mcp.json+ (Cursor):
 
