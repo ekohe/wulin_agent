@@ -23,8 +23,15 @@ stages:
 
 before_script:
   - apt-get update -qy
-  - apt-get install -qy nodejs
-  - apt-get install -qy libfontconfig1
+  - apt-get install -qy git nodejs npm libfontconfig1 libpq-dev
+
+  # Keep credentials in the job environment, outside the cached repositories.
+  # The dependency projects must allow this project to use CI_JOB_TOKEN.
+  - |
+    test -n "${CI_JOB_TOKEN:-}"
+    export GIT_CONFIG_COUNT=1
+    export GIT_CONFIG_KEY_0="url.https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/.insteadOf"
+    export GIT_CONFIG_VALUE_0="git@${CI_SERVER_HOST}:"
 
   # gems
   - gem install bundler -v 2.6.9
@@ -34,7 +41,8 @@ before_script:
   - bundle check || bundle install --jobs 8
 
   # frontend
-  - cd app && npm ci && npm run build
+  - npm ci
+  - (cd app && npm ci && npm run build)
 
 rspec:
   stage: test

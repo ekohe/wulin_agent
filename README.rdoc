@@ -476,6 +476,21 @@ A missing or invalid token returns +401 Unauthorized+.
 
 == Development
 
+=== GitLab CI access to private dependencies
+
+In both +ekohe/wulin/wulin_master+ and +ekohe/wulin/wulin_permits+, go to
++Settings > CI/CD > Job token permissions+ and add +ekohe/wulin/wulin_agent+
+to the CI/CD job token allowlist. The user triggering the pipeline must also
+have permission to read both dependency repositories.
+
+CI rewrites the Gemfile's SSH URLs to HTTPS using GitLab's automatically
+provided +CI_JOB_TOKEN+. No SSH deploy key or manually created token variable
+is required. Authentication configuration is passed through the job environment
+and is not written to the cached Git repositories. Local development continues
+to use the SSH URLs in the Gemfile and lockfile.
+
+=== Local development
+
 Install gems (+wulin_master+ and +wulin_permits+ are fetched from GitLab via the Gemfile):
 
   bundle install
