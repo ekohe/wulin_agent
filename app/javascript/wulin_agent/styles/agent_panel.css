@@ -1293,3 +1293,116 @@ nav ul.right .wulin-agent-toggle-slot {
   mask-origin: content-box;
   mask-clip: content-box;
 }
+
+/* Token management follows the host theme; native dialog supplies focus trapping. */
+.wulin-agent-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wulin-agent-tokens__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-tokens__trigger .material-icons { font-size: 16px; }
+.wulin-agent-tokens__trigger:hover { background: var(--wulin-agent-bg-subtle); }
+
+.wulin-agent-tokens {
+  box-sizing: border-box;
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: 6px;
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: var(--wulin-agent-font);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.wulin-agent-tokens::backdrop { background: rgba(0, 0, 0, 0.35); }
+.wulin-agent-tokens__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wulin-agent-tokens .wulin-agent-panel__close,
+.wulin-agent-tokens .wulin-agent-panel__close:focus { background: transparent; color: var(--wulin-agent-text); }
+.wulin-agent-tokens .wulin-agent-panel__close:hover { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__eyebrow { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.wulin-agent-tokens h2 { margin: 4px 0 0; font-size: 22px; font-weight: 600; line-height: 1.3; }
+.wulin-agent-tokens h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.wulin-agent-tokens p { margin: 8px 0; }
+.wulin-agent-tokens__intro { padding: 8px 0; }
+.wulin-agent-tokens__endpoint { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--wulin-agent-bg-subtle); }
+.wulin-agent-tokens code { overflow-wrap: anywhere; font-size: 12px; user-select: text; }
+.wulin-agent-tokens__notice { padding: 8px 0; font-size: 12px; }
+.wulin-agent-tokens__error { color: var(--wulin-agent-error); }
+.wulin-agent-tokens__reveal { padding: 16px; margin: 16px 0; background: var(--wulin-agent-main-soft); border: 1px solid var(--wulin-agent-main); }
+.wulin-agent-tokens__copy-row { display: flex; gap: 8px; align-items: center; }
+.wulin-agent-tokens__copy-row input { min-width: 0; flex: 1; }
+.wulin-agent-tokens__list { padding: 20px 0; }
+.wulin-agent-tokens__list h3 span { margin-left: 6px; font-size: 12px; font-weight: normal; }
+.wulin-agent-tokens__list ul { padding: 0; margin: 0; list-style: none; }
+.wulin-agent-tokens__list li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--wulin-agent-border); }
+.wulin-agent-tokens__token-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.wulin-agent-tokens__token-info strong { font-size: 13px; }
+.wulin-agent-tokens__token-info span { font-size: 11px; }
+.wulin-agent-tokens__revoke { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; font-size: 11px; }
+.wulin-agent-tokens__form { border-top: 1px solid var(--wulin-agent-border); padding-top: 20px; }
+.wulin-agent-tokens__fields { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 16px; margin-bottom: 16px; }
+.wulin-agent-tokens label { display: block; font-size: 12px; color: var(--wulin-agent-text); margin-bottom: 6px; }
+.wulin-agent-tokens input, .wulin-agent-tokens select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none;
+}
+.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { outline: 2px solid var(--wulin-agent-main); outline-offset: 2px; border-color: var(--wulin-agent-main); box-shadow: none; }
+.wulin-agent-tokens__select { position: relative; }
+.wulin-agent-tokens__select select { appearance: none; -webkit-appearance: none; padding-right: 36px; }
+.wulin-agent-tokens__select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 6px;
+  height: 6px;
+  margin-top: -5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
+.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main); border-color: var(--wulin-agent-main); color: white; }
+.wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
+.wulin-agent-tokens__text-button:hover { text-decoration: underline; }
+.wulin-agent-tokens__danger { color: var(--wulin-agent-error); }
+.wulin-agent-tokens button:disabled, .wulin-agent-tokens input:disabled, .wulin-agent-tokens select:disabled { opacity: 0.55; cursor: default; }
+.wulin-agent-tokens button:focus-visible, .wulin-agent-tokens__trigger:focus-visible { outline: 2px solid var(--wulin-agent-main); outline-offset: 3px; }
+
+@media (max-width: 480px) {
+  .wulin-agent-tokens { padding: 18px; }
+  .wulin-agent-tokens__fields { grid-template-columns: 1fr; gap: 12px; }
+  .wulin-agent-tokens__list li { flex-wrap: wrap; }
+  .wulin-agent-tokens__revoke { align-items: flex-start; }
+}

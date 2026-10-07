@@ -168,8 +168,10 @@ actually use.
 
 === Assets
 
-The JavaScript/CSS assets are already built in the gem
-(+app/assets/builds/+).
+Wulin Agent builds its JavaScript/CSS from source during the host application's
+asset precompilation. Node.js and npm are required in the build environment;
+locked frontend dependencies are installed with +npm ci+ before the build.
+Generated bundles in +app/assets/builds/+ do not need to be committed.
 
 After installation:
 
@@ -177,8 +179,11 @@ After installation:
 
 is enough for production.
 
-In development, restarting the Rails server is usually enough after running
-the generator.
+To rebuild the agent after a source update in development:
+
+  bin/rails wulin_agent:assets:build
+
+Restart the Rails server after running the generator.
 
 == Agent actions
 
@@ -433,7 +438,14 @@ permissions). Mutating calls still go through the approval flow.
 === Tokens
 
 MCP requests authenticate with a bearer token (+WulinAgent::ApiToken+) instead of a
-session. Manage tokens with the rake tasks:
+session. The *MCP tokens* button in the agent header opens a personal token
+manager on both the full page and the drawer. Users can list their active tokens,
+create a named token (30-day expiry by default), copy the value at creation, and
+revoke access. Token values are omitted from list responses and cleared when the
+popup closes. Management requires session authentication and CSRF protection.
+For hosts with workspace-scoped tokens, management also scopes by workspace.
+
+Tokens can also be managed with the rake tasks:
 
   # Create a token for a user (printed once, copy it now)
   rake 'wulin_agent:token:create[user@example.com,Cursor]'
