@@ -1320,7 +1320,8 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-tokens {
   box-sizing: border-box;
-  width: min(600px, calc(100vw - 32px));
+  width: calc(100vw - 32px);
+  max-width: 600px;
   max-height: calc(100dvh - 40px);
   margin: auto;
   padding: 24px;
