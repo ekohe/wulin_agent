@@ -28,7 +28,7 @@ module WulinAgent
 
     def run_approved(token:, params: nil, &block)
       @on_event = block
-      grant = Approvals.fetch!(token, user_id: @user.id)
+      grant = Approvals.consume!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
 
       spec = ToolRegistry.find(grant[:tool], @user)
@@ -48,7 +48,6 @@ module WulinAgent
 
       replace_tool_result!(grant[:tool_call_id], result)
       response = continue_agent_turn
-      Approvals.consume!(token, user_id: @user.id)
       emit(type: :done)
       response
     ensure
@@ -57,7 +56,7 @@ module WulinAgent
 
     def run_rejected(token:, reason: nil, &block)
       @on_event = block
-      grant = Approvals.fetch!(token, user_id: @user.id)
+      grant = Approvals.consume!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
     
       message = reason.presence || "User declined #{grant[:tool]}"
@@ -67,7 +66,6 @@ module WulinAgent
       )
 
       response = continue_agent_turn
-      Approvals.consume!(token, user_id: @user.id)
       emit(type: :done)
       response
     ensure

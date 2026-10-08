@@ -13,29 +13,31 @@ module WulinAgent
     end
 
     def self.issue!(tool:, params:, user_id:, tool_call_id: nil)
+      grant_class.for_user(user_id).where("expires_at <= ?", Time.current).limit(100).delete_all
       token = SecureRandom.uuid
-      store[token] = {tool:, params:, user_id:, tool_call_id:, expires_at: TTL.from_now}
+      grant_class.create!(token_digest: Digest::SHA256.hexdigest(token),
+        tool: tool, params: params || {}, user_id: user_id, tool_call_id: tool_call_id, expires_at: TTL.from_now)
       token
     end
 
+    # Compatibility with callers resetting the old process-local store. Durable
+    # grants survive process resets; tests should use database transactions.
     def self.reset!
-      @store = {}
     end
 
     def self.consume!(token, user_id:)
-      grant = store.delete(token)
-      return nil unless grant
-      return nil if grant[:user_id] != user_id
-      return nil if grant[:expires_at] < Time.current
-      grant
+      available = grant_class.available(token, user_id: user_id)
+      record = available.first
+      return unless record
+
+      # Only one process can claim this row, even if several read it first.
+      return unless available.where(id: record.id).update_all(consumed_at: Time.current) == 1
+
+      record.grant
     end
 
     def self.fetch!(token, user_id:)
-      grant = store[token]
-      return nil unless grant
-      return nil if grant[:user_id] != user_id
-      return nil if grant[:expires_at] < Time.current
-      grant
+      grant_class.available(token, user_id: user_id).first&.grant
     end
 
     def self.rejection_result(tool:, reason:)
@@ -47,8 +49,9 @@ module WulinAgent
       }
     end
 
-    def self.store
-      @store ||= {}
+    def self.grant_class
+      WulinAgent.config.approval_grant_class.constantize
     end
+    private_class_method :grant_class
   end
 end

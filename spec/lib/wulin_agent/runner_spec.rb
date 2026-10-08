@@ -309,6 +309,22 @@ RSpec.describe WulinAgent::Runner do
       expect { runner.run_approved(token: "bad") }.to raise_error(ArgumentError, "invalid approval token")
     end
 
+    it "claims the grant before a tool runs and cannot replay it after a model failure" do
+      token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: admin.id)
+      chat = stub_chat_for_approved
+      allow(chat).to receive(:complete).and_raise("model unavailable")
+      spec = WulinAgent::ToolRegistry.find("list_grids", admin)
+      allow(WulinAgent::ToolRegistry).to receive(:find).with("list_grids", admin).and_return(spec)
+      expect(spec).to receive(:execute).once.and_wrap_original do |execute, *args, **options|
+        expect(WulinAgent::Approvals.fetch!(token, user_id: admin.id)).to be_nil
+        execute.call(*args, **options)
+      end
+      runner = described_class.new(user: admin)
+
+      expect { runner.run_approved(token: token) }.to raise_error("model unavailable")
+      expect { runner.run_approved(token: token) }.to raise_error(ArgumentError, "invalid approval token")
+    end
+
     it "executes tools that require no params" do
       token = WulinAgent::Approvals.issue!(
         tool: "list_grids",

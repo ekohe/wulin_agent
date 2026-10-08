@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe WulinAgent::Approvals do
+  include ActiveSupport::Testing::TimeHelpers
   let(:read_tool) { instance_double(WulinAgent::ToolSpec, mutating: false) }
   let(:write_tool) { instance_double(WulinAgent::ToolSpec, mutating: true) }
 
@@ -43,6 +44,7 @@ RSpec.describe WulinAgent::Approvals do
       token = described_class.issue!(tool: "people__destroy", params: {}, user_id: user.id)
 
       expect(described_class.consume!(token, user_id: other.id)).to be_nil
+      expect(described_class.consume!(token, user_id: user.id)).to include(tool: "people__destroy")
     end
 
     it "rejects a consumed token twice" do
@@ -50,6 +52,31 @@ RSpec.describe WulinAgent::Approvals do
       described_class.consume!(token, user_id: user.id)
 
       expect(described_class.consume!(token, user_id: user.id)).to be_nil
+    end
+
+    it "preserves a grant when the issuing process loses its memory" do
+      token = described_class.issue!(tool: "people__destroy", params: {"id" => 1}, user_id: user.id, tool_call_id: "call-1")
+      described_class.reset!
+
+      expect(described_class.consume!(token, user_id: user.id)).to include(
+        tool: "people__destroy", params: {"id" => 1}, user_id: user.id, tool_call_id: "call-1"
+      )
+    end
+
+    it "persists only the token digest and hides private parameters from inspection" do
+      token = described_class.issue!(tool: "people__destroy", params: {"content" => "Private test note"}, user_id: user.id)
+      record = WulinAgent::ApprovalGrant.find_by!(token_digest: Digest::SHA256.hexdigest(token))
+
+      expect(record.inspect).not_to include(token, "Private test note")
+      expect(described_class.fetch!(token, user_id: user.id)).to include(params: {"content" => "Private test note"})
+    end
+
+    it "rejects an expired grant" do
+      token = described_class.issue!(tool: "people__destroy", params: {}, user_id: user.id)
+      travel described_class::TTL + 1.second do
+        expect(described_class.fetch!(token, user_id: user.id)).to be_nil
+        expect(described_class.consume!(token, user_id: user.id)).to be_nil
+      end
     end
   end
 

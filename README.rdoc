@@ -119,9 +119,57 @@ This creates:
 * +agent_knowledge+ — domain glossary and schema mappings
 * +agent_skills+ — reusable playbooks distilled from successful tasks
 * +agent_api_tokens+ — bearer tokens for MCP clients
+* +agent_approval_grants+ — expiring, single-use approval grants shared by all workers
 
 +agent_conversations+ stores +user_id+ as a plain integer (no foreign key), consistent
 with other Wulin apps that use OAuth users without a local +users+ table.
+
+=== Approval persistence
+
+Chat approvals use +WulinAgent::ApprovalGrant+ in the primary database. Grants
+survive worker changes and restarts, expire after ten minutes, and are bound to
+the requesting user. Only a digest of the random token is stored. Approval and
+rejection claim a grant with a conditional database update before proceeding,
+so concurrent requests or a failed follow-up model response cannot replay a
+write. Inspect the actual record before requesting a new action after a failure.
+Grants issued by older releases in process memory cannot be recovered; request
+and review a fresh proposal after upgrading.
+
+The engine owns grant storage, expiry, cleanup, and atomic consumption. Hosts
+with UUID or tenant-scoped schemas may supply an +ApprovalGrant+ subclass:
+
+  class HostApprovalGrant < WulinAgent::ApprovalGrant
+    belongs_to :workspace
+    belongs_to :user
+    before_validation :assign_workspace, on: :create
+
+    def self.for_user(user_id)
+      user = User.find_by(id: user_id, active: true)
+      return none unless user
+
+      where(user_id: user.id, workspace_id: user.workspace_id)
+    end
+
+    private
+
+    def assign_workspace
+      self.workspace ||= user&.workspace
+    end
+  end
+
+  WulinAgent.setup do |config|
+    config.approval_grant_class = "HostApprovalGrant"
+  end
+
+Use a class name so Rails reloading resolves the current model. +for_user+ scopes
+reads, claims and expired-row cleanup. Host model validations and callbacks
+control creation; include active-user and workspace validation when required.
+Hosts providing their own schema must retain the grant columns and unique
+token-digest index, and use their existing migration strategy rather than
+installing a second creation migration for the same table. Expired grants are
+pruned in batches of up to 100 when that user requests a new grant. Parameters
+are private action data and must not be logged. The legacy +Approvals.reset!+
+method is a compatibility no-op; use transactional fixtures for test isolation.
 
 === Permissions
 
