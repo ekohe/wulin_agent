@@ -41,7 +41,6 @@ before_script:
   - bundle check || bundle install --jobs 8
 
   # frontend
-  - npm ci
   - (cd app && npm ci && npm run build)
 
 rspec:
