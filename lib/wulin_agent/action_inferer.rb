@@ -30,16 +30,16 @@ module WulinAgent
       
         decl = agent_action_for(grid, operation)
       
-        StandardGridTools.tool(
-          grid,
-          operation,
+        ToolSpec.new(
+          name: WulinAgent.tool_name(grid.controller, operation),
+          controller: grid.controller,
+          operation: operation,
           description: resolve_description(grid, action, decl, operation),
+          params_schema: resolve_params_schema_with_context(grid, controller_class, operation, decl),
           mutating: resolve_mutating(operation, decl),
           permission: "#{grid.controller}##{operation}",
-          params_schema: resolve_params_schema_with_context(grid, controller_class, operation, decl)
-        ) do |params, user|
-          GridDispatcher.call(grid.controller, operation, params, user)
-        end
+          callable: ->(params, user) { GridDispatcher.call(grid.controller, operation, params, user) }
+        )
       rescue ToolSchemaError
         raise
       rescue StandardError => e
