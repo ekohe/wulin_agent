@@ -13,11 +13,9 @@ cache:
   key:
     files:
       - Gemfile.lock
-      - app/package-lock.json
       - spec/dummy/package-lock.json
   paths:
     - vendor/bundle
-    - app/node_modules
     - spec/dummy/node_modules
 
 stages:
@@ -43,7 +41,7 @@ before_script:
   - bundle config set path vendor/bundle
   - bundle check || bundle install --jobs 8
 
-  # frontend: the agent bundle, then the dummy host's esbuild/dart-sass assets
+  # frontend: the dummy host bundles wulin_agent from source, as a v3 app does
   - spec/dummy/bin/build-assets
 
 rspec:

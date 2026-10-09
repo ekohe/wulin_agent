@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 # Builds the dummy app's assets the way a wulin_master v3 host does
 # (wulin_master/templates/wulin_master.rb): the wulin gems sit under
-# vendor/gems, esbuild bundles application.js, dart-sass compiles
-# application.sass. The gems are copied from the checkouts Bundler resolved
-# (a symlink would put this machine's path in the lockfile).
+# vendor/gems as npm workspaces, esbuild bundles application.js, dart-sass
+# compiles application.sass. Everything under vendor/gems is a copy: a
+# symlink would put this machine's path in the lockfile, and one back to this
+# repository would loop through spec/dummy and break any app that loads the
+# gem from a local checkout.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+rm -rf vendor/gems
 mkdir -p vendor/gems
 for gem in wulin_master wulin_permits; do
   path=$(bundle exec ruby -e "print Gem.loaded_specs.fetch('$gem').full_gem_path")
-  rm -rf "vendor/gems/$gem"
   cp -R "$path" "vendor/gems/$gem"
 done
+mkdir vendor/gems/wulin_agent
+cp -R ../../app ../../package.json ../../jsconfig.json vendor/gems/wulin_agent/
 
-bin/rails wulin_agent:assets:build
 npm ci --no-audit --no-fund
 npm run copy-icons
 bin/rails wulin_master:generate_theme_color_css

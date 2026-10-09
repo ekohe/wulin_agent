@@ -2,7 +2,8 @@
   "name": "wulin_agent_dummy",
   "private": true,
   "workspaces": [
-    "vendor/gems/wulin_master"
+    "vendor/gems/wulin_master",
+    "vendor/gems/wulin_agent"
   ],
   "devDependencies": {
     "esbuild": "^0.28.0"
