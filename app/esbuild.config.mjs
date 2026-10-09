@@ -18,6 +18,9 @@ const options = {
   },
   jsx: "automatic",
   jsxImportSource: "react",
+  // Minifying also selects React's production build (esbuild sets NODE_ENV).
+  minify: !watch,
+  sourcemap: watch ? "inline" : false,
 };
 
 if (watch) {

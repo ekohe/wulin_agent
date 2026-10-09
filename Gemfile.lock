@@ -28,7 +28,7 @@ PATH
     wulin_agent (0.1.0)
       mcp (~> 1.7)
       rails
-      ruby_llm
+      ruby_llm (~> 1.16)
       rubyzip
       wulin_master
 

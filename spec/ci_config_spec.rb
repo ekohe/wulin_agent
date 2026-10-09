@@ -30,7 +30,7 @@ RSpec.describe "CI configuration" do
     expect(ci.fetch("before_script").index(setup)).to be < ci.fetch("before_script").index("bundle check || bundle install --jobs 8")
   end
 
-  it "installs both frontend dependency sets and returns to the gem root for RSpec" do
+  it "builds the frontend from app/ and returns to the gem root for RSpec" do
     commands = ci.fetch("before_script").select { |command| command.include?("npm ci") }
 
     Dir.mktmpdir("wulin-agent-ci") do |directory|
@@ -46,7 +46,6 @@ RSpec.describe "CI configuration" do
 
       expect(status.success?).to be(true), error
       expect(File.readlines(log, chomp: true)).to eq([
-        "#{directory}:ci",
         "#{directory}/app:ci",
         "#{directory}/app:run build"
       ])
