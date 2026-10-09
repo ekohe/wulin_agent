@@ -14,24 +14,27 @@ cache:
     files:
       - Gemfile.lock
       - app/package-lock.json
+      - spec/dummy/package-lock.json
   paths:
     - vendor/bundle
     - app/node_modules
+    - spec/dummy/node_modules
 
 stages:
   - test
 
 before_script:
   - apt-get update -qy
-  - apt-get install -qy git nodejs npm libfontconfig1 libpq-dev
-
-  # Keep credentials in the job environment, outside the cached repositories.
-  # The dependency projects must allow this project to use CI_JOB_TOKEN.
+  # postgresql-client: the dummy schema is structure.sql, loaded with psql
+  - apt-get install -qy git curl gnupg libfontconfig1 libpq-dev postgresql-client
+  # Node 22 from NodeSource, as wulin_master's base image installs it; Debian ships an older one.
   - |
-    test -n "${CI_JOB_TOKEN:-}"
-    export GIT_CONFIG_COUNT=1
-    export GIT_CONFIG_KEY_0="url.https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/.insteadOf"
-    export GIT_CONFIG_VALUE_0="git@${CI_SERVER_HOST}:"
+    mkdir -p /etc/apt/keyrings
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
+    apt-get update -qy
+    apt-get install -qy nodejs
+    node --version
 
   # gems
   - gem install bundler -v 2.6.9
@@ -40,8 +43,8 @@ before_script:
   - bundle config set path vendor/bundle
   - bundle check || bundle install --jobs 8
 
-  # frontend
-  - (cd app && npm ci && npm run build)
+  # frontend: the agent bundle, then the dummy host's esbuild/dart-sass assets
+  - spec/dummy/bin/build-assets
 
 rspec:
   stage: test

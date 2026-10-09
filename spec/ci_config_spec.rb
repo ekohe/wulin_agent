@@ -2,54 +2,29 @@
 
 require "spec_helper"
 require "yaml"
-require "open3"
-require "tmpdir"
-require "fileutils"
 
 RSpec.describe "CI configuration" do
   let(:ci) { YAML.load_file(File.expand_path("../.gitlab-ci.yml", __dir__)) }
+  let(:before_script) { ci.fetch("before_script") }
 
-  it "fetches both private gems over HTTPS using the job token without saving credentials" do
-    setup = ci.fetch("before_script").find { |command| command.include?("GIT_CONFIG_KEY_0") }
-    expect(setup).not_to be_nil
+  it "builds the dummy app's assets once the gems are installed" do
+    build = before_script.index("spec/dummy/bin/build-assets")
 
-    %w[wulin_master wulin_permits].each do |gem_name|
-      env = {
-        "CI_JOB_TOKEN" => "test-job-token",
-        "CI_SERVER_HOST" => "gitlab.ekohe.com",
-        "GIT_CONFIG_GLOBAL" => File::NULL,
-        "GIT_CONFIG_NOSYSTEM" => "1"
-      }
-      output, error, status = Open3.capture3(env, "sh", "-ec", "#{setup}\ngit ls-remote --get-url git@gitlab.ekohe.com:ekohe/wulin/#{gem_name}.git")
-
-      expect(status.success?).to be(true), error
-      expect(output.strip).to eq("https://gitlab-ci-token:test-job-token@gitlab.ekohe.com/ekohe/wulin/#{gem_name}.git")
-    end
-
-    expect(setup).not_to include("--global", "--local")
-    expect(ci.fetch("before_script").index(setup)).to be < ci.fetch("before_script").index("bundle check || bundle install --jobs 8")
+    expect(build).not_to be_nil
+    expect(build).to be > before_script.index("bundle check || bundle install --jobs 8")
+    expect(File.executable?(File.expand_path("dummy/bin/build-assets", __dir__))).to be(true)
   end
 
-  it "builds the frontend from app/ and returns to the gem root for RSpec" do
-    commands = ci.fetch("before_script").select { |command| command.include?("npm ci") }
+  it "installs psql, which loads the dummy app's structure.sql" do
+    install = before_script.find { |command| command.start_with?("apt-get install") }
 
-    Dir.mktmpdir("wulin-agent-ci") do |directory|
-      directory = File.realpath(directory)
-      FileUtils.mkdir_p(["#{directory}/app", "#{directory}/bin"])
-      npm = "#{directory}/bin/npm"
-      File.write(npm, "#!/bin/sh\nprintf '%s:%s\\n' \"$PWD\" \"$*\" >> \"$CI_TEST_LOG\"\n")
-      File.chmod(0o755, npm)
-      log = "#{directory}/npm.log"
-      env = {"PATH" => "#{directory}/bin:#{ENV.fetch("PATH")}", "CI_TEST_LOG" => log}
+    expect(install).to include("postgresql-client")
+  end
 
-      output, error, status = Open3.capture3(env, "sh", "-ec", "#{commands.join("\n")}\npwd", chdir: directory)
+  it "installs Node 22 before building assets" do
+    node = before_script.index { |command| command.include?("deb.nodesource.com/node_22.x") }
 
-      expect(status.success?).to be(true), error
-      expect(File.readlines(log, chomp: true)).to eq([
-        "#{directory}/app:ci",
-        "#{directory}/app:run build"
-      ])
-      expect(output.strip).to eq(directory)
-    end
+    expect(node).not_to be_nil
+    expect(node).to be < before_script.index("spec/dummy/bin/build-assets")
   end
 end

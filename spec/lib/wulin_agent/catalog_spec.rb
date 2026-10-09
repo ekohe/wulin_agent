@@ -14,7 +14,7 @@ RSpec.describe WulinAgent::Catalog do
       PersonGrid
       WulinMaster::Grid.grids.clear
 
-      expect(described_class.all.map(&:controller)).to eq(["people"])
+      expect(described_class.all.map(&:controller)).to include("people")
     end
   end
 

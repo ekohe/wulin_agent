@@ -4,20 +4,26 @@ pkg/*
 .bundle
 *.log
 .DS_Store
-spec/dummy/log/
+vendor/bundle/
+/node_modules/
+
+# dummy app: local config and runtime state
 spec/dummy/config/database.yml
 spec/dummy/.env
 spec/dummy/config/wulin_agent_actions.rb
+spec/dummy/log/
 spec/dummy/tmp/
-# Precompiled assets shadow the live app/assets/builds bundle in dev/test
-spec/dummy/public/assets/
 spec/dummy/storage/
-# ignore the bundle folder
-vendor/bundle/
-# Built by `bin/rails wulin_agent:assets:build` (also runs before assets:precompile)
+spec/dummy/public/assets/
+
+# dummy app: built by spec/dummy/bin/build-assets
+spec/dummy/node_modules/
+spec/dummy/vendor/gems/
+spec/dummy/app/assets/builds/
+spec/dummy/app/assets/fonts/
+spec/dummy/app/assets/stylesheets/_theme.generated.scss
+
+# built by `bin/rails wulin_agent:assets:build` (also runs before assets:precompile)
 app/assets/builds/*
 !app/assets/builds/.keep
-# JavaScript dependencies (reinstall with npm ci in app/)
-/node_modules/
 app/node_modules/
-spec/dummy/node_modules/
