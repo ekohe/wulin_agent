@@ -52,6 +52,8 @@ module WulinAgent
       config.temperature = Float(temperature)
     end
 
-    config.thinking_effort = ENV["WULIN_AGENT_THINKING"].presence
+    if (thinking = ENV["WULIN_AGENT_THINKING"]).present?
+      config.thinking_effort = thinking
+    end
   end
 end
