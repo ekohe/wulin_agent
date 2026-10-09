@@ -219,7 +219,7 @@ actually use.
 Wulin Agent builds its JavaScript/CSS from source during the host application's
 asset precompilation. Node.js and npm are required in the build environment;
 locked frontend dependencies are installed with +npm ci+ before the build.
-Generated bundles in +app/assets/builds/+ do not need to be committed.
+Bundles in +app/assets/builds/+ are not committed.
 
 After installation:
 
@@ -227,9 +227,14 @@ After installation:
 
 is enough for production.
 
-To rebuild the agent after a source update in development:
+In development, build the agent after installing it and after every update
+of the gem (+git submodule update+ or +bundle update+):
 
   bin/rails wulin_agent:assets:build
+
+Until it is built, +bin/rails server+ refuses to start with
++WulinAgent::MissingAssetsError+, since every page loading +application.js+
+would fail with +Sprockets::FileNotFound+.
 
 Restart the Rails server after running the generator.
 

@@ -4,7 +4,22 @@ require "rails"
 require "wulin_agent/extensions/grid_agent_actions"
 
 module WulinAgent
+  class MissingAssetsError < StandardError; end
+
   class Engine < ::Rails::Engine
+    BUILT_ASSETS = %w[wulin_agent.js wulin_agent.css].freeze
+
+    # The bundles are not committed; without them every page that loads the
+    # host's application.js fails with Sprockets::FileNotFound.
+    def self.check_built_assets!
+      missing = BUILT_ASSETS.reject { |name| root.join("app/assets/builds", name).exist? }
+      return if missing.empty?
+
+      raise MissingAssetsError,
+        "wulin_agent assets are not built (missing #{missing.join(", ")}). " \
+        "Run `bin/rails wulin_agent:assets:build` and restart the server."
+    end
+
     config.to_prepare do
       ControllerResolver.reset!
       ToolRegistry.reset!
@@ -17,6 +32,11 @@ module WulinAgent
       builds_path = root.join("app/assets/builds")
       app.config.assets.paths << builds_path
       app.config.assets.precompile += %w[wulin_agent.js wulin_agent.css]
+
+      # Only the dev server: rake tasks (including the build itself) must still boot.
+      app.config.after_initialize do
+        Engine.check_built_assets! if Rails.env.development? && defined?(Rails::Server)
+      end
     end
 
     initializer "wulin_agent.ruby_llm" do |app|
