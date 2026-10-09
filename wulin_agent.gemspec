@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.authors = ["Ekohe"]
   s.email = ["info@ekohe.com"]
-  s.homepage = "http://rubygems.org/gems/wulin_agent"
+  s.homepage = "https://github.com/ekohe/wulin_agent"
   s.summary = "Conversational AI agent for Wulin Master apps"
   s.description = "Exposes Wulin Master grid operations as LLM tools with permission gating, " \
                   "via in-app chat (ruby_llm) and MCP."

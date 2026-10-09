@@ -5,64 +5,32 @@ actions as LLM tools (ruby_llm + MCP), gated by wulin_permits.
 
 == Installation
 
-Host apps vendor +wulin_agent+ as a git submodule under
-+vendor/gems/wulin_agent+.
++wulin_agent+ is a wulin_master v3 component. Host apps get it the way they get
+every other component: from wulin_master's application template, which vendors
+it as a Bundler git gem at the commit +components.lock.yml+ pins and wires it in.
 
-=== Add the gem to the host app
+New app:
 
-From the host Rails application:
+  WULIN_COMPONENTS=wulin_agent rails new APP --skip-hotwire --database=postgresql \
+    --skip-javascript -m https://raw.githubusercontent.com/ekohe/wulin_master/v3-aida/template.rb
 
-  cd /path/to/app
+Existing app (re-applies the template for the full set of components):
 
-Add the repository as a submodule:
+  WULIN_COMPONENTS=wulin_agent bin/rails app:template \
+    LOCATION=https://raw.githubusercontent.com/ekohe/wulin_master/v3-aida/template.rb
 
-  git submodule add git@gitlab.ekohe.com:ekohe/wulin/wulin_agent.git vendor/gems/wulin_agent
++wulin_agent+ needs +wulin_permits+ (and through it +wulin_auth+); the template
+adds them. The component template:
 
-Add the gem to the Gemfile:
+* declares +gem "wulin_agent", github: "ekohe/wulin_agent", ref: ...+
+* adds +vendor/gems/wulin_agent+ to +package.json+ workspaces, so its React
+  dependencies install into the app
+* imports +app/javascript/wulin_agent.esm.js+ into +app/javascript/application.js+
+* +@use+s +app/assets/stylesheets/wulin_agent.css+ in +application.sass+
+* links the assistant page from the menu
 
-  gem "wulin_agent", path: "vendor/gems/wulin_agent"
-
-Install dependencies:
-
-  bundle install
-
-For other developers after cloning the project:
-
-  git submodule update --init vendor/gems/wulin_agent
-  bundle install
-
-Do not use +--recursive+ on the host app: +wulin_agent+ has no nested submodules.
-Declare +wulin_master+ and +wulin_permits+ at the app level (same as other Wulin gems).
-
-== Integration
-
-=== Install generator
-
-From the host Rails application:
-
-  bin/rails generate wulin_agent:install
-
-The generator automatically:
-
-* creates +config/initializers/wulin_agent.rb+
-* adds +wulin_agent.js+ and +wulin_agent.css+ to the asset manifest
-* requires the assets in the main application bundles
-* adds +#wulin-agent-root+ to +app/views/layouts/application.html.haml+
-  (or +application.html.erb+) when available
-
-You should see:
-
-  wulin_agent installed
-
-  Routes: automatic with the gem (/wulin_agent/conversations)
-
-  Next steps:
-    rails db/migrate
-    rake wulin_permits:load_permission
-    export OPENAI_API_KEY=sk-...
-
-No manual mount is required in +routes.rb+. The engine routes are loaded
-automatically.
+No route mount, generator or migration copy is needed: the engine draws its
+routes and appends its migrations itself.
 
 === Dedicated agent page and main menu
 
@@ -71,12 +39,8 @@ while keeping the host application's header and main menu. Direct visits and
 Wulin Master's AJAX menu navigation both work; switching between the page and
 the toolbar drawer preserves the current conversation.
 
-The toolbar drawer is enabled by default. To link the workspace from your
-+ApplicationController+ menu, add an item inside your existing submenu:
-
-  item "Wulin Agent", url: "/wulin_agent", icon: :cognition
-
-For menu-only access, disable the toolbar in +config/initializers/wulin_agent.rb+:
+The toolbar drawer is enabled by default. For menu-only access, disable it in
+an initializer:
 
   WulinAgent.setup do |config|
     config.toolbar_enabled = false
@@ -88,31 +52,19 @@ authentication checks.
 
 === Prerequisites
 
-+wulin_agent+ is a Rails engine for Wulin Master apps. Host apps need:
-
-* +wulin_master+ (required dependency, declared in the gemspec)
-* +wulin_permits+ (recommended: LLM tools are gated by grid permissions)
+* +wulin_master+ v3 (Propshaft, esbuild, dart-sass)
+* Node.js 22 or later (+engines+ in +package.json+; older lines are end-of-life)
+* +wulin_permits+ (LLM tools are gated by grid permissions)
 * PostgreSQL (+agent_messages.metadata+ is +jsonb+)
-
-Follow the standard Wulin Master / Wulin Permits setup in your app (migrations,
-menus, +rake wulin_permits:load_permission+ after adding grids).
+* An API key for the configured LLM provider (see below)
 
 === Database
 
-Copy engine migrations into the host app (each app gets its own timestamps,
-avoiding version collisions with local migrations):
+The engine appends its migrations to the host's, so a plain
 
-  bin/rails wulin_agent_engine:install:migrations
   bin/rails db:migrate
 
-+rails generate wulin_agent:install+ runs +install:migrations+ automatically.
-
-After upgrading the gem, copy any new migrations and migrate again:
-
-  bin/rails wulin_agent_engine:install:migrations
-  bin/rails db:migrate
-
-This creates:
+creates:
 
 * +agent_conversations+ — chat sessions (+approval_mode+ per conversation)
 * +agent_messages+ — user/assistant turns (+metadata+ for tool calls, +rating+)
@@ -120,6 +72,10 @@ This creates:
 * +agent_skills+ — reusable playbooks distilled from successful tasks
 * +agent_api_tokens+ — bearer tokens for MCP clients
 * +agent_approval_grants+ — expiring, single-use approval grants shared by all workers
+
+Apps that copied the migrations with the old +wulin_agent_engine:install:migrations+
+keep their copies: the engine does not append its own while any
++db/migrate/*.wulin_agent_engine.rb+ exists.
 
 +agent_conversations+ stores +user_id+ as a plain integer (no foreign key), consistent
 with other Wulin apps that use OAuth users without a local +users+ table.
@@ -216,27 +172,24 @@ actually use.
 
 === Assets
 
-Wulin Agent builds its JavaScript/CSS from source during the host application's
-asset precompilation. Node.js and npm are required in the build environment;
-locked frontend dependencies are installed with +npm ci+ before the build.
-Bundles in +app/assets/builds/+ are not committed.
+The gem ships source, not a bundle, like every wulin component. The host's own
+esbuild bundles +app/javascript/wulin_agent.esm.js+ into +application.js+, and
+dart-sass compiles +app/assets/stylesheets/wulin_agent.css+ into
++application.css+. The chat UI's React dependencies come from the gem's
++package.json+, installed into the host through the npm workspace.
 
-After installation:
+After updating the gem, reinstall and rebuild the host's assets:
 
-  bin/rails assets:precompile
+  bundle exec ruby script/link_wulin_gems.rb
+  npm install
+  npm run build
+  bin/rails dartsass:build
 
-is enough for production.
-
-In development, build the agent after installing it and after every update
-of the gem (+git submodule update+ or +bundle update+):
-
-  bin/rails wulin_agent:assets:build
-
-Until it is built, +bin/rails server+ refuses to start with
-+WulinAgent::MissingAssetsError+, since every page loading +application.js+
-would fail with +Sprockets::FileNotFound+.
-
-Restart the Rails server after running the generator.
+The host's esbuild command sets no JSX options and treats CSS imports as
+external. wulin_agent is the only component written in JSX, so its
++jsconfig.json+ selects the automatic runtime, which esbuild reads for the
+gem's files; and no JavaScript imports CSS.
++spec/frontend_conventions_spec.rb+ enforces both.
 
 == Agent actions
 
@@ -557,35 +510,30 @@ A missing or invalid token returns +401 Unauthorized+.
 
 == Development
 
-=== GitLab CI access to private dependencies
+Requires Ruby, Node.js 22 or later with npm, and PostgreSQL with +psql+ on
+the +PATH+.
 
-In both +ekohe/wulin/wulin_master+ and +ekohe/wulin/wulin_permits+, go to
-+Settings > CI/CD > Job token permissions+ and add +ekohe/wulin/wulin_agent+
-to the CI/CD job token allowlist. The user triggering the pipeline must also
-have permission to read both dependency repositories.
-
-CI rewrites the Gemfile's SSH URLs to HTTPS using GitLab's automatically
-provided +CI_JOB_TOKEN+. No SSH deploy key or manually created token variable
-is required. Authentication configuration is passed through the job environment
-and is not written to the cached Git repositories. Local development continues
-to use the SSH URLs in the Gemfile and lockfile.
-
-=== Local development
-
-Install gems (+wulin_master+ and +wulin_permits+ are fetched from GitLab via the Gemfile):
+Install gems (+wulin_master+ v3-aida and +wulin_permits+ main, from
+github.com/ekohe):
 
   bundle install
 
-Build frontend assets:
+Configure the dummy app's database:
 
-  cd app
-  npm ci
-  npm run build
+  cp spec/dummy/config/database.example.yml spec/dummy/config/database.yml
 
-Run tests:
+Build the dummy app's assets. +spec/dummy+ is a wulin_master v3 host: the
+script lays out +vendor/gems+ (copies of the resolved gems and of this gem; no
+symlinks, which would loop back through spec/dummy), installs the npm
+workspaces and runs the template's esbuild and dart-sass builds, so
+wulin_agent is bundled from source exactly as in an app:
 
+  spec/dummy/bin/build-assets
+
+Prepare the test database and run the tests:
+
+  bundle exec rake app:db:test:prepare
   bundle exec rspec
 
-Host apps vendor Wulin gems at the top level (+vendor/gems/wulin_master+,
-+vendor/gems/wulin_permits+, etc.). This repo's Gemfile pulls them from GitLab
-for local development and CI only.
+The dummy schema is +spec/dummy/db/structure.sql+ because wulin_permits
+creates SQL views.
