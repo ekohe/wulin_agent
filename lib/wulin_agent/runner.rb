@@ -20,8 +20,9 @@ module WulinAgent
       scope_messages_for_completion!
       payload = ArchiveService.enrich_message(message, archive_id: archive_id, user: @user)
       response = chat.ask(payload) { |chunk| emit_text_delta(chunk) }
+      paused = pause_for_approval!
       emit(type: :done)
-      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
+      paused ? "" : response.content
     ensure
       @on_event = nil
     end
@@ -101,10 +102,11 @@ module WulinAgent
       chat = RubyLLM.chat(model: resolved_model)
       chat = apply_llm_options(chat)
       chat = chat
-        .with_tools(*tools, calls: :one)
+        .with_tools(*tools)
+        .with_tool_options(calls: :one)
         .with_instructions(system_prompt)
-        .on_tool_call { |tc| emit_tool_call(tc) }
-        .on_tool_result { |result| emit_tool_result(result) }
+        .before_tool_call { |tc| emit_tool_call(tc) }
+        .after_tool_result { |result| emit_tool_result(result) }
       @history.each { |msg| replay_message!(chat, msg) }
       chat
     end
@@ -192,17 +194,27 @@ module WulinAgent
     end
 
     def scope_messages_for_completion!
-      if chat.respond_to?(:with_messages)
-        chat.with_messages { |msgs| limited_messages(msgs) }
-      else
-        chat.instance_variable_set(:@messages, limited_messages(chat.messages))
-      end
+      chat.messages = limited_messages(chat.messages)
     end
 
     def continue_agent_turn
       scope_messages_for_completion!
       response = chat.complete { |chunk| emit_text_delta(chunk) }
-      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
+      pause_for_approval! ? "" : response.content
+    end
+
+    # ruby_llm stops before running a tool that requires approval. The call is
+    # reported like any other, with the approval_required result its ToolSpec
+    # returns unapproved; emit_tool_result attaches the ApprovalGrant token and
+    # the turn ends there. Returns whether the turn paused.
+    def pause_for_approval!
+      pending = chat.awaiting_approval? ? chat.pending_approvals : []
+      pending.each do |tool_call|
+        emit_tool_call(tool_call)
+        spec = ToolRegistry.find(tool_call.name, @user)
+        emit_tool_result(spec.execute(tool_call.arguments.to_h.stringify_keys, @user, approval_mode: @approval_mode))
+      end
+      pending.any?
     end
 
     def replay_message!(chat, msg)
@@ -255,12 +267,17 @@ module WulinAgent
       end
     end
 
+    # Messages are immutable in ruby_llm 2, so the placeholder result is swapped
+    # for a new message rather than edited.
     def replace_tool_result!(tool_call_id, result)
-      message = chat.messages.find { |msg| msg.tool_result? && msg.tool_call_id == tool_call_id }
-      if message
-        message.content = result
+      replacement = RubyLLM::Message.new(role: :tool, content: result.to_json, tool_call_id: tool_call_id)
+      index = chat.messages.index { |msg| msg.tool_result? && msg.tool_call_id == tool_call_id }
+      if index
+        messages = chat.messages.dup
+        messages[index] = replacement
+        chat.messages = messages
       else
-        chat.add_message(role: :tool, content: result.to_json, tool_call_id: tool_call_id)
+        chat.add_message(replacement)
       end
     end
 
@@ -281,8 +298,6 @@ module WulinAgent
     end
     
     def emit_tool_result(result)
-      result = result.content if result.is_a?(RubyLLM::Tool::Halt)
-
       payload = {
         type: :tool_result,
         id: @current_tool_call&.id,

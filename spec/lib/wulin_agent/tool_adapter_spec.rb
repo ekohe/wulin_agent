@@ -34,8 +34,7 @@ RSpec.describe WulinAgent::ToolAdapter do
       spec = WulinAgent::ToolRegistry.find("people__greet", admin)
       tool = described_class.build([spec], user: admin).first
 
-      schema = tool.class.params_schema_definition.instance_variable_get(:@schema)
-      expect(schema[:properties]).to include(name: {type: "string"})
+      expect(tool.parameters_schema["properties"]).to include("name" => {"type" => "string"})
     end
 
     it "delegates execute to ToolSpec with user and approval_mode" do
@@ -47,14 +46,20 @@ RSpec.describe WulinAgent::ToolAdapter do
       expect(result).to eq("success" => true, "message" => "Hello, Axel!")
     end
 
-    it "halts with approval_required for mutating tools under confirm_writes" do
+    it "requires approval for mutating tools under confirm_writes, and only for those" do
+      destroy = WulinAgent::ToolRegistry.find("destroy_record", admin)
+      list = WulinAgent::ToolRegistry.find("list_records", admin)
+      tools = described_class.build([destroy, list], user: admin, approval_mode: :confirm_writes)
+
+      expect(tools.map { |tool| [tool.name, tool.requires_approval?] })
+        .to eq([["destroy_record", true], ["list_records", false]])
+    end
+
+    it "requires no approval under auto" do
       spec = WulinAgent::ToolRegistry.find("destroy_record", admin)
-      tool = described_class.build([spec], user: admin, approval_mode: :confirm_writes).first
+      tool = described_class.build([spec], user: admin, approval_mode: :auto).first
 
-      result = tool.execute(controller: "people", id: 1)
-
-      expect(result).to be_a(RubyLLM::Tool::Halt)
-      expect(result.content["status"]).to eq("approval_required")
+      expect(tool.requires_approval?).to be(false)
     end
   end
 end

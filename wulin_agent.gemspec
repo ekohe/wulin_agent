@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.add_dependency "mcp", "~> 1.7"
   s.add_dependency "rails"
   s.add_dependency "rubyzip"
-  s.add_dependency "ruby_llm", "~> 1.16" # 2.0 removed Chat#on_tool_call and Tool.desc
+  s.add_dependency "ruby_llm", "~> 2.1"
   s.add_dependency "wulin_master"
   s.add_development_dependency "dotenv-rails"
   s.add_development_dependency "pg"

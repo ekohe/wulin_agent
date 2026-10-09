@@ -6,34 +6,30 @@ module WulinAgent
   class ToolAdapter
     def self.build(tool_specs, user:, approval_mode: :confirm_writes)
       tool_specs.map { |spec| wrap(spec, user: user, approval_mode: approval_mode) }
-    end   
-    
+    end
+
     def self.wrap(tool_spec, user:, approval_mode:)
       schema = normalize_schema(tool_spec.params_schema)
       klass = Class.new(RubyLLM::Tool) do
-        desc tool_spec.description
-        params type: "object",
+        description tool_spec.description
+        parameters type: "object",
           properties: schema[:properties],
           required: schema[:required]
+
+        # The resolver never decides: the loop pauses before the tool runs, and
+        # Runner issues an ApprovalGrant. The approved call is executed by
+        # Runner#run_approved, with the params the user confirmed.
+        requires_approval { nil } if Approvals.needs_approval?(tool_spec, mode: approval_mode)
 
         define_method(:name) { tool_spec.name }
 
         define_method(:execute) do |**kwargs|
-          result = tool_spec.execute(
-            kwargs.stringify_keys,
-            user,
-            approval_mode: approval_mode,
-            approved: false
-          )
-          if result.is_a?(Hash) && result["status"] == "approval_required"
-            halt(result)
-          else
-            result
-          end
+          tool_spec.execute(kwargs.stringify_keys, user, approval_mode: approval_mode, approved: false)
         end
       end
+      klass.instance_variable_set(:@tool_name, tool_spec.name)
 
-      klass.new     
+      klass.new
     end
 
     def self.normalize_schema(params_schema)
