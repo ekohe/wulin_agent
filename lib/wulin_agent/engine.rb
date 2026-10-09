@@ -13,6 +13,17 @@ module WulinAgent
       WulinMaster::Grid.include WulinAgent::Extensions::GridAgentActions
     end
 
+    # Same as every wulin component: a plain db:migrate picks these up. Hosts
+    # that copied them with the old install:migrations keep their copies.
+    initializer :append_migrations do |app|
+      copied = Dir[app.root.join("db/migrate/*.wulin_agent_engine.rb")].any?
+      unless app.root.to_s.match(root.to_s) || copied
+        config.paths["db/migrate"].expanded.each do |expanded_path|
+          app.config.paths["db/migrate"] << expanded_path
+        end
+      end
+    end
+
     initializer "wulin_agent.ruby_llm" do |app|
       RubyLLM.configure do |config|
         config.use_new_acts_as = true

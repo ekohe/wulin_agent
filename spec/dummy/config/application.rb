@@ -14,7 +14,8 @@ module Dummy
 
     # wulin_permits creates SQL views, which schema.rb cannot hold.
     config.active_record.schema_format = :sql
-    # Hosts copy these with install:migrations; the dummy reads them in place.
+    # The engine appends its migrations to every app outside its own root,
+    # which leaves out this one.
     config.paths["db/migrate"] << WulinAgent::Engine.root.join("db/migrate").to_s
   end
 end
