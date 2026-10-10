@@ -33,7 +33,13 @@ require "wulin_agent/configuration"
 require "wulin_agent/engine" if defined?(Rails) && Rails::VERSION::MAJOR >= 5
 
 module WulinAgent
-  DEFAULT_MODEL = "gpt-4o-mini"
+  DEFAULT_MODEL = "gpt-6-luna"
+
+  # WULIN_AGENT_MODEL, or the default when it is unset or empty: compose passes
+  # an empty .env entry through as "", which is not a model.
+  def self.model_from_env
+    ENV["WULIN_AGENT_MODEL"].presence || DEFAULT_MODEL
+  end
 
   def self.config
     @config ||= Configuration.new

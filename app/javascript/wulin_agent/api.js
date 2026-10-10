@@ -216,7 +216,7 @@ export async function fetchAgentConfig({ signal } = {}) {
     throw new Error(`HTTP ${response.status}`);
   }
 
-  return response.json(); // { model: "gpt-4o-mini" }
+  return response.json(); // { model: "gpt-6-luna" }
 }
 
 

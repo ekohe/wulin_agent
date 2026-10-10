@@ -39,7 +39,7 @@ module WulinAgent
           config.gemini_api_key ||= ENV["GEMINI_API_KEY"].presence ||
             gemini&.dig(:access_token) || gemini&.dig(:api_key)
 
-          config.default_model = ENV.fetch("WULIN_AGENT_MODEL", WulinAgent::DEFAULT_MODEL)
+          config.default_model = WulinAgent.model_from_env
 
           WulinAgent.apply_llm_options_from_env!
 

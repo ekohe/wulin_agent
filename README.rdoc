@@ -145,7 +145,8 @@ use (environment variables take precedence over Rails credentials):
   ANTHROPIC_API_KEY=sk-...
   GEMINI_API_KEY=...
 
-Default model when +WULIN_AGENT_MODEL+ is unset: +gpt-4o-mini+ (OpenAI).
+Default model when +WULIN_AGENT_MODEL+ is unset or empty: +gpt-6-luna+ (OpenAI), a
+reasoning model.
 Override to switch provider, e.g. Claude or Gemini:
 
   WULIN_AGENT_MODEL=claude-sonnet-4-6
@@ -157,8 +158,9 @@ Optional generation settings (unset by default):
   WULIN_AGENT_TEMPERATURE=0.7
   WULIN_AGENT_THINKING=high
 
-+WULIN_AGENT_TEMPERATURE+ sets sampling temperature when supported by the
-model. +WULIN_AGENT_THINKING+ sets reasoning effort for thinking-capable
++WULIN_AGENT_TEMPERATURE+ sets sampling temperature. ruby_llm sends it as set,
+with no check against the model, so leave it unset for reasoning models such
+as the default. +WULIN_AGENT_THINKING+ sets reasoning effort for thinking-capable
 models (e.g. +none+, +low+, +medium+, +high+ on GPT-5.6 Luna). You can also
 set these in +config/initializers/wulin_agent.rb+:
 
