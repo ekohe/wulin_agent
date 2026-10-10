@@ -27,4 +27,10 @@ RSpec.describe "CI configuration" do
     expect(node).not_to be_nil
     expect(node).to be < before_script.index("spec/dummy/bin/build-assets")
   end
+
+  it "lints with standardrb, whose config leaves out vendored code" do
+    expect(ci.dig("standardrb", "script")).to eq(["bundle exec standardrb"])
+    expect(YAML.load_file(File.expand_path("../.standard.yml", __dir__)).fetch("ignore"))
+      .to include("vendor/**/*", "spec/dummy/vendor/**/*", "spec/dummy/node_modules/**/*")
+  end
 end

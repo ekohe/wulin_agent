@@ -49,3 +49,16 @@ rspec:
   script:
     - bundle exec rake app:db:test:prepare
     - bundle exec rspec
+
+# Gems only: linting needs neither Node, the assets nor the database.
+standardrb:
+  stage: test
+  services: []
+  before_script:
+    - apt-get update -qy
+    - apt-get install -qy libpq-dev
+    - gem install bundler -v 2.6.9
+    - bundle config set path vendor/bundle
+    - bundle check || bundle install --jobs 8
+  script:
+    - bundle exec standardrb
