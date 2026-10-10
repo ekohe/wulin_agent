@@ -367,6 +367,20 @@ Mutating tools are annotated (+destructive_hint+) and run in +:auto+ approval
 mode — there is no interactive confirmation step over MCP, so only hand out
 tokens to trusted users/clients.
 
+=== Allowed hosts (required in production)
+
+The MCP transport only accepts loopback hosts (+localhost+, +127.0.0.1+, …) by
+default. On a deployed app you *must* allowlist the public hostname in the host
+application's +config/initializers/wulin_agent.rb+, otherwise clients get
++403 Forbidden: Invalid Host header+:
+
+  WulinAgent.setup do |config|
+    config.mcp_allowed_hosts = ["your-app.example.com"]
+  end
+
+Entries may be bare hostnames (any port) or +hostname:port+. Restart the app
+after changing the list. Do not derive the allowlist from request headers.
+
 == Knowledge
 
 Domain terms (acronyms, schema mappings, workflows) live in +agent_knowledge+.
@@ -488,18 +502,10 @@ expired tokens. Each successful request bumps +last_used_at+.
 The engine requires MCP 1.7 or later within the 1.x series for this transport
 configuration. Update the host's bundle when upgrading the engine.
 
-For a deployed endpoint, configure its hostname in the host application's
-+config/initializers/wulin_agent.rb+:
-
-  WulinAgent.setup do |config|
-    config.mcp_allowed_hosts = ["your-app.example.com"]
-  end
-
-The MCP transport accepts only loopback hosts by default. Entries may be bare
-hostnames (any port) or +hostname:port+. Unlisted hosts return +403 Invalid Host
-header+. DNS rebinding protection stays enabled: browser requests with an
-+Origin+ header must be same-origin; non-browser clients may omit it. Do not
-derive the allowlist from request headers.
+Before connecting a remote client, set +config.mcp_allowed_hosts+ as described
+in *Allowed hosts* above. DNS rebinding protection stays enabled: browser
+requests with an +Origin+ header must be same-origin; non-browser clients may
+omit it.
 
 Point the MCP client at the host app's endpoint and pass the token in the
 +Authorization+ header. Example +mcp.json+ (Cursor):
@@ -523,7 +529,8 @@ Quick smoke test with +curl+ (JSON-RPC +tools/list+):
     -H "Accept: application/json, text/event-stream" \
     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
-A missing or invalid token returns +401 Unauthorized+.
+A missing or invalid token returns +401 Unauthorized+. An unlisted hostname
+returns +403 Forbidden: Invalid Host header+ — add it to +mcp_allowed_hosts+.
 
 == Development
 
