@@ -9,8 +9,7 @@ module WulinAgent
     :params_schema,
     :mutating,
     :permission,
-    :callable,
-    keyword_init: true
+    :callable
   ) do
     def execute(params = {}, user = nil, approval_mode: :confirm_writes, approved: false)
       if Approvals.needs_approval?(self, mode: approval_mode, approved: approved)

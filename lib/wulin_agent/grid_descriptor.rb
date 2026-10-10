@@ -8,7 +8,6 @@ module WulinAgent
     :screen_name,
     :columns,
     :default_actions,
-    :custom_actions,
-    keyword_init: true
+    :custom_actions
   )
 end
