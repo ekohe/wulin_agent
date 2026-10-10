@@ -25,9 +25,9 @@ RSpec.describe "WulinAgent.model_from_env" do
   end
 
   it "uses the variable when it names a model" do
-    ENV["WULIN_AGENT_MODEL"] = "claude-sonnet-4-6"
+    ENV["WULIN_AGENT_MODEL"] = "claude-sonnet-5-5"
 
-    expect(WulinAgent.model_from_env).to eq("claude-sonnet-4-6")
+    expect(WulinAgent.model_from_env).to eq("claude-sonnet-5-5")
   end
 
   it "is what the engine configures ruby_llm with at boot" do

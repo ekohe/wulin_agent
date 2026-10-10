@@ -147,26 +147,26 @@ use (environment variables take precedence over Rails credentials):
 
 Default model when +WULIN_AGENT_MODEL+ is unset or empty: +gpt-6-luna+ (OpenAI), a
 reasoning model.
-Override to switch provider, e.g. Claude or Gemini:
+Set it to pick another model, from any of the three providers:
 
-  WULIN_AGENT_MODEL=claude-sonnet-4-6
-  WULIN_AGENT_MODEL=gemini-2.0-flash
-  WULIN_AGENT_MODEL=gpt-5.6-luna
+  WULIN_AGENT_MODEL=gpt-6-luna
+  WULIN_AGENT_MODEL=claude-sonnet-5-5
+  WULIN_AGENT_MODEL=gemini-3.8-flash
 
 Optional generation settings (unset by default):
 
-  WULIN_AGENT_TEMPERATURE=0.7
-  WULIN_AGENT_THINKING=high
+  WULIN_AGENT_TEMPERATURE=0.7     # sampling temperature, non-reasoning models
+  WULIN_AGENT_THINKING=high       # reasoning effort, reasoning models
 
-+WULIN_AGENT_TEMPERATURE+ sets sampling temperature. ruby_llm sends it as set,
-with no check against the model, so leave it unset for reasoning models such
-as the default. +WULIN_AGENT_THINKING+ sets reasoning effort for thinking-capable
-models (e.g. +none+, +low+, +medium+, +high+ on GPT-5.6 Luna). You can also
-set these in +config/initializers/wulin_agent.rb+:
+Effort levels depend on the model: +none+ to +max+ on gpt-6-luna, no +none+
+on gpt-6.1-sol. Reasoning models such as the default take no temperature. If
+ruby_llm's model registry says the model cannot take a setting, the agent
+leaves it out and logs a warning; a model the registry does not list gets it
+as set. The same settings in +config/initializers/wulin_agent.rb+:
 
   WulinAgent.setup do |config|
-    config.temperature = 0.7
     config.thinking_effort = "high"
+    # config.temperature = 0.7    # non-reasoning models only
   end
 
 Restart the app after changing env vars. Only configure keys for providers you

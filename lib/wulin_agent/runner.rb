@@ -111,12 +111,30 @@ module WulinAgent
       chat
     end
 
+    # ruby_llm sends both options as set. A model the registry says cannot
+    # take one would fail every turn, so leave it out and say why; a model the
+    # registry does not describe gets the option as configured.
     def apply_llm_options(chat)
       config = WulinAgent.config
-      chat = chat.with_temperature(config.temperature) unless config.temperature.nil?
-      if config.thinking_effort.present?
-        chat = chat.with_thinking(effort: config.thinking_effort)
+      model = chat.model
+
+      unless config.temperature.nil?
+        if model.metadata[:temperature] == false
+          Rails.logger.warn("[wulin_agent] #{model.id} does not take temperature; not sent")
+        else
+          chat = chat.with_temperature(config.temperature)
+        end
       end
+
+      if (effort = config.thinking_effort.presence)
+        efforts = model.reasoning_option_values(:effort)
+        if efforts.any? && !efforts.include?(effort.to_s)
+          Rails.logger.warn("[wulin_agent] #{model.id} takes thinking effort #{efforts.join("/")}, not #{effort}; not sent")
+        else
+          chat = chat.with_thinking(effort: effort)
+        end
+      end
+
       chat
     end
 

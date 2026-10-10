@@ -128,24 +128,61 @@ RSpec.describe WulinAgent::Runner do
     it "uses an explicit model when passed" do
       script_model({content: "ok"})
 
-      described_class.new(user: admin, model: "claude-sonnet-4-6").run("hi")
+      described_class.new(user: admin, model: "claude-sonnet-5-5").run("hi")
 
-      expect(RubyLLM).to have_received(:chat).with(model: "claude-sonnet-4-6")
+      expect(RubyLLM).to have_received(:chat).with(model: "claude-sonnet-5-5")
     end
 
-    it "applies temperature and thinking from WulinAgent config" do
-      script_model({content: "ok"})
-      WulinAgent.config.temperature = 0.7
-      WulinAgent.config.thinking_effort = "high"
+    describe "temperature and thinking from WulinAgent config" do
+      after do
+        WulinAgent.config.temperature = nil
+        WulinAgent.config.thinking_effort = nil
+      end
 
-      described_class.new(user: admin).run("hi")
+      it "sends temperature to a model that takes it" do
+        script_model({content: "ok"})
+        WulinAgent.config.temperature = 0.7
 
-      expect(@chats.first).to have_received(:with_temperature).with(0.7)
-      expect(@chats.first).to have_received(:with_thinking).with(effort: "high")
-      expect(@chats.first).to have_received(:with_tool_options).with(calls: :one)
-    ensure
-      WulinAgent.config.temperature = nil
-      WulinAgent.config.thinking_effort = nil
+        described_class.new(user: admin, model: "gpt-4.1").run("hi")
+
+        expect(@chats.first).to have_received(:with_temperature).with(0.7)
+        expect(@chats.first).to have_received(:with_tool_options).with(calls: :one)
+      end
+
+      it "leaves temperature out for a model the registry says does not take it" do
+        script_model({content: "ok"})
+        WulinAgent.config.temperature = 0.7
+        WulinAgent.config.thinking_effort = "high"
+        allow(Rails.logger).to receive(:warn)
+
+        described_class.new(user: admin).run("hi")
+
+        expect(@chats.first).not_to have_received(:with_temperature)
+        expect(@chats.first).to have_received(:with_thinking).with(effort: "high")
+        expect(Rails.logger).to have_received(:warn).with(/gpt-6-luna does not take temperature/)
+      end
+
+      it "leaves out a thinking effort the model does not offer" do
+        script_model({content: "ok"})
+        WulinAgent.config.thinking_effort = "none"
+        allow(Rails.logger).to receive(:warn)
+
+        described_class.new(user: admin, model: "gpt-6.1-sol").run("hi")
+
+        expect(@chats.first).not_to have_received(:with_thinking)
+        expect(Rails.logger).to have_received(:warn).with(/gpt-6.1-sol takes thinking effort low\/.*, not none/)
+      end
+
+      it "sends both as set to a model the registry does not describe" do
+        WulinAgent.config.temperature = 0.7
+        WulinAgent.config.thinking_effort = "high"
+        chat = RubyLLM.chat(model: "my-finetune", provider: :openai, assume_model_exists: true)
+
+        described_class.new(user: admin).send(:apply_llm_options, chat)
+
+        expect(chat.temperature).to eq(0.7)
+        expect(chat.thinking).to eq(effort: :high)
+      end
     end
 
     it "keeps the system prompt and only the last #{described_class::MAX_CONTEXT_MESSAGES} history messages" do
