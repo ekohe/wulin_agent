@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe WulinAgent::Approvals do
   include ActiveSupport::Testing::TimeHelpers
+
   let(:read_tool) { instance_double(WulinAgent::ToolSpec, mutating: false) }
   let(:write_tool) { instance_double(WulinAgent::ToolSpec, mutating: true) }
 

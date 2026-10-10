@@ -7,8 +7,7 @@ RSpec.describe WulinAgent::ActionInferer do
 
   before do
     WulinAgent::Catalog.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   describe ".build" do

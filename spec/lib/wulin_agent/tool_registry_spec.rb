@@ -10,8 +10,7 @@ RSpec.describe WulinAgent::ToolRegistry do
   before do
     WulinAgent::Catalog.reset!
     described_class.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   describe "extra_tool_builders" do

@@ -23,12 +23,11 @@ module WulinAgent
       conversation = user_conversations.find(params[:id])
       rating = params[:rating].to_s
       return head :unprocessable_entity unless %w[up down].include?(rating)
-    
+
       message = rated_message(conversation)
 
-
       return head :not_found unless message
-    
+
       message.update!(rating: rating)
       existing = WulinAgent::Skill.find_by(id: (message.metadata || {})["skill_id"])
 
@@ -37,10 +36,10 @@ module WulinAgent
         message.update!(metadata: message.metadata.merge("skill_id" => skill&.id))
 
         render json: {
-        message_id: message.id,
-        rating: message.rating,
-        skill: skill&.as_json(only: %i[name description])
-      }
+          message_id: message.id,
+          rating: message.rating,
+          skill: skill&.as_json(only: %i[name description])
+        }
       else # down
         existing&.destroy
         message.update!(metadata: message.metadata.except("skill_id"))
@@ -63,14 +62,13 @@ module WulinAgent
     def show
       conversation = user_conversations.find(params[:id])
       render json: conversation_payload(conversation)
-    end 
+    end
 
     def index
       conversations = user_conversations
-      .includes(:messages)
-      .order(updated_at: :desc)
-      .limit(50)
-
+        .includes(:messages)
+        .order(updated_at: :desc)
+        .limit(50)
 
       render json: conversations.map { |conversation|
         {
@@ -336,6 +334,5 @@ module WulinAgent
 
       conversation.messages.find_by(id: params[:message_id])
     end
-
   end
 end

@@ -6,6 +6,7 @@ module WulinAgent
     # wulin_master's own controllers get it this way; the host's
     # ApplicationController has define_menu but not the menu itself.
     include WulinMaster::Menuable
+
     define_menu if respond_to?(:define_menu)
 
     def show

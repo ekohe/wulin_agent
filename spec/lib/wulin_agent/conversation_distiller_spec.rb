@@ -12,9 +12,9 @@ RSpec.describe WulinAgent::ConversationDistiller do
     it "keeps successful steps and drops errors, rejections and approval-required" do
       msg = message(
         "tool_calls" => [
-          {"id" => "1", "name" => "list_records",   "arguments" => {"controller" => "people"}},
+          {"id" => "1", "name" => "list_records", "arguments" => {"controller" => "people"}},
           {"id" => "2", "name" => "destroy_record", "arguments" => {"id" => 9}},
-          {"id" => "3", "name" => "create_record",  "arguments" => {"controller" => "people"}},
+          {"id" => "3", "name" => "create_record", "arguments" => {"controller" => "people"}},
           {"id" => "4", "name" => "people__attach", "arguments" => {"id" => 1}}
         ],
         "tool_results" => [

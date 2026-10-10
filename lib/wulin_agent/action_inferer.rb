@@ -2,6 +2,7 @@
 
 module WulinAgent
   class ToolSchemaError < StandardError; end
+
   # Builds ToolSpec entries for grid custom actions (non-CRUD).
   #
   # Flow (next implementation):
@@ -27,9 +28,9 @@ module WulinAgent
         controller_class = grid.controller_class
         return unless controller_class
         return unless controller_action?(controller_class, operation)
-      
+
         decl = agent_action_for(grid, operation)
-      
+
         ToolSpec.new(
           name: WulinAgent.tool_name(grid.controller, operation),
           controller: grid.controller,
@@ -42,7 +43,7 @@ module WulinAgent
         )
       rescue ToolSchemaError
         raise
-      rescue StandardError => e
+      rescue => e
         raise tool_schema_error(grid, operation, e)
       end
 
@@ -67,12 +68,12 @@ module WulinAgent
         properties = {}
         required = []
         params.each do |key, spec|
-          spec = { type: spec } unless spec.is_a?(Hash)
-          properties[key] = { type: spec[:type].to_s }
+          spec = {type: spec} unless spec.is_a?(Hash)
+          properties[key] = {type: spec[:type].to_s}
           required << key if spec[:required]
         end
 
-        { properties: properties, required: required.uniq }
+        {properties: properties, required: required.uniq}
       end
 
       def resolve_params_schema_with_context(grid, controller_class, operation, decl)
@@ -99,13 +100,13 @@ module WulinAgent
 
       def tool_schema_error(grid, operation, cause = nil)
         tool_name = WulinAgent.tool_name(grid.controller, operation)
-      
+
         hint = <<~HINT.squish
           Add an explicit agent_action :#{operation} on #{grid.grid_class.name}
           with params: { ... } (see README), or implement #{grid.controller_class.name}##{operation}
           with inferrable params[:...] in Ruby source.
         HINT
-      
+
         ToolSchemaError.new(
           "Cannot build agent tool #{tool_name} for grid action :#{operation} on #{grid.grid_class.name}. #{hint}"
         )

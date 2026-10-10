@@ -34,7 +34,7 @@ module WulinAgent
         end
       rescue ArchiveError => e
         error(e.message)
-      rescue StandardError
+      rescue
         error("failed to upload file")
       end
 
@@ -47,7 +47,7 @@ module WulinAgent
         files = meta.fetch("files")
         label = meta["source_url"].presence || "archive"
 
-        header = "[Attached file(s): #{label}, archive_id: #{archive_id}, #{files.size} text file#{'s' unless files.size == 1}]"
+        header = "[Attached file(s): #{label}, archive_id: #{archive_id}, #{files.size} text file#{"s" unless files.size == 1}]"
         sections = []
         total = header.length
 
@@ -55,7 +55,7 @@ module WulinAgent
           content = read_raw_text(root, file_meta["path"])
           return error("file is not valid UTF-8 text") unless content
 
-          section = "### #{file_meta['path']}\n\n#{content}"
+          section = "### #{file_meta["path"]}\n\n#{content}"
           separator = sections.empty? ? 2 : 7
           if total + separator + section.length > MAX_INJECT_CHARS
             return error(too_large_message)
@@ -285,7 +285,7 @@ module WulinAgent
           else
             "#{chars} chars"
           end
-        file_label = files == 1 ? "1 file" : "#{files} files"
+        file_label = (files == 1) ? "1 file" : "#{files} files"
         {
           "inject_mode" => "full",
           "inject_message" =>
@@ -295,13 +295,13 @@ module WulinAgent
 
       def log_inject_context(archive_id, context)
         if context["error"]
-          Rails.logger.warn("[wulin_agent] archive=#{archive_id} inject failed: #{context['error']}")
+          Rails.logger.warn("[wulin_agent] archive=#{archive_id} inject failed: #{context["error"]}")
           return
         end
 
         Rails.logger.info(
-          "[wulin_agent] archive=#{archive_id} inject_mode=#{context['mode']} " \
-          "files=#{context['file_count']} chars=#{context['injected_chars']}"
+          "[wulin_agent] archive=#{archive_id} inject_mode=#{context["mode"]} " \
+          "files=#{context["file_count"]} chars=#{context["injected_chars"]}"
         )
       end
 
@@ -346,7 +346,11 @@ module WulinAgent
           meta = read_meta(archive_id)
           next unless meta
 
-          created_at = Time.iso8601(meta["created_at"]) rescue nil
+          created_at = begin
+            Time.iso8601(meta["created_at"])
+          rescue
+            nil
+          end
           next unless created_at && created_at < cutoff
 
           FileUtils.rm_rf(archive_dir(archive_id))

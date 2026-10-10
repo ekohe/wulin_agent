@@ -25,15 +25,15 @@ module WulinAgent
     def self.permission_for(grid, operation)
       case operation.to_s
       when "get_columns", "index", "read" then "#{grid.screen_name}#read"
-      when "create", "update", "destroy"  then "#{grid.screen_name}#cud"
+      when "create", "update", "destroy" then "#{grid.screen_name}#cud"
       else "#{grid.controller}##{operation}"
       end
     end
 
     def self.operation_available?(grid, operation)
       case operation.to_s
-      when "create"  then grid.default_actions["create"]
-      when "update"  then grid.default_actions["edit"]
+      when "create" then grid.default_actions["create"]
+      when "update" then grid.default_actions["edit"]
       when "destroy" then grid.default_actions["delete"]
       else true
       end

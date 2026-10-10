@@ -7,8 +7,7 @@ RSpec.describe WulinAgent::ToolRegistry, "permissions" do
   before do
     WulinAgent::Catalog.reset!
     described_class.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
     Permission.find_or_create_by!(name: "person#read")
     Permission.find_or_create_by!(name: "person#cud")
   end

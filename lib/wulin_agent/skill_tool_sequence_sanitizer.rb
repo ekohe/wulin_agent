@@ -91,8 +91,6 @@ module WulinAgent
         return value if value.length <= 5 && value.all? { |item| primitive?(item) }
 
         nil
-      else
-        nil
       end
     end
 

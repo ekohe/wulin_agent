@@ -9,7 +9,7 @@ RSpec.describe WulinAgent::McpAdapter do
   before do
     WulinAgent::Catalog.reset!
     WulinAgent::ToolRegistry.reset!
-    PersonGrid
+    load_dummy_grids
   end
 
   def build_tool(name)

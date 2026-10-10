@@ -59,7 +59,7 @@ module WulinAgent
       @on_event = block
       grant = Approvals.consume!(token, user_id: @user.id)
       raise ArgumentError, "invalid approval token" unless grant
-    
+
       message = reason.presence || "User declined #{grant[:tool]}"
       replace_tool_result!(
         grant[:tool_call_id],
@@ -204,10 +204,10 @@ module WulinAgent
 
     def skill_prompt_section
       return unless defined?(WulinAgent::Skill)
-    
+
       lines = WulinAgent::Skill.for_prompt.map { |name, desc| "- #{name}: #{desc}" }
       return if lines.empty?
-    
+
       "\n\nAvailable skills (call skill_read to load instructions):\n#{lines.join("\n")}"
     end
 
@@ -314,7 +314,7 @@ module WulinAgent
       @current_tool_call = tool_call
       emit(type: :tool_call, id: tool_call.id, name: tool_call.name, arguments: tool_call.arguments)
     end
-    
+
     def emit_tool_result(result)
       payload = {
         type: :tool_result,
@@ -341,7 +341,7 @@ module WulinAgent
     def emit_text_delta(chunk)
       content = chunk.content
       return if content.nil? || content.to_s.empty?
-    
+
       emit(type: :text_delta, content: content.to_s)
     end
   end

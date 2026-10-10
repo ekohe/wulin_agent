@@ -9,8 +9,7 @@ RSpec.describe WulinAgent::ToolSpec do
   before do
     WulinAgent::Catalog.reset!
     WulinAgent::ToolRegistry.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   describe "#execute approval gate" do

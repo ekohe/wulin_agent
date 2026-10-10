@@ -9,8 +9,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
   let(:runner) { instance_double(WulinAgent::Runner) }
 
   before do
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
     allow(controller).to receive(:current_user).and_return(user)
     allow(WulinAgent::Runner).to receive(:new).and_return(runner)
   end
@@ -152,7 +151,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       post :create, params: {message: "Hello"}
 
       expect(response.body).to include('0:"Error : boom"')
-      expect(response.body).not_to include('3:')
+      expect(response.body).not_to include("3:")
       expect(response.body).to include("[DONE]")
     end
 

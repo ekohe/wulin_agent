@@ -5,13 +5,11 @@ require "rails_helper"
 RSpec.describe WulinAgent::Catalog do
   before do
     described_class.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   describe ".all" do
     it "rebuilds the registry when Grid.grids was cleared after load" do
-      PersonGrid
       WulinMaster::Grid.grids.clear
 
       expect(described_class.all.map(&:controller)).to include("people")

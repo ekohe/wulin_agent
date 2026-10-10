@@ -8,8 +8,7 @@ RSpec.describe WulinAgent::ActionScanner do
 
   before do
     WulinAgent::Catalog.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   after do

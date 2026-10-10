@@ -9,8 +9,7 @@ RSpec.describe WulinAgent::Runner do
   before do
     WulinAgent::Catalog.reset!
     WulinAgent::ToolRegistry.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   # ruby_llm builds a chat only for a configured provider; no request is sent.

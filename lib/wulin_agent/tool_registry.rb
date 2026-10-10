@@ -7,7 +7,7 @@ module WulinAgent
         return [] if user.nil?
 
         meta = MetaGridTools.build + KnowledgeTools.build + SkillTools.build +
-               ChartTools.build + host_tools(user)
+          ChartTools.build + host_tools(user)
 
         filter_meta_tools(meta, user) + filter_custom_tools(custom_tools, user)
       end
@@ -24,7 +24,7 @@ module WulinAgent
 
       def custom_tools
         @custom_tools ||= Catalog.all.flat_map { |grid| ActionInferer.build(grid) }
-                                     .uniq(&:name)
+          .uniq(&:name)
       end
 
       def filter_meta_tools(tools, user)

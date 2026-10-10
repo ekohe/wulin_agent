@@ -9,7 +9,7 @@ module WulinAgent
       return false if mode == :auto
       return true if mode == :confirm_all
       return tool.mutating if mode == :confirm_writes
-      return true
+      true
     end
 
     def self.issue!(tool:, params:, user_id:, tool_call_id: nil)

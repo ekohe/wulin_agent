@@ -16,6 +16,8 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.executables = []
   s.require_paths = ["lib"]
+  # ruby_llm 2.x needs 3.2.
+  s.required_ruby_version = ">= 3.2"
 
   s.add_dependency "mcp", "~> 1.7"
   s.add_dependency "rails"

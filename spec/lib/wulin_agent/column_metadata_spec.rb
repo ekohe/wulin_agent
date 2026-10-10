@@ -96,7 +96,7 @@ RSpec.describe WulinAgent::ColumnMetadata do
     it "marks computed columns as not filterable or sortable" do
       column = double(
         "Column",
-        name: :"includes_chain?",
+        name: :includes_chain?,
         label: "Chained",
         sql_type: :unknown,
         filterable: true,
@@ -105,7 +105,7 @@ RSpec.describe WulinAgent::ColumnMetadata do
         options: {},
         table_column?: false,
         reflection: nil,
-        source: :"includes_chain?"
+        source: :includes_chain?
       )
 
       result = described_class.serialize(column, model: model)
