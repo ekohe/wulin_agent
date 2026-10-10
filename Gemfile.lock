@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/ekohe/wulin_master.git
-  revision: 82aaa20da46d0029410c437f9fadb2beef63f031
+  revision: 1c0f92034ef6ce6eed2eccd140e402d99f89a2ad
   branch: v3-aida
   specs:
     wulin_master (2.0.0)
