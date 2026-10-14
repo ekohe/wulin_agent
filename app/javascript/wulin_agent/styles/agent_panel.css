@@ -1260,6 +1260,8 @@ nav ul.right .wulin-agent-toggle-slot {
 
 /* Google Material Symbols cognition; the host Material Icons font lacks it.
  * Source: google/material-design-icons symbols/web/cognition (Apache-2.0).
+ * Use a system font: font-display:block on Material Icons can hide this
+ * masked element while the font loads, even though its text has zero size.
  */
 .wulin-agent-toggle .material-icons.wulin-agent-cognition,
 #menu a[href="/wulin_agent"] .material-icons,
@@ -1267,7 +1269,10 @@ nav ul.right .wulin-agent-toggle-slot {
   display: inline-block;
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
+  font-family: sans-serif;
   font-size: 0;
+  overflow: hidden;
   vertical-align: middle;
   background-color: currentColor;
   mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00OTEtMzM5cTcwIDAgMTE5LTQ1dDQ5LTEwOXEwLTU3LTM2LjUtOTYuNVQ1MzQtNjI5cS00NyAwLTc5LjUgMzBUNDIyLTUyNXEwIDE5IDcuNSAzN3QyMS41IDMzbDU3LTU3cS0zLTItNC41LTV0LTEuNS03cTAtMTEgOS0xNy41dDIzLTYuNXEyMCAwIDMzIDE2LjV0MTMgMzkuNXEwIDMxLTI1LjUgNTIuNVQ0OTItNDE4cS00NyAwLTc5LjUtMzhUMzgwLTU0OXEwLTI5IDExLTU1LjV0MzEtNDYuNWwtNTctNTdxLTMyIDMxLTQ5IDcydC0xNyA4NnEwIDg4IDU2IDE0OS41VDQ5MS0zMzlaTTI0MC04MHYtMTcycS01Ny01Mi04OC41LTEyMS41VDEyMC01MjBxMC0xNTAgMTA1LTI1NXQyNTUtMTA1cTEyNSAwIDIyMS41IDczLjVUODI3LTYxNWw1MiAyMDVxNSAxOS03IDM0LjVUODQwLTM2MGgtODB2MTIwcTAgMzMtMjMuNSA1Ni41VDY4MC0xNjBoLTgwdjgwaC04MHYtMTYwaDE2MHYtMjAwaDEwOGwtMzgtMTU1cS0yMy05MS05OC0xNDh0LTE3Mi01N3EtMTE2IDAtMTk4IDgxdC04MiAxOTdxMCA2MCAyNC41IDExNHQ2OS41IDk2bDI2IDI0djIwOGgtODBabTI1NC0zNjBaIi8+PC9zdmc+") center / contain no-repeat;
@@ -1288,6 +1293,8 @@ nav ul.right .wulin-agent-toggle-slot {
   box-sizing: content-box;
   top: 0;
   font-size: 0;
+  flex: 0 0 21px;
+  min-width: 21px;
   width: 21px;
   height: 21px;
   mask-origin: content-box;
