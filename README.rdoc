@@ -11,13 +11,13 @@ it as a Bundler git gem at the commit +components.lock.yml+ pins and wires it in
 
 New app:
 
-  WULIN_COMPONENTS=wulin_agent rails new APP --skip-hotwire --database=postgresql \
-    --skip-javascript -m https://raw.githubusercontent.com/ekohe/wulin_master/v3-aida/template.rb
+  WULIN_COMPONENTS=wulin_agent rails new APP --skip-hotwire --skip-solid --database=postgresql \
+    --skip-javascript -m https://raw.githubusercontent.com/ekohe/wulin_master/v3/template.rb
 
 Existing app (re-applies the template for the full set of components):
 
   WULIN_COMPONENTS=wulin_agent bin/rails app:template \
-    LOCATION=https://raw.githubusercontent.com/ekohe/wulin_master/v3-aida/template.rb
+    LOCATION=https://raw.githubusercontent.com/ekohe/wulin_master/v3/template.rb
 
 +wulin_agent+ needs +wulin_permits+ (and through it +wulin_auth+); the template
 adds them. The component template:
@@ -537,7 +537,7 @@ returns +403 Forbidden: Invalid Host header+ — add it to +mcp_allowed_hosts+.
 Requires Ruby, Node.js 22 or later with npm, and PostgreSQL with +psql+ on
 the +PATH+.
 
-Install gems (+wulin_master+ v3-aida and +wulin_permits+ main, from
+Install gems (+wulin_master+ v3 and +wulin_permits+ main, from
 github.com/ekohe):
 
   bundle install

@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/ekohe/wulin_master.git
-  revision: 1c0f92034ef6ce6eed2eccd140e402d99f89a2ad
-  branch: v3-aida
+  revision: fad1da5074c2ffca44ef7be2e5f15f449b83333d
+  branch: v3
   specs:
     wulin_master (2.0.0)
       dartsass-rails
