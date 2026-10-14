@@ -97,9 +97,9 @@ module WulinAgent
     end
 
     def build_chat
-      Rails.logger.info("[wulin_agent] model=#{resolved_model}")
+      Rails.logger.info("[wulin_agent] model=#{resolved_model} provider=#{WulinAgent.provider || "direct"}")
 
-      chat = RubyLLM.chat(model: resolved_model)
+      chat = RubyLLM.chat(**WulinAgent.chat_options(resolved_model))
       chat = apply_llm_options(chat)
       chat = chat
         .with_tools(*tools)

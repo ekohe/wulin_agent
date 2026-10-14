@@ -153,6 +153,20 @@ Set it to pick another model, from any of the three providers:
   WULIN_AGENT_MODEL=claude-sonnet-5-5
   WULIN_AGENT_MODEL=gemini-3.8-flash
 
+Or one key for all of them through OpenRouter. With +OPENROUTER_API_KEY+ set,
+every chat goes through OpenRouter whatever other key is set; the model names
+above still work, and so do OpenRouter's own (+anthropic/claude-sonnet-5.5+):
+
+  OPENROUTER_API_KEY=sk-or-...
+
+A model ruby_llm does not know -- misspelled, or newer than its registry -- fails
+every chat, and the server logs a warning naming it when it starts.
+
+Through OpenRouter, what a model accepts is OpenRouter's description of it, which
+can differ: it lists Claude as taking a temperature, so a temperature set for a
+Claude model is sent, and Anthropic refuses one alongside thinking. Leave
++temperature+ unset for those.
+
 Optional generation settings (unset by default):
 
   WULIN_AGENT_TEMPERATURE=0.7     # sampling temperature, non-reasoning models
