@@ -23,8 +23,8 @@ Existing app (re-applies the template for the full set of components):
 adds them. The component template:
 
 * declares +gem "wulin_agent", github: "ekohe/wulin_agent", ref: ...+
-* adds +vendor/gems/wulin_agent+ to +package.json+ workspaces, so its React
-  dependencies install into the app
+* adds +vendor/gems/wulin_agent+ to +package.json+ workspaces, so the chat UI's
+  npm dependencies install into the app
 * imports +app/javascript/wulin_agent.esm.js+ into +app/javascript/application.js+
 * +@use+s +app/assets/stylesheets/wulin_agent.css+ in +application.sass+
 * links the assistant page from the menu
@@ -206,8 +206,16 @@ secrets to a generated app.
 The gem ships source, not a bundle, like every wulin component. The host's own
 esbuild bundles +app/javascript/wulin_agent.esm.js+ into +application.js+, and
 dart-sass compiles +app/assets/stylesheets/wulin_agent.css+ into
-+application.css+. The chat UI's React dependencies come from the gem's
++application.css+. The chat UI's npm dependencies come from the gem's
 +package.json+, installed into the host through the npm workspace.
+
+React is the exception: the gem lists +react+ and +react-dom+ as peer
+dependencies (<tt>^18.3.1 || ^19.0.0</tt>), and the host declares them in its
+own +package.json+, so the host picks the version and its bundle holds a
+single copy of React. A second copy would break hooks ("Invalid hook call").
+Without the host's declaration npm installs the peers itself, at the newest
+version the range allows. wulin_master's template declares React 19 for new
+apps, and so does +spec/dummy+; an existing host on React 18.3 can stay there.
 
 After updating the gem, reinstall and rebuild the host's assets:
 
