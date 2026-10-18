@@ -16,10 +16,12 @@ module WulinAgent
           properties: schema[:properties],
           required: schema[:required]
 
-        # The resolver never decides: the loop pauses before the tool runs, and
-        # Runner issues an ApprovalGrant. The approved call is executed by
-        # Runner#run_approved, with the params the user confirmed.
-        requires_approval { nil } if Approvals.needs_approval?(tool_spec, mode: approval_mode)
+        # nil waits for a person; Runner then issues an ApprovalGrant. true runs
+        # the call now, and execute returns the schema error instead of pausing
+        # on a call that would change nothing.
+        if Approvals.needs_approval?(tool_spec, mode: approval_mode)
+          requires_approval { |tool_call| tool_spec.schema_error(tool_call.arguments.to_h) ? true : nil }
+        end
 
         define_method(:name) { tool_spec.name }
 

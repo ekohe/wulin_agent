@@ -191,17 +191,14 @@ module WulinAgent
             properties: CONTROLLER.merge(
               attributes: {
                 type: "object",
-                description: "Field values — call get_columns first to see valid fields",
-                properties: {}
+                description: "Column name => value, using the names get_columns returns",
+                minProperties: 1
               }
             ),
             required: ["controller", "attributes"]
           }
         ) do |grid, params, user|
-          attributes = params["attributes"] || params["item"]
-          next {"error" => "attributes is required"} if attributes.blank?
-
-          GridDispatcher.call(grid.controller, "create", {"item" => attributes}, user)
+          GridDispatcher.call(grid.controller, "create", {"item" => params["attributes"]}, user)
         end
       end
 
@@ -216,8 +213,8 @@ module WulinAgent
               id: {type: "integer", description: "Record id"},
               attributes: {
                 type: "object",
-                description: "Fields to update — call get_columns first to see valid fields",
-                properties: {}
+                description: "Column name => new value, using the names get_columns returns",
+                minProperties: 1
               }
             ),
             required: ["controller", "id", "attributes"]
@@ -226,13 +223,10 @@ module WulinAgent
           id = record_id(params)
           next {"error" => "id is required"} unless id
 
-          attributes = params["attributes"] || params["item"]
-          next {"error" => "attributes is required"} if attributes.blank?
-
           GridDispatcher.call(
             grid.controller,
             "update",
-            {"id" => id, "item" => attributes},
+            {"id" => id, "item" => params["attributes"]},
             user
           )
         end
@@ -257,7 +251,7 @@ module WulinAgent
       end
 
       def record_id(params)
-        Array(params["id"] || params["ids"]).map(&:to_s).reject(&:empty?).join(",").presence
+        Array(params["id"]).map(&:to_s).reject(&:empty?).join(",").presence
       end
     end
   end
