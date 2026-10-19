@@ -29,6 +29,7 @@ function MessageFeedback() {
   const statusType = useAuiState((s) => s.message.status?.type);
   const rating0 = useAuiState((s) => s.message.metadata?.custom?.rating);
   const [rating, setRating] = useState(rating0 ?? null);
+  const [feedbackError, setFeedbackError] = useState("");
   const canFeedback = Boolean(messageId) && statusType !== "running";
 
   if (!show) return null;
@@ -37,11 +38,13 @@ function MessageFeedback() {
     if (!canFeedback) return;
 
     setRating(value);
+    setFeedbackError("");
     try {
       await sendFeedback(value, messageId);
     } catch (error) {
       console.error(error);
       setRating(rating0 ?? null);
+      setFeedbackError(strings.feedbackFailed);
     }
   };
 
@@ -61,6 +64,9 @@ function MessageFeedback() {
         disabled={!canFeedback}
         onClick={() => send("down")}
       />
+      {feedbackError && (
+        <p className="wulin-agent-feedback__error" role="alert">{feedbackError}</p>
+      )}
     </div>
   );
 }

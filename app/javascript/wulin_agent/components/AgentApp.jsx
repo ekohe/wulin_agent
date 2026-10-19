@@ -60,6 +60,7 @@ export function AgentApp({fullPage = false}) {
   );
   const [conversationStatus, setConversationStatus] = useState("idle");
   const [awaitingApproval, setAwaitingApproval] = useState(false);
+  const [shellError, setShellError] = useState("");
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
   const drawerWasOpen = useRef(false);
@@ -169,7 +170,10 @@ export function AgentApp({fullPage = false}) {
         setModel(data.model);
         setToolbarEnabled(data.toolbar_enabled !== false);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        setShellError(strings.configFailed);
+      });
   }, []);
 
   useEffect(() => {
@@ -222,6 +226,7 @@ export function AgentApp({fullPage = false}) {
       setPendingApprovalMode(data.approval_mode);
     } catch (error) {
       console.error(error);
+      setShellError(strings.approvalModeFailed);
     }
   }, []);
 
@@ -318,6 +323,9 @@ export function AgentApp({fullPage = false}) {
                 onChange={handleApprovalModeChange}
               />
             </div>
+            {shellError && (
+              <p className="wulin-agent-panel__notice" role="alert">{shellError}</p>
+            )}
           </header>
           <div className="wulin-agent-body">
             <ConversationHistory

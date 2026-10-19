@@ -58,7 +58,9 @@ export function ArchiveUploadButton({disabled = false}) {
           attach_file
         </span>
       </button>
-      {error && <span className="wulin-agent-composer__attach-error">{error}</span>}
+      {error && (
+        <span className="wulin-agent-composer__attach-error" role="alert">{error}</span>
+      )}
     </>
   );
 }

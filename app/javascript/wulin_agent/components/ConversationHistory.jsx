@@ -56,6 +56,9 @@ export function ConversationHistory({
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const clearNotice = (message) =>
+    setNotice((current) => (current === message ? "" : current));
   const [selectedId, setSelectedId] = useState(null);
   const [viewedStatus, setViewedStatus] = useState("idle");
   const aui = useAui();
@@ -106,14 +109,21 @@ export function ConversationHistory({
   const loadListItems = useCallback(async () => {
     const nextItems = await listConversations();
     setItems(withLocalRunning(nextItems, {threadRunning, selectedId}));
+    clearNotice(strings.historyLoadFailed);
   }, [threadRunning, selectedId]);
 
   useEffect(() => {
     if (historyVersion === 0) setLoading(true);
 
     listConversations()
-      .then(setItems)
-      .catch(console.error)
+      .then((nextItems) => {
+        setItems(nextItems);
+        setNotice("");
+      })
+      .catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      })
       .finally(() => setLoading(false));
   }, [historyVersion]);
 
@@ -130,10 +140,16 @@ export function ConversationHistory({
 
     fetchConversation(storedId)
       .then((data) => applyConversation(data))
-      .catch(() => {
-        resetConversationId();
-        setViewedStatus("idle");
-        onStatusChange?.("idle");
+      .catch((error) => {
+        console.error(error);
+        if (error?.status === 404) {
+          resetConversationId();
+          setViewedStatus("idle");
+          onStatusChange?.("idle");
+          onAwaitingApprovalChange?.(false);
+          return;
+        }
+        setNotice(strings.historyOpenFailed);
       });
   }, [applyConversation, onStatusChange]);
 
@@ -154,7 +170,10 @@ export function ConversationHistory({
     if (!hasRunningConversation) return;
 
     const timer = setInterval(() => {
-      loadListItems().catch(console.error);
+      loadListItems().catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      });
     }, LIST_POLL_MS);
 
     return () => clearInterval(timer);
@@ -186,6 +205,7 @@ export function ConversationHistory({
         onStatusChange?.(status);
         onAwaitingApprovalChange?.(hasPendingApprovalInApi(data.messages));
         syncItemStatus(selectedId, status);
+        clearNotice(strings.historyOpenFailed);
 
         if (!threadRunningRef.current) {
           const mapped = toAssistantUiMessages(data.messages);
@@ -202,6 +222,7 @@ export function ConversationHistory({
         }
       } catch (error) {
         console.error(error);
+        setNotice(strings.historyOpenFailed);
       }
     }
 
@@ -214,8 +235,14 @@ export function ConversationHistory({
   }, [selectedId, viewedStatus, threadRunning, aui, onAwaitingApprovalChange, onStatusChange, syncItemStatus]);
 
   async function handleClick(id) {
-    const data = await fetchConversation(id);
-    applyConversation(data, {force: true});
+    try {
+      const data = await fetchConversation(id);
+      applyConversation(data, {force: true});
+      setNotice("");
+    } catch (error) {
+      console.error(error);
+      setNotice(strings.historyOpenFailed);
+    }
   }
 
   function startNew() {
@@ -246,6 +273,7 @@ export function ConversationHistory({
       }
     } catch (error) {
       console.error(error);
+      setNotice(strings.historyDeleteFailed);
     }
   }
 
@@ -279,6 +307,10 @@ export function ConversationHistory({
           </>
         )}
       </div>
+
+      {open && notice && (
+        <p className="wulin-agent-history__notice" role="alert">{notice}</p>
+      )}
 
       {open && loading && (
         <p className="wulin-agent-history__status">Loading…</p>
