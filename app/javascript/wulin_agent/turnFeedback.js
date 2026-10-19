@@ -1,3 +1,14 @@
+export function isFirstAssistantInTurn(messages, messageIndex) {
+  if (messages[messageIndex]?.role !== "assistant") return false;
+
+  for (let i = messageIndex - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return true;
+    if (messages[i].role === "assistant") return false;
+  }
+
+  return true;
+}
+
 export function isLastAssistantInTurn(messages, messageIndex) {
   if (messages[messageIndex]?.role !== "assistant") return false;
 

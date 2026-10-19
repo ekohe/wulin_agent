@@ -17,7 +17,7 @@ import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
 import {useThreadRunning} from "../useThreadRunning";
-import {useShowTurnFeedback} from "../useShowTurnFeedback";
+import {useShowTurnFeedback, useShowTurnRole} from "../useShowTurnFeedback";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
@@ -93,9 +93,11 @@ function AssistantText({text}) {
 }
 
 function AssistantMessage() {
+  const showRole = useShowTurnRole();
+
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
-      <div className="wulin-agent-message__role">Agent</div>
+      {showRole && <div className="wulin-agent-message__role">Agent</div>}
       <MessagePrimitive.Parts
         components={{
           Text: ({text}) =>
