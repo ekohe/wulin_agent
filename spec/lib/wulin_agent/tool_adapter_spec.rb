@@ -54,6 +54,18 @@ RSpec.describe WulinAgent::ToolAdapter do
         .to eq([["destroy_record", true], ["list_records", false]])
     end
 
+    it "pauses a valid write for approval and lets one its schema refuses run to its error" do
+      spec = WulinAgent::ToolRegistry.find("create_record", admin)
+      tool = described_class.build([spec], user: admin, approval_mode: :confirm_writes).first
+      call = ->(attributes) {
+        RubyLLM::ToolCall.new(id: "c1", name: "create_record", arguments: {"controller" => "people", "attributes" => attributes})
+      }
+
+      expect(tool.approval_resolver.call(call.call({"first_name" => "Ada"}))).to be_nil
+      expect(tool.approval_resolver.call(call.call({}))).to be(true)
+      expect(tool.execute(controller: "people", attributes: {})["error"]).to start_with("attributes needs at least 1 field")
+    end
+
     it "requires no approval under auto" do
       spec = WulinAgent::ToolRegistry.find("destroy_record", admin)
       tool = described_class.build([spec], user: admin, approval_mode: :auto).first
