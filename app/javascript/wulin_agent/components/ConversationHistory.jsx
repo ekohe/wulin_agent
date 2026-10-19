@@ -52,6 +52,7 @@ export function ConversationHistory({
   onResizeStart,
   onApprovalModeChange,
   onStatusChange,
+  onAwaitingApprovalChange,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,13 +93,14 @@ export function ConversationHistory({
       setViewedStatus(status);
       onApprovalModeChange?.(data.approval_mode);
       onStatusChange?.(status);
+      onAwaitingApprovalChange?.(hasPendingApprovalInApi(data.messages));
       syncItemStatus(data.id, status);
 
       if (syncThread && (force || !threadRunningRef.current)) {
         aui.thread().reset(toAssistantUiMessages(data.messages));
       }
     },
-    [aui, onApprovalModeChange, onStatusChange, syncItemStatus]
+    [aui, onApprovalModeChange, onAwaitingApprovalChange, onStatusChange, syncItemStatus]
   );
 
   const loadListItems = useCallback(async () => {
@@ -138,10 +140,11 @@ export function ConversationHistory({
   useEffect(() => {
     if (!threadRunning || !selectedId) return;
 
+    onAwaitingApprovalChange?.(false);
     setViewedStatus("running");
     onStatusChange?.("running");
     syncItemStatus(selectedId, "running");
-  }, [threadRunning, selectedId, onStatusChange, syncItemStatus]);
+  }, [threadRunning, selectedId, onAwaitingApprovalChange, onStatusChange, syncItemStatus]);
 
   const hasRunningConversation =
     items.some((item) => item.status === "running") ||
@@ -181,6 +184,7 @@ export function ConversationHistory({
         });
         setViewedStatus(status);
         onStatusChange?.(status);
+        onAwaitingApprovalChange?.(hasPendingApprovalInApi(data.messages));
         syncItemStatus(selectedId, status);
 
         if (!threadRunningRef.current) {
@@ -207,7 +211,7 @@ export function ConversationHistory({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [selectedId, viewedStatus, threadRunning, aui, onStatusChange, syncItemStatus]);
+  }, [selectedId, viewedStatus, threadRunning, aui, onAwaitingApprovalChange, onStatusChange, syncItemStatus]);
 
   async function handleClick(id) {
     const data = await fetchConversation(id);
@@ -219,6 +223,7 @@ export function ConversationHistory({
     setSelectedId(null);
     setViewedStatus("idle");
     onStatusChange?.("idle");
+    onAwaitingApprovalChange?.(false);
     aui.thread().reset([]);
   }
 

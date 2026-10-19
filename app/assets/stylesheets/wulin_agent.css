@@ -174,10 +174,22 @@ nav ul.right .wulin-agent-toggle-slot {
   line-height: 1.4;
 }
 
+.wulin-agent-panel__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
 .wulin-agent-panel__title {
   margin: 0;
   font-size: 16px;
   font-weight: bold;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-panel__status {
+  font-size: 12px;
   color: var(--wulin-agent-text);
 }
 

@@ -6,6 +6,7 @@ import {ConversationHistory} from "./ConversationHistory";
 import {ApprovalModeSelect} from "./ApprovalModeSelect";
 import {McpTokenManager} from "./McpTokenManager";
 import {IconButton} from "./IconButton";
+import {strings} from "../strings";
 import {
   getConversationId,
   getStoredApprovalMode,
@@ -58,6 +59,7 @@ export function AgentApp({fullPage = false}) {
     getStoredHistoryWidth(getStoredDrawerWidth())
   );
   const [conversationStatus, setConversationStatus] = useState("idle");
+  const [awaitingApproval, setAwaitingApproval] = useState(false);
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
   const drawerWasOpen = useRef(false);
@@ -288,7 +290,12 @@ export function AgentApp({fullPage = false}) {
         <div className="wulin-agent-panel">
           <header className="wulin-agent-panel__header">
             <div className="wulin-agent-panel__header-row">
-              <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
+              <div className="wulin-agent-panel__heading">
+                <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
+                {awaitingApproval && (
+                  <span className="wulin-agent-panel__status">{strings.awaitingApproval}</span>
+                )}
+              </div>
               <div className="wulin-agent-panel__actions">
                 {(fullPage || open) && <McpTokenManager />}
                 {!fullPage && (
@@ -321,6 +328,7 @@ export function AgentApp({fullPage = false}) {
               onResizeStart={handleHistoryResizeStart}
               onApprovalModeChange={handleConversationApprovalMode}
               onStatusChange={setConversationStatus}
+              onAwaitingApprovalChange={setAwaitingApproval}
             />
             <Thread conversationStatus={conversationStatus} />
           </div>
