@@ -1,6 +1,6 @@
 /*
  * Theme tokens: defaults mirror Wulin Master _base.scss (Materialize grey palette).
- * syncWulinTheme.js overwrites --wulin-agent-main (and others) from the host page.
+ * syncWulinTheme.js overwrites --wulin-agent-main, font, and nav height from the host page.
  */
 #wulin-agent-root {
   /* Mark. The host overwrites this. White text does not clear 4.5:1 on it. */

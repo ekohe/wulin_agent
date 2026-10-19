@@ -25,12 +25,4 @@ export function syncWulinTheme(root) {
     const color = getComputedStyle(accent).color;
     if (color) root.style.setProperty("--wulin-agent-main", color);
   }
-
-  const menu = document.querySelector("#navigation");
-  if (menu) {
-    const bg = getComputedStyle(menu).backgroundColor;
-    if (bg && bg !== "rgba(0, 0, 0, 0)") {
-      root.style.setProperty("--wulin-agent-bg-subtle", bg);
-    }
-  }
 }
