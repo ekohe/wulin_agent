@@ -59,6 +59,8 @@ export function AgentApp({fullPage = false}) {
   );
   const [conversationStatus, setConversationStatus] = useState("idle");
   const panelRef = useRef(null);
+  const toggleRef = useRef(null);
+  const drawerWasOpen = useRef(false);
   const drawerWidthRef = useRef(drawerWidth);
   const historyWidthRef = useRef(historyWidth);
   drawerWidthRef.current = drawerWidth;
@@ -172,6 +174,39 @@ export function AgentApp({fullPage = false}) {
     setOpen(false);
   }, [fullPage]);
 
+  useEffect(() => {
+    if (fullPage || !open) return undefined;
+
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      if (event.target?.closest?.("dialog")) return;
+      const inDrawer =
+        panelRef.current?.contains(event.target) || event.target === toggleRef.current;
+      if (!inDrawer) return;
+      setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [fullPage, open]);
+
+  useEffect(() => {
+    // React 18 drops a boolean inert prop, so set the property directly. The
+    // same aside becomes the full page during menu navigation, so clear it too.
+    if (panelRef.current) panelRef.current.inert = !fullPage && !open;
+  }, [fullPage, open]);
+
+  useEffect(() => {
+    if (fullPage) return;
+    if (open) {
+      drawerWasOpen.current = true;
+      return;
+    }
+    if (!drawerWasOpen.current) return;
+    drawerWasOpen.current = false;
+    toggleRef.current?.focus();
+  }, [fullPage, open]);
+
   const handleApprovalModeChange = useCallback(async (mode) => {
     setApprovalMode(mode);
     setPendingApprovalMode(mode);
@@ -205,6 +240,7 @@ export function AgentApp({fullPage = false}) {
   const toggleButton = (
     <button
       type="button"
+      ref={toggleRef}
       className={`wulin-agent-toggle${fullPage || open ? " wulin-agent-toggle--open" : ""}`}
       aria-expanded={fullPage || open}
       aria-label={fullPage ? "Focus agent" : open ? "Close agent" : "Open agent"}
