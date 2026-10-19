@@ -1427,3 +1427,13 @@ nav ul.right .wulin-agent-toggle-slot {
   .wulin-agent-tokens__list li { flex-wrap: wrap; }
   .wulin-agent-tokens__revoke { align-items: flex-start; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .wulin-agent-drawer {
+    transition: none;
+  }
+
+  .wulin-agent-spinner {
+    animation: none;
+  }
+}
