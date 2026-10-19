@@ -151,6 +151,9 @@ function ThreadComposer({conversationRunning}) {
 export function Thread({conversationStatus = "idle"}) {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
+      <ThreadPrimitive.ScrollToBottom className="wulin-agent-scroll-bottom">
+        Latest
+      </ThreadPrimitive.ScrollToBottom>
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
       <ThreadPrimitive.Empty>
         <div className="wulin-agent-thread__empty">Ask anything</div>
