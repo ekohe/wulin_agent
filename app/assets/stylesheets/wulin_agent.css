@@ -59,7 +59,7 @@ nav ul.right .wulin-agent-toggle-slot {
   border: none;
   border-radius: 0;
   background: transparent;
-  color: #fff;
+  color: var(--wulin-agent-on-main);
   font-family: var(--wulin-agent-font);
   cursor: pointer;
   box-shadow: none;
@@ -78,7 +78,7 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 20px;
   line-height: inherit;
   vertical-align: middle;
-  color: #fff;
+  color: var(--wulin-agent-on-main);
 }
 
 .wulin-agent-backdrop {
@@ -619,11 +619,11 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-message__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error, #c62828) 35%, var(--wulin-agent-border));
+  border-color: color-mix(in srgb, var(--wulin-agent-error) 35%, var(--wulin-agent-border));
 }
 
 .wulin-agent-message__attachment--error .wulin-agent-message__attachment-hint {
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error);
 }
 
 .wulin-agent-message--assistant {
@@ -862,7 +862,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-approval__approve {
   border: none;
   background: var(--wulin-agent-main);
-  color: #fff;
+  color: var(--wulin-agent-on-main);
 }
 
 .wulin-agent-approval__approve:hover {
@@ -920,12 +920,12 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error, #c62828) 35%, var(--wulin-agent-border));
-  background: color-mix(in srgb, var(--wulin-agent-error, #c62828) 6%, var(--wulin-agent-bg-subtle));
+  border-color: color-mix(in srgb, var(--wulin-agent-error) 35%, var(--wulin-agent-border));
+  background: color-mix(in srgb, var(--wulin-agent-error) 6%, var(--wulin-agent-bg-subtle));
 }
 
 .wulin-agent-composer__attachment--error .wulin-agent-composer__attachment-hint {
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error);
 }
 
 .wulin-agent-composer__attachment .material-icons {
@@ -1064,7 +1064,7 @@ nav ul.right .wulin-agent-toggle-slot {
   bottom: calc(100% + 0.25rem);
   max-width: calc(100% - 1rem);
   font-size: 12px;
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error);
 }
 
 .wulin-agent-composer__send {
@@ -1076,7 +1076,7 @@ nav ul.right .wulin-agent-toggle-slot {
   border: none;
   border-radius: var(--wulin-agent-radius);
   background: var(--wulin-agent-main);
-  color: #fff;
+  color: var(--wulin-agent-on-main);
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
@@ -1403,7 +1403,7 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 .wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
-.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main); border-color: var(--wulin-agent-main); color: white; }
+.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main); border-color: var(--wulin-agent-main); color: var(--wulin-agent-on-main); }
 .wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
 .wulin-agent-tokens__text-button:hover { text-decoration: underline; }
 .wulin-agent-tokens__danger { color: var(--wulin-agent-error); }
