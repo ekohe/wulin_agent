@@ -1,5 +1,6 @@
 import {useState} from "react";
 import {
+  ActionBarPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
@@ -18,7 +19,7 @@ import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
 import {strings} from "../strings";
 import {useThreadRunning} from "../useThreadRunning";
-import {useShowTurnFeedback, useShowTurnRole} from "../useShowTurnFeedback";
+import {useShowTurnCopy, useShowTurnFeedback, useShowTurnRole} from "../useShowTurnFeedback";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
@@ -95,6 +96,7 @@ function AssistantText({text}) {
 
 function AssistantMessage() {
   const showRole = useShowTurnRole();
+  const showCopy = useShowTurnCopy();
 
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
@@ -110,6 +112,11 @@ function AssistantMessage() {
           tools: { Fallback: ToolCall },
         }}
       />
+      {showCopy && (
+        <ActionBarPrimitive.Copy className="wulin-agent-turn-copy">
+          Copy
+        </ActionBarPrimitive.Copy>
+      )}
       <MessageFeedback />
     </MessagePrimitive.Root>
   );
