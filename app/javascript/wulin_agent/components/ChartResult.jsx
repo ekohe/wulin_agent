@@ -1,16 +1,24 @@
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
     PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 
-    const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
+    // Used when the stylesheet has not defined the tokens.
+    const FALLBACK_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
+
+    function token(name, fallback = "") {
+      const root = document.getElementById("wulin-agent-root");
+      const value = root ? getComputedStyle(root).getPropertyValue(name).trim() : "";
+      return value || fallback;
+    }
+
+    function chartColors() {
+      return [1, 2, 3, 4, 5, 6].map((step, i) => token(`--wulin-agent-chart-${step}`, FALLBACK_COLORS[i]));
+    }
 
     function themeColors() {
-      const root = document.getElementById("wulin-agent-root");
-      const s = root ? getComputedStyle(root) : null;
-      const v = (name, fb) => s?.getPropertyValue(name).trim() || fb;
       return {
-        text: v("--wulin-agent-text-muted", "#9e9e9e"),
-        grid: v("--wulin-agent-border", "#e0e0e0"),
-        bg: v("--wulin-agent-bg", "#fff"),
+        text: token("--wulin-agent-text-muted", "#9e9e9e"),
+        grid: token("--wulin-agent-border", "#e0e0e0"),
+        bg: token("--wulin-agent-bg", "#fff"),
       };
     }
 
@@ -42,6 +50,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
       }
       const { rows, series } = pivotSeries(data);
       const theme = themeColors();
+      const colors = chartColors();
     
       function renderChart() {
         switch (type) {
@@ -60,7 +69,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
                         key={name}
                         type="monotone"
                         dataKey={name}
-                        stroke={COLORS[i % COLORS.length]}
+                        stroke={colors[i % colors.length]}
                     />
                 ))}
               </LineChart>
@@ -73,7 +82,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
                 <Legend />
                 <Pie data={data} dataKey="value" nameKey="label" outerRadius={110} label>
                   {data.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={colors[i % colors.length]} />
                   ))}
                 </Pie>
               </PieChart>
@@ -94,7 +103,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
                 <Bar
                     key={name}
                     dataKey={name}
-                    fill={COLORS[i % COLORS.length]}
+                    fill={colors[i % colors.length]}
                 />
                 ))}
               </BarChart>
