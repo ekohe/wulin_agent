@@ -16,6 +16,7 @@ import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
 import {PendingArchiveChip} from "./PendingArchiveChip";
 import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
+import {strings} from "../strings";
 import {useThreadRunning} from "../useThreadRunning";
 import {useShowTurnFeedback, useShowTurnRole} from "../useShowTurnFeedback";
 import {LoadingSpinner} from "./LoadingSpinner";
@@ -133,11 +134,12 @@ function ThreadComposer() {
     <footer className="wulin-agent-thread__footer">
       <PendingArchiveChip />
       <ComposerPrimitive.Root className="wulin-agent-composer">
-        <ArchiveUploadButton disabled={threadBusy} />
+        <ArchiveUploadButton />
         <ComposerPrimitive.Input
           className="wulin-agent-composer__input"
-          placeholder="Ex: How many people in the database ?"
-          disabled={threadBusy}
+          placeholder={strings.composerPlaceholder}
+          submitMode={threadBusy ? "none" : "enter"}
+          cancelOnEscape={false}
         />
         <ComposerSendButton />
       </ComposerPrimitive.Root>

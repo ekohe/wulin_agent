@@ -1,4 +1,5 @@
 export const strings = {
+  composerPlaceholder: "Ask about this data",
   gridSummary(total) {
     return `${total} ${total === 1 ? "result" : "results"}`;
   },
