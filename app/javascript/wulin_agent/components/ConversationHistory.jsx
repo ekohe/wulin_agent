@@ -17,6 +17,8 @@ import {
 import {IconButton} from "./IconButton";
 import {StatusMark} from "./StatusMark";
 import { useThreadRunning } from "../useThreadRunning";
+import {strings} from "../strings";
+import {confirmAction} from "../hostDialogs";
 
 const LIST_POLL_MS = 2000;
 const CONVERSATION_POLL_MS = 1500;
@@ -225,6 +227,7 @@ export function ConversationHistory({
 
     const target = items.find((entry) => String(entry.id) === String(id));
     if (target?.status === "running") return;
+    if (!(await confirmAction(strings.deleteConversation))) return;
 
     try {
       await deleteConversation(id);

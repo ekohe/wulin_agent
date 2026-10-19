@@ -455,6 +455,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-history__item-delete:focus-visible {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
   outline-offset: -2px;
 }
 
