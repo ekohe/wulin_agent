@@ -1,4 +1,7 @@
-/** Pick up Wulin Master theme colors from the host page at runtime. */
+/**
+ * Pick up the host page's font and nav height at runtime. Colors come from
+ * wulin_master's theme when dart-sass builds wulin_agent.scss.
+ */
 export function syncWulinTheme(root) {
   if (!root) return;
 
@@ -7,22 +10,9 @@ export function syncWulinTheme(root) {
 
   const nav = document.querySelector("nav");
   if (nav) {
-    const navStyle = getComputedStyle(nav);
-    const main = navStyle.backgroundColor;
-    if (main && main !== "rgba(0, 0, 0, 0)") {
-      root.style.setProperty("--wulin-agent-main", main);
-    }
-    const height = navStyle.height;
+    const height = getComputedStyle(nav).height;
     if (height && height !== "0px") {
       root.style.setProperty("--wulin-agent-nav-height", height);
     }
-  }
-
-  const accent =
-    document.querySelector(".toolbar-global .toolbar_item a") ||
-    document.querySelector("#navigation #menu ul li.item.active a");
-  if (accent) {
-    const color = getComputedStyle(accent).color;
-    if (color) root.style.setProperty("--wulin-agent-main", color);
   }
 }
