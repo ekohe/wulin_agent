@@ -127,8 +127,9 @@ function ThreadWorkingIndicator({conversationStatus}) {
   );
 }
 
-function ThreadComposer() {
+function ThreadComposer({conversationRunning}) {
   const threadBusy = useThreadBusy();
+  const held = threadBusy || conversationRunning;
 
   return (
     <footer className="wulin-agent-thread__footer">
@@ -138,10 +139,10 @@ function ThreadComposer() {
         <ComposerPrimitive.Input
           className="wulin-agent-composer__input"
           placeholder={strings.composerPlaceholder}
-          submitMode={threadBusy ? "none" : "enter"}
+          submitMode={held ? "none" : "enter"}
           cancelOnEscape={false}
         />
-        <ComposerSendButton />
+        <ComposerSendButton held={held} />
       </ComposerPrimitive.Root>
     </footer>
   );
@@ -161,7 +162,7 @@ export function Thread({conversationStatus = "idle"}) {
         <ThreadWorkingIndicator conversationStatus={conversationStatus} />
       </ThreadPrimitive.Viewport>
 
-      <ThreadComposer />
+      <ThreadComposer conversationRunning={conversationStatus === "running"} />
     </ThreadPrimitive.Root>
   );
 }
