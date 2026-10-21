@@ -905,6 +905,17 @@ nav ul.right .wulin-agent-toggle-slot {
   background: var(--wulin-agent-main-hover);
 }
 
+.wulin-agent-approval__approve:disabled {
+  background: var(--wulin-agent-text-subtle);
+  cursor: not-allowed;
+}
+
+.wulin-agent-approval__error {
+  margin: 0 0 0.5rem;
+  color: var(--wulin-agent-error-strong);
+  font-size: 12px;
+}
+
 .wulin-agent-approval__reject {
   border: 1px solid var(--wulin-agent-border);
   background: var(--wulin-agent-bg);

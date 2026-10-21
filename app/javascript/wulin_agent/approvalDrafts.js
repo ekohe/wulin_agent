@@ -11,3 +11,11 @@ export function getApprovalDraft(token) {
 export function clearApprovalDraft(token) {
   drafts.delete(token);
 }
+
+export function parseApprovalDraft(text) {
+  try {
+    return {ok: true, value: JSON.parse(text)};
+  } catch {
+    return {ok: false, value: null};
+  }
+}
