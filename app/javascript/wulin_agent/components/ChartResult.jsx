@@ -1,5 +1,6 @@
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
     PieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
+import {strings} from "../strings";
 
     // Used when the stylesheet has not defined the tokens.
     const FALLBACK_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
@@ -46,7 +47,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
     export function ChartResult({ result }) {
       const { type, title, data, x, y } = result;
       if (!data?.length) {
-        return <p className="wulin-agent-chart__empty">No data to chart.</p>;
+        return <p className="wulin-agent-chart__empty">{strings.chartEmpty}</p>;
       }
       const { rows, series } = pivotSeries(data);
       const theme = themeColors();

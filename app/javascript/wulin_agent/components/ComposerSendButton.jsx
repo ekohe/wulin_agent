@@ -7,6 +7,7 @@ import {
   takePendingArchive,
 } from "../pendingArchive";
 import {useThreadBusy} from "../useThreadBusy";
+import {strings} from "../strings";
 
 export function ComposerSendButton({held = false}) {
   const aui = useAui();
@@ -58,7 +59,7 @@ export function ComposerSendButton({held = false}) {
       disabled={!canSubmit}
       onClick={handleClick}
     >
-      Send
+      {strings.send}
     </button>
   );
 }

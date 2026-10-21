@@ -4,6 +4,7 @@ import {isGridResult} from "../gridResult";
 import {isChartResult} from "../chartResult";
 import {ChartResult} from "./ChartResult";
 import {StatusMark} from "./StatusMark";
+import {strings} from "../strings";
 
 function toolStatus({isExecuting, isRejected, result}) {
   if (isExecuting) return "running";
@@ -52,7 +53,7 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
         </summary>
         {hasArgs && (
           <details>
-            <summary>Parameters</summary>
+            <summary>{strings.parameters}</summary>
             <pre>{JSON.stringify(args, null, 2)}</pre>
           </details>
         )}

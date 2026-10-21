@@ -285,7 +285,7 @@ export function ConversationHistory({
           className="wulin-agent-history__toggle"
           onClick={onToggle}
           aria-expanded={open}
-          aria-label={open ? "Hide history" : "Show history"}
+          aria-label={open ? strings.hideHistory : strings.showHistory}
         >
           <span className="material-icons" aria-hidden="true">
             {open ? "chevron_left" : "chevron_right"}
@@ -295,14 +295,14 @@ export function ConversationHistory({
         {open && !loading && (
           <>
             <span className="wulin-agent-history__title">
-              History ({items.length})
+              {strings.historyTitle(items.length)}
             </span>
             <button
               type="button"
               className="wulin-agent-history__new"
               onClick={startNew}
             >
-              + New
+              {strings.newConversation}
             </button>
           </>
         )}
@@ -313,7 +313,7 @@ export function ConversationHistory({
       )}
 
       {open && loading && (
-        <p className="wulin-agent-history__status">Loading…</p>
+        <p className="wulin-agent-history__status">{strings.loading}</p>
       )}
 
       {open && !loading && (
@@ -347,7 +347,7 @@ export function ConversationHistory({
                   <div className="wulin-agent-history__item-actions">
                     <IconButton
                       icon="delete"
-                      label="Delete conversation"
+                      label={strings.deleteConversationLabel}
                       className="wulin-agent-history__item-delete"
                       onClick={(event) => handleDelete(item.id, event)}
                     />
@@ -364,7 +364,7 @@ export function ConversationHistory({
           className="wulin-agent-history__resize"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize history"
+          aria-label={strings.resizeHistory}
           onMouseDown={onResizeStart}
         />
       )}

@@ -5,6 +5,7 @@ import {
   getPendingArchive,
   subscribePendingArchive,
 } from "../pendingArchive";
+import {strings} from "../strings";
 
 export function PendingArchiveChip() {
   const [archive, setArchive] = useState(getPendingArchive);
@@ -36,7 +37,7 @@ export function PendingArchiveChip() {
       <button
         type="button"
         className="wulin-agent-composer__attachment-remove"
-        aria-label="Remove attachment"
+        aria-label={strings.removeAttachment}
         onClick={clearPendingArchive}
       >
         <span className="material-icons" aria-hidden="true">

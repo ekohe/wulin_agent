@@ -1,8 +1,10 @@
+import {strings} from "../strings";
+
 const MARKS = {
-  running: {icon: "sync", label: "Running"},
-  complete: {icon: "check", label: "Complete"},
-  rejected: {icon: "block", label: "Rejected"},
-  failed: {icon: "error", label: "Failed"},
+  running: {icon: "sync", label: strings.status.running},
+  complete: {icon: "check", label: strings.status.complete},
+  rejected: {icon: "block", label: strings.status.rejected},
+  failed: {icon: "error", label: strings.status.failed},
 };
 
 export function StatusMark({status}) {

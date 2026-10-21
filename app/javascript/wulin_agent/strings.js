@@ -1,14 +1,70 @@
+// Every word the chat panel shows. The MCP token dialog keeps its own
+// copy, which is formatted prose rather than labels.
 export const strings = {
-  composerPlaceholder: "Ask about this data",
-  deleteConversation: "Delete this conversation?",
-  approvalJsonInvalid: "That is not valid JSON. Fix it before approving.",
+  panelTitle: "Wulin Agent",
+  modelLabel: "Model",
+  approvalModeLabel: "Approval mode",
+  approvalModes: {
+    confirm_writes: "Confirm writes",
+    auto: "Auto",
+    confirm_all: "Confirm all",
+  },
+  openAgent: "Open agent",
+  closeAgent: "Close agent",
+  focusAgent: "Focus agent",
+  close: "Close",
+  resizePanel: "Resize panel",
   awaitingApproval: "Awaiting approval",
+  configFailed: "Could not load the agent settings.",
+  approvalModeFailed: "Could not save the approval mode.",
+
+  historyTitle(count) {
+    return `History (${count})`;
+  },
+  newConversation: "+ New",
+  showHistory: "Show history",
+  hideHistory: "Hide history",
+  resizeHistory: "Resize history",
+  loading: "Loading…",
+  deleteConversationLabel: "Delete conversation",
+  deleteConversation: "Delete this conversation?",
   historyLoadFailed: "Could not load conversations.",
   historyDeleteFailed: "Could not delete that conversation.",
   historyOpenFailed: "Could not open that conversation.",
+
+  emptyThread: "Ask anything",
+  userRole: "User",
+  agentRole: "Agent",
+  working: "Working…",
+  latest: "Latest",
+  copy: "Copy",
+  goodResponse: "Good response",
+  badResponse: "Bad response",
   feedbackFailed: "Could not save that rating.",
-  configFailed: "Could not load the agent settings.",
-  approvalModeFailed: "Could not save the approval mode.",
+
+  composerPlaceholder: "Ask about this data",
+  send: "Send",
+  attachFile: "Attach a file",
+  attachHint: "Attach a zip or text file",
+  uploadFailed: "Upload failed",
+  removeAttachment: "Remove attachment",
+
+  parameters: "Parameters",
+  requiresApproval: "requires your approval",
+  edit: "Edit",
+  approve: "Approve",
+  reject: "Reject",
+  saveAndApprove: "Save & Approve",
+  cancel: "Cancel",
+  approvalJsonInvalid: "That is not valid JSON. Fix it before approving.",
+  status: {
+    running: "Running",
+    complete: "Complete",
+    rejected: "Rejected",
+    failed: "Failed",
+  },
+
+  chartEmpty: "No data to chart.",
   gridSummary(total) {
     return `${total} ${total === 1 ? "result" : "results"}`;
   },

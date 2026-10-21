@@ -62,7 +62,7 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
     <div className={cardClass}>
       <p className="wulin-agent-approval__title">
         <span className="wulin-agent-approval__tool">{toolName}</span>
-        {" "}requires your approval
+        {" "}{strings.requiresApproval}
       </p>
       {hasArgs && (
         editing ? (
@@ -96,17 +96,17 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
         {!editing ? (
           <>
             <button type="button" className="wulin-agent-approval__edit" onClick={() => setEditing(true)}>
-              Edit
+              {strings.edit}
             </button>
             <button
               type="button"
               className={`wulin-agent-approval__approve${destructive ? " wulin-agent-approval__approve--danger" : ""}`}
               onClick={handleApprove}
             >
-              Approve
+              {strings.approve}
             </button>
             <button type="button" className="wulin-agent-approval__reject" onClick={handleReject}>
-              Reject
+              {strings.reject}
             </button>
           </>
         ) : (
@@ -117,10 +117,10 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
               onClick={handleApprove}
               disabled={Boolean(parseError)}
             >
-              Save & Approve
+              {strings.saveAndApprove}
             </button>
             <button type="button" className="wulin-agent-approval__reject" onClick={handleCancel}>
-              Cancel
+              {strings.cancel}
             </button>
           </>
         )}

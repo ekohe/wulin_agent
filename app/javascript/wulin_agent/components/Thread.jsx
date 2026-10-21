@@ -52,14 +52,14 @@ function MessageFeedback() {
     <div className="wulin-agent-feedback">
       <IconButton
         icon="thumb_up"
-        label="Good response"
+        label={strings.goodResponse}
         className={rating === "up" ? "is-active" : undefined}
         disabled={!canFeedback}
         onClick={() => send("up")}
       />
       <IconButton
         icon="thumb_down"
-        label="Bad response"
+        label={strings.badResponse}
         className={rating === "down" ? "is-active" : undefined}
         disabled={!canFeedback}
         onClick={() => send("down")}
@@ -83,7 +83,7 @@ function UserMessage() {
 
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--user">
-      <div className="wulin-agent-message__role">User</div>
+      <div className="wulin-agent-message__role">{strings.userRole}</div>
       <div className="wulin-agent-message__bubble">
         <MessageArchiveAttachment archive={archive} />
         <MessagePrimitive.Parts />
@@ -106,7 +106,7 @@ function AssistantMessage() {
 
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
-      {showRole && <div className="wulin-agent-message__role">Agent</div>}
+      {showRole && <div className="wulin-agent-message__role">{strings.agentRole}</div>}
       <MessagePrimitive.Parts
         components={{
           Text: ({text}) =>
@@ -120,7 +120,7 @@ function AssistantMessage() {
       />
       {showCopy && (
         <ActionBarPrimitive.Copy className="wulin-agent-turn-copy">
-          Copy
+          {strings.copy}
         </ActionBarPrimitive.Copy>
       )}
       <MessageFeedback />
@@ -135,7 +135,7 @@ function ThreadWorkingIndicator({conversationStatus}) {
   return (
     <div className="wulin-agent-thread__working" role="status" aria-live="polite">
       <LoadingSpinner />
-      <span>Working…</span>
+      <span>{strings.working}</span>
     </div>
   );
 }
@@ -165,11 +165,11 @@ export function Thread({conversationStatus = "idle"}) {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
       <ThreadPrimitive.ScrollToBottom className="wulin-agent-scroll-bottom">
-        Latest
+        {strings.latest}
       </ThreadPrimitive.ScrollToBottom>
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
       <ThreadPrimitive.Empty>
-        <div className="wulin-agent-thread__empty">Ask anything</div>
+        <div className="wulin-agent-thread__empty">{strings.emptyThread}</div>
       </ThreadPrimitive.Empty>
 
         <ThreadPrimitive.Messages

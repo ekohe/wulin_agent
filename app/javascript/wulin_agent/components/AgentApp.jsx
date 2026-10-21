@@ -250,7 +250,7 @@ export function AgentApp({fullPage = false}) {
       ref={toggleRef}
       className={`wulin-agent-toggle${fullPage || open ? " wulin-agent-toggle--open" : ""}`}
       aria-expanded={fullPage || open}
-      aria-label={fullPage ? "Focus agent" : open ? "Close agent" : "Open agent"}
+      aria-label={fullPage ? strings.focusAgent : open ? strings.closeAgent : strings.openAgent}
       onClick={() => {
         if (fullPage) {
           panelRef.current.querySelector(".wulin-agent-composer__input")?.focus();
@@ -274,7 +274,7 @@ export function AgentApp({fullPage = false}) {
         <button
           type="button"
           className="wulin-agent-backdrop"
-          aria-label="Close"
+          aria-label={strings.close}
           onClick={() => setOpen(false)}
         />
       )}
@@ -289,14 +289,14 @@ export function AgentApp({fullPage = false}) {
           className="wulin-agent-drawer__resize"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize panel"
+          aria-label={strings.resizePanel}
           onMouseDown={handleDrawerResizeStart}
         />}
         <div className="wulin-agent-panel">
           <header className="wulin-agent-panel__header">
             <div className="wulin-agent-panel__header-row">
               <div className="wulin-agent-panel__heading">
-                <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
+                <h2 className="wulin-agent-panel__title">{strings.panelTitle}</h2>
                 {awaitingApproval && (
                   <span className="wulin-agent-panel__status">{strings.awaitingApproval}</span>
                 )}
@@ -304,19 +304,19 @@ export function AgentApp({fullPage = false}) {
               <div className="wulin-agent-panel__actions">
                 {(fullPage || open) && <McpTokenManager />}
                 {!fullPage && (
-                  <IconButton icon="close" label="Close" onClick={() => setOpen(false)} />
+                  <IconButton icon="close" label={strings.close} onClick={() => setOpen(false)} />
                 )}
               </div>
             </div>
             <div className="wulin-agent-panel__meta">
               {model && (
                 <>
-                  <span className="wulin-agent-panel__model-label">Model</span>
+                  <span className="wulin-agent-panel__model-label">{strings.modelLabel}</span>
                   <span className="wulin-agent-panel__model">{model}</span>
                 </>
               )}
               <span className="wulin-agent-panel__model-label wulin-agent-panel__approval-label">
-                Approval mode
+                {strings.approvalModeLabel}
               </span>
               <ApprovalModeSelect
                 value={approvalMode}
