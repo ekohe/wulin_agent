@@ -9,6 +9,7 @@ import {sendFeedback} from "../api";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {ToolCall} from "./ToolCall";
+import {IconButton} from "./IconButton";
 import {ArchiveUploadButton} from "./ArchiveUploadButton";
 import {ComposerSendButton} from "./ComposerSendButton";
 import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
@@ -44,24 +45,20 @@ function MessageFeedback() {
 
   return (
     <div className="wulin-agent-feedback">
-      <button
-        type="button"
-        className={`wulin-agent-feedback__btn${rating === "up" ? " is-active" : ""}`}
-        aria-label="Good response"
+      <IconButton
+        icon="thumb_up"
+        label="Good response"
+        className={rating === "up" ? "is-active" : undefined}
         disabled={!canFeedback}
         onClick={() => send("up")}
-      >
-        <i className="material-icons" aria-hidden="true">thumb_up</i>
-      </button>
-      <button
-        type="button"
-        className={`wulin-agent-feedback__btn${rating === "down" ? " is-active" : ""}`}
-        aria-label="Bad response"
+      />
+      <IconButton
+        icon="thumb_down"
+        label="Bad response"
+        className={rating === "down" ? "is-active" : undefined}
         disabled={!canFeedback}
         onClick={() => send("down")}
-      >
-        <i className="material-icons" aria-hidden="true">thumb_down</i>
-      </button>
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {Thread} from "./Thread";
 import {ConversationHistory} from "./ConversationHistory";
 import {ApprovalModeSelect} from "./ApprovalModeSelect";
 import {McpTokenManager} from "./McpTokenManager";
+import {IconButton} from "./IconButton";
 import {
   getConversationId,
   getStoredApprovalMode,
@@ -253,14 +254,9 @@ export function AgentApp({fullPage = false}) {
               <h2 className="wulin-agent-panel__title">Wulin Agent</h2>
               <div className="wulin-agent-panel__actions">
                 {(fullPage || open) && <McpTokenManager />}
-                {!fullPage && <button
-                  type="button"
-                  className="wulin-agent-panel__close"
-                  aria-label="Close"
-                  onClick={() => setOpen(false)}
-                >
-                  ×
-                </button>}
+                {!fullPage && (
+                  <IconButton icon="close" label="Close" onClick={() => setOpen(false)} />
+                )}
               </div>
             </div>
             <div className="wulin-agent-panel__meta">

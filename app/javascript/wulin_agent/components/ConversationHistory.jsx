@@ -15,6 +15,7 @@ import {
   toAssistantUiMessages,
 } from "../messageMapper";
 import { LoadingSpinner } from "./LoadingSpinner";
+import {IconButton} from "./IconButton";
 import { useThreadRunning } from "../useThreadRunning";
 
 const LIST_POLL_MS = 2000;
@@ -308,14 +309,12 @@ export function ConversationHistory({
                       label="Working in progress"
                     />
                   ) : (
-                    <button
-                      type="button"
+                    <IconButton
+                      icon="delete"
+                      label="Delete conversation"
                       className="wulin-agent-history__item-delete"
-                      aria-label="Delete conversation"
                       onClick={(event) => handleDelete(item.id, event)}
-                    >
-                      <i className="material-icons" aria-hidden="true">delete</i>
-                    </button>
+                    />
                   )}
                 </div>
               </li>
