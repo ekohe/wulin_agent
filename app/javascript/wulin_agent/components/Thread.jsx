@@ -146,6 +146,9 @@ function ThreadComposer({conversationRunning}) {
 
   return (
     <footer className="wulin-agent-thread__footer">
+      <ThreadPrimitive.ScrollToBottom className="wulin-agent-scroll-bottom">
+        {strings.latest}
+      </ThreadPrimitive.ScrollToBottom>
       <PendingArchiveChip />
       <ComposerPrimitive.Root className="wulin-agent-composer">
         <ArchiveUploadButton />
@@ -164,9 +167,6 @@ function ThreadComposer({conversationRunning}) {
 export function Thread({conversationStatus = "idle"}) {
   return (
     <ThreadPrimitive.Root className="wulin-agent-thread">
-      <ThreadPrimitive.ScrollToBottom className="wulin-agent-scroll-bottom">
-        {strings.latest}
-      </ThreadPrimitive.ScrollToBottom>
       <ThreadPrimitive.Viewport className="wulin-agent-thread__viewport">
       <ThreadPrimitive.Empty>
         <div className="wulin-agent-thread__empty">{strings.emptyThread}</div>
