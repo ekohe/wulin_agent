@@ -47,6 +47,11 @@
   --wulin-agent-composer-max-height: 120px;
 }
 
+#wulin-agent-root :focus-visible {
+  outline: 2px solid var(--wulin-agent-main-strong);
+  outline-offset: 2px;
+}
+
 nav ul.right .wulin-agent-toggle-slot {
   height: var(--wulin-agent-nav-height);
 }
@@ -92,7 +97,6 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-backdrop:focus {
   background: rgba(0, 0, 0, 0.2);
-  outline: none;
 }
 
 .wulin-agent-drawer {
@@ -327,7 +331,6 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 .wulin-agent-history__toggle:focus {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__toggle .material-icons {
@@ -361,11 +364,9 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__new:focus:not(:hover) {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__new:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -451,14 +452,9 @@ nav ul.right .wulin-agent-toggle-slot {
   color: var(--wulin-agent-main);
 }
 
-.wulin-agent-history__item-delete:focus {
-  outline: none;
-}
-
 .wulin-agent-history__item-delete:focus-visible {
   opacity: 1;
   visibility: visible;
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -498,11 +494,9 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__item:focus {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__item:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -1023,7 +1017,6 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__input:focus {
-  outline: none;
   border-color: var(--wulin-agent-main);
 }
 
@@ -1054,7 +1047,6 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-composer__attach:focus,
 .wulin-agent-composer__attach:active {
   background: transparent;
-  outline: none;
   box-shadow: none;
   color: var(--wulin-agent-text-muted);
 }
@@ -1065,7 +1057,6 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attach:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -1408,7 +1399,7 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 13px;
   box-shadow: none;
 }
-.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { outline: 2px solid var(--wulin-agent-main); outline-offset: 2px; border-color: var(--wulin-agent-main); box-shadow: none; }
+.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { border-color: var(--wulin-agent-main); box-shadow: none; }
 .wulin-agent-tokens__select { position: relative; }
 .wulin-agent-tokens__select select { appearance: none; -webkit-appearance: none; padding-right: 36px; }
 .wulin-agent-tokens__select-chevron {
@@ -1429,7 +1420,6 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-tokens__text-button:hover { text-decoration: underline; }
 .wulin-agent-tokens__danger { color: var(--wulin-agent-error); }
 .wulin-agent-tokens button:disabled, .wulin-agent-tokens input:disabled, .wulin-agent-tokens select:disabled { opacity: 0.55; cursor: default; }
-.wulin-agent-tokens button:focus-visible, .wulin-agent-tokens__trigger:focus-visible { outline: 2px solid var(--wulin-agent-main); outline-offset: 3px; }
 
 @media (max-width: 480px) {
   .wulin-agent-tokens { padding: 18px; }
