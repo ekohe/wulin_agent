@@ -19,9 +19,9 @@ export function PendingArchiveChip() {
 
   return (
     <div className={`wulin-agent-composer__attachment${modeClass}`}>
-      <i className="material-icons" aria-hidden="true">
+      <span className="material-icons" aria-hidden="true">
         {attachmentIcon(archive.filename)}
-      </i>
+      </span>
       <div className="wulin-agent-composer__attachment-body">
         <span className="wulin-agent-composer__attachment-label">
           {archive.filename} · {archive.file_count} file
@@ -39,9 +39,9 @@ export function PendingArchiveChip() {
         aria-label="Remove attachment"
         onClick={clearPendingArchive}
       >
-        <i className="material-icons" aria-hidden="true">
+        <span className="material-icons" aria-hidden="true">
           close
-        </i>
+        </span>
       </button>
     </div>
   );

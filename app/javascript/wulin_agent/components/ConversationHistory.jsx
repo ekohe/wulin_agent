@@ -251,9 +251,9 @@ export function ConversationHistory({
           aria-expanded={open}
           aria-label={open ? "Hide history" : "Show history"}
         >
-          <i className="material-icons" aria-hidden="true">
+          <span className="material-icons" aria-hidden="true">
             {open ? "chevron_left" : "chevron_right"}
-          </i>
+          </span>
         </button>
 
         {open && !loading && (

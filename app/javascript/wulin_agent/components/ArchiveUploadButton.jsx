@@ -54,9 +54,9 @@ export function ArchiveUploadButton({disabled = false}) {
         disabled={disabled || uploading}
         onClick={handleClick}
       >
-        <i className="material-icons" aria-hidden="true">
+        <span className="material-icons" aria-hidden="true">
           attach_file
-        </i>
+        </span>
       </button>
       {error && <span className="wulin-agent-composer__attach-error">{error}</span>}
     </>

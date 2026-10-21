@@ -175,7 +175,7 @@ export function McpTokenManager() {
   return (
     <>
       <button ref={trigger} type="button" className="wulin-agent-tokens__trigger" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        <i className="material-icons" aria-hidden="true">vpn_key</i>
+        <span className="material-icons" aria-hidden="true">vpn_key</span>
         MCP tokens
       </button>
       {open && <TokenDialog onClose={close} />}

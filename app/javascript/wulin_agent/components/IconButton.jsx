@@ -3,7 +3,7 @@ export function IconButton({icon, label, className, type = "button", ...rest}) {
 
   return (
     <button type={type} className={classes} aria-label={label} {...rest}>
-      <i className="material-icons" aria-hidden="true">{icon}</i>
+      <span className="material-icons" aria-hidden="true">{icon}</span>
     </button>
   );
 }

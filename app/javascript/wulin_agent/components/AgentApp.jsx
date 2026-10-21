@@ -216,6 +216,7 @@ export function AgentApp({fullPage = false}) {
         }
       }}
     >
+      {/* An <i>, unlike the panel icons: wulin_master sizes span.material-icons inside nav. */}
       <i className="material-icons wulin-agent-cognition" aria-hidden="true">
         cognition
       </i>
