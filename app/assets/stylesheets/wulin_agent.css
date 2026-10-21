@@ -237,6 +237,26 @@ nav ul.right .wulin-agent-toggle-slot {
   background: transparent;
 }
 
+.wulin-agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-status .material-icons {
+  font-size: 14px;
+}
+
+.wulin-agent-status--running .material-icons { color: var(--wulin-agent-info); }
+.wulin-agent-status--complete .material-icons { color: var(--wulin-agent-success); }
+.wulin-agent-status--rejected .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--failed .material-icons { color: var(--wulin-agent-error); }
+
 .wulin-agent-body {
   flex: 1;
   min-height: 0;
@@ -391,7 +411,6 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 
-.wulin-agent-history__row--running .wulin-agent-history__item-actions,
 .wulin-agent-history__row:hover .wulin-agent-history__item-actions {
   pointer-events: auto;
 }
@@ -449,7 +468,9 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__item {
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 0.25rem 6px;
   border: none;
   border-radius: var(--wulin-agent-radius);
@@ -462,22 +483,17 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
 }
 
-.wulin-agent-history__row--running .wulin-agent-history__item,
 .wulin-agent-history__row:hover .wulin-agent-history__item {
   padding-right: 28px;
 }
 
 .wulin-agent-history__item-text {
   display: block;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.wulin-agent-history__item-spinner {
-  width: 12px;
-  height: 12px;
-  border-width: 1.5px;
 }
 
 .wulin-agent-history__item:focus {
@@ -768,6 +784,11 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
   font-weight: 500;
   color: var(--wulin-agent-main);
+}
+
+.wulin-agent-tool summary .wulin-agent-status {
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 .wulin-agent-tool pre {

@@ -14,8 +14,8 @@ import {
   hasPendingApprovalInApi,
   toAssistantUiMessages,
 } from "../messageMapper";
-import { LoadingSpinner } from "./LoadingSpinner";
 import {IconButton} from "./IconButton";
+import {StatusMark} from "./StatusMark";
 import { useThreadRunning } from "../useThreadRunning";
 
 const LIST_POLL_MS = 2000;
@@ -301,22 +301,18 @@ export function ConversationHistory({
                   }}
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
+                  {isRunning && <StatusMark status="running" />}
                 </button>
-                <div className="wulin-agent-history__item-actions">
-                  {isRunning ? (
-                    <LoadingSpinner
-                      className="wulin-agent-history__item-spinner"
-                      label="Working in progress"
-                    />
-                  ) : (
+                {!isRunning && (
+                  <div className="wulin-agent-history__item-actions">
                     <IconButton
                       icon="delete"
                       label="Delete conversation"
                       className="wulin-agent-history__item-delete"
                       onClick={(event) => handleDelete(item.id, event)}
                     />
-                  )}
-                </div>
+                  </div>
+                )}
               </li>
             );
           })}

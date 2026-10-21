@@ -3,6 +3,15 @@ import {GridResultTable} from "./GridResultTable";
 import {isGridResult} from "../gridResult";
 import {isChartResult} from "../chartResult";
 import {ChartResult} from "./ChartResult";
+import {StatusMark} from "./StatusMark";
+
+function toolStatus({isExecuting, isRejected, result}) {
+  if (isExecuting) return "running";
+  if (isRejected || result?.status === "rejected") return "rejected";
+  if (result?.status === "error" || result?.error) return "failed";
+  if (result != null) return "complete";
+  return null;
+}
 
 export function ToolCall({toolName, args, result, approval, respondToApproval}) {
   const isPending =
@@ -12,6 +21,7 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
   const hasArgs = args && Object.keys(args).length > 0;
   const showChart = isChartResult(result);
   const showGrid = !showChart && isGridResult(result);
+  const status = toolStatus({isExecuting, isRejected, result});
 
   if (approval && isPending) {
     return (
@@ -38,7 +48,7 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
       <details open={isExecuting || undefined}>
         <summary>
           {toolName}
-          {isExecuting ? " — executing…" : ""}
+          {status && <StatusMark status={status} />}
         </summary>
         {hasArgs && (
           <details>
