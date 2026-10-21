@@ -424,7 +424,8 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 
-.wulin-agent-history__row:hover .wulin-agent-history__item-actions {
+.wulin-agent-history__row:hover .wulin-agent-history__item-actions,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-actions {
   pointer-events: auto;
 }
 
@@ -432,25 +433,23 @@ nav ul.right .wulin-agent-toggle-slot {
   width: 22px;
   height: 22px;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
 }
 
-.wulin-agent-history__row:hover .wulin-agent-history__item-delete {
+.wulin-agent-history__row:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-delete {
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 
 .wulin-agent-history__row--active .wulin-agent-history__item-delete {
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
 }
 
-.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete {
+.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row--active:focus-within .wulin-agent-history__item-delete {
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 
@@ -465,9 +464,6 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-history__item-delete:focus-visible {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
   outline-offset: -2px;
 }
 
@@ -492,7 +488,8 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
 }
 
-.wulin-agent-history__row:hover .wulin-agent-history__item {
+.wulin-agent-history__row:hover .wulin-agent-history__item,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item {
   padding-right: 28px;
 }
 
