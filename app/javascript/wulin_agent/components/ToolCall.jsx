@@ -9,6 +9,9 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
     approval?.approved === undefined && approval?.resolution === undefined;
   const isExecuting = approval?.approved === true && result == null;
   const isRejected = approval?.approved === false;
+  const hasArgs = args && Object.keys(args).length > 0;
+  const showChart = isChartResult(result);
+  const showGrid = !showChart && isGridResult(result);
 
   if (approval && isPending) {
     return (
@@ -31,26 +34,24 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
   }
 
   return (
-    <details
-      className={toolClass}
-      open={isExecuting || isChartResult(result) || undefined}
-    >
-      <summary>
-        {toolName}
-        {isExecuting ? " — executing…" : ""}
-      </summary>
-      {args && Object.keys(args).length > 0 && (
-        <pre>{JSON.stringify(args, null, 2)}</pre>
-      )}
-      {result != null && (
-        isChartResult(result) ? (
-          <ChartResult result={result} />
-        ) : isGridResult(result) ? (
-          <GridResultTable result={result} />
-        ) : (
+    <div className={toolClass}>
+      <details open={isExecuting || undefined}>
+        <summary>
+          {toolName}
+          {isExecuting ? " — executing…" : ""}
+        </summary>
+        {hasArgs && (
+          <details>
+            <summary>Parameters</summary>
+            <pre>{JSON.stringify(args, null, 2)}</pre>
+          </details>
+        )}
+        {result != null && !showChart && !showGrid && (
           <pre>{JSON.stringify(result, null, 2)}</pre>
-        )
-      )}
-    </details>
+        )}
+      </details>
+      {showChart && <ChartResult result={result} />}
+      {showGrid && <GridResultTable result={result} />}
+    </div>
   );
 }
