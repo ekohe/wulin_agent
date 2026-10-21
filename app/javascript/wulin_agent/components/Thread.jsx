@@ -5,14 +5,10 @@ import {
   ThreadPrimitive,
   useAuiState,
 } from "@assistant-ui/react";
-import {ApprovalCard} from "./ApprovalCard";
-import { GridResultTable } from "./GridResultTable";
-import { isGridResult } from "../gridResult";
-import { sendFeedback } from "../api";
+import {sendFeedback} from "../api";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { isChartResult } from "../chartResult";
-import { ChartResult } from "./ChartResult";
+import {ToolCall} from "./ToolCall";
 import {ArchiveUploadButton} from "./ArchiveUploadButton";
 import {ComposerSendButton} from "./ComposerSendButton";
 import {MessageArchiveAttachment} from "./MessageArchiveAttachment";
@@ -91,57 +87,6 @@ function UserMessage() {
   );
 }
 
-function ToolFallback({toolName, args, result, approval, respondToApproval}) {
-  const isPending =
-    approval?.approved === undefined && approval?.resolution === undefined;
-  const isExecuting = approval?.approved === true && result == null;
-  const isRejected = approval?.approved === false;
-
-  if (approval && isPending) {
-    return (
-      <ApprovalCard
-        toolName={toolName}
-        args={args}
-        approval={approval}
-        respondToApproval={respondToApproval}
-      />
-    );
-  }
-
-  let toolClass = "wulin-agent-tool";
-  if (isRejected) {
-    toolClass += " wulin-agent-tool--rejected";
-  } else if (isExecuting) {
-    toolClass += " wulin-agent-tool--executing";
-  } else if (approval?.approved === true) {
-    toolClass += " wulin-agent-tool--approved";
-  }
-
-  return (
-    <details
-      className={toolClass}
-      open={isExecuting || isChartResult(result) || undefined}
-    >
-      <summary>
-        {toolName}
-        {isExecuting ? " — executing…" : ""}
-      </summary>
-      {args && Object.keys(args).length > 0 && (
-        <pre>{JSON.stringify(args, null, 2)}</pre>
-      )}
-      {result != null && (
-        isChartResult(result) ? (
-          <ChartResult result={result} />
-        ) : isGridResult(result) ? (
-          <GridResultTable result={result} />
-        ) : (
-          <pre>{JSON.stringify(result, null, 2)}</pre>
-        )
-      )}
-    </details>
-  );
-}
-
 function AssistantText({text}) {
   return (
     <div className="wulin-agent-markdown">
@@ -162,7 +107,7 @@ function AssistantMessage() {
             ) : (
               <AssistantText text={text} />
             ),
-          tools: { Fallback: ToolFallback },
+          tools: { Fallback: ToolCall },
         }}
       />
       <MessageFeedback />
