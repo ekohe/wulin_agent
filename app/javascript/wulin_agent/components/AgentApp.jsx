@@ -22,14 +22,17 @@ const DRAWER_WIDTH_KEY = "wulin_agent_drawer_width";
 const HISTORY_MIN_WIDTH = 120;
 const HISTORY_DEFAULT_WIDTH = 200;
 const HISTORY_WIDTH_KEY = "wulin_agent_history_width";
+// The thread keeps this much width; below history plus this, history starts collapsed.
+const THREAD_MIN_WIDTH = 320;
 const SIZE_FRACTION = 2 / 3;
 
 function viewportMaxWidth() {
   return Math.floor(window.innerWidth * SIZE_FRACTION);
 }
 
-function historyMaxWidth(drawerWidth) {
-  return Math.floor(drawerWidth * SIZE_FRACTION);
+function historyMaxWidth(panelWidth) {
+  const max = Math.min(Math.floor(panelWidth * SIZE_FRACTION), panelWidth - THREAD_MIN_WIDTH);
+  return Math.max(HISTORY_MIN_WIDTH, max);
 }
 
 function getStoredDrawerWidth() {
@@ -38,10 +41,11 @@ function getStoredDrawerWidth() {
   return Math.min(viewportMaxWidth(), Math.max(DRAWER_MIN_WIDTH, width));
 }
 
-function getStoredHistoryWidth(drawerWidth) {
+// The preferred width; rendering caps it to what the panel can spare.
+function getStoredHistoryWidth() {
   const stored = parseInt(localStorage.getItem(HISTORY_WIDTH_KEY), 10);
   const width = Number.isFinite(stored) ? stored : HISTORY_DEFAULT_WIDTH;
-  return Math.min(historyMaxWidth(drawerWidth), Math.max(HISTORY_MIN_WIDTH, width));
+  return Math.max(HISTORY_MIN_WIDTH, width);
 }
 
 export function AgentApp({fullPage = false}) {
@@ -50,14 +54,14 @@ export function AgentApp({fullPage = false}) {
   const [model, setModel] = useState(null);
   const [toolbarEnabled, setToolbarEnabled] = useState(false);
   const [historyVersion, setHistoryVersion] = useState(0);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  // null follows the panel width; a toggle pins history open or closed.
+  const [historyOpen, setHistoryOpen] = useState(null);
+  const [panelWidth, setPanelWidth] = useState(null);
   const [approvalMode, setApprovalMode] = useState(
     () => getStoredApprovalMode() ?? "confirm_writes"
   );
   const [drawerWidth, setDrawerWidth] = useState(getStoredDrawerWidth);
-  const [historyWidth, setHistoryWidth] = useState(() =>
-    getStoredHistoryWidth(getStoredDrawerWidth())
-  );
+  const [historyWidth, setHistoryWidth] = useState(getStoredHistoryWidth);
   const [conversationStatus, setConversationStatus] = useState("idle");
   const [awaitingApproval, setAwaitingApproval] = useState(false);
   const [shellError, setShellError] = useState("");
@@ -69,29 +73,35 @@ export function AgentApp({fullPage = false}) {
   drawerWidthRef.current = drawerWidth;
   historyWidthRef.current = historyWidth;
 
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel || typeof ResizeObserver === "undefined") return undefined;
+
+    const observer = new ResizeObserver(([entry]) => setPanelWidth(entry.contentRect.width));
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, []);
+
+  const historyFits = panelWidth == null || panelWidth >= HISTORY_MIN_WIDTH + THREAD_MIN_WIDTH;
+  const showHistory = historyOpen ?? historyFits;
+  const shownHistoryWidth = Math.min(historyWidth, historyMaxWidth(panelWidth ?? drawerWidth));
+
   const handleDrawerResizeStart = useCallback((event) => {
     event.preventDefault();
     const startX = event.clientX;
     const startWidth = drawerWidthRef.current;
     let latestDrawer = startWidth;
-    let latestHistory = historyWidthRef.current;
 
     const onMove = (moveEvent) => {
       latestDrawer = Math.min(
         viewportMaxWidth(),
         Math.max(DRAWER_MIN_WIDTH, startWidth + (startX - moveEvent.clientX))
       );
-      latestHistory = Math.min(
-        historyMaxWidth(latestDrawer),
-        Math.max(HISTORY_MIN_WIDTH, latestHistory)
-      );
       setDrawerWidth(latestDrawer);
-      setHistoryWidth(latestHistory);
     };
 
     const onUp = () => {
       localStorage.setItem(DRAWER_WIDTH_KEY, String(latestDrawer));
-      localStorage.setItem(HISTORY_WIDTH_KEY, String(latestHistory));
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
@@ -107,12 +117,13 @@ export function AgentApp({fullPage = false}) {
   const handleHistoryResizeStart = useCallback((event) => {
     event.preventDefault();
     const startX = event.clientX;
-    const startWidth = historyWidthRef.current;
+    const max = historyMaxWidth(panelRef.current.clientWidth);
+    const startWidth = Math.min(historyWidthRef.current, max);
     let latestHistory = startWidth;
 
     const onMove = (moveEvent) => {
       latestHistory = Math.min(
-        historyMaxWidth(fullPage ? panelRef.current.clientWidth : drawerWidthRef.current),
+        max,
         Math.max(HISTORY_MIN_WIDTH, startWidth + (moveEvent.clientX - startX))
       );
       setHistoryWidth(latestHistory);
@@ -130,23 +141,19 @@ export function AgentApp({fullPage = false}) {
     document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
-  }, [fullPage]);
+  }, []);
 
   useEffect(() => {
     const onWindowResize = () => {
       setDrawerWidth((current) =>
         Math.min(viewportMaxWidth(), Math.max(DRAWER_MIN_WIDTH, current))
       );
-      setHistoryWidth((current) => {
-        const max = historyMaxWidth(fullPage ? panelRef.current.clientWidth : drawerWidthRef.current);
-        return Math.min(max, Math.max(HISTORY_MIN_WIDTH, current));
-      });
     };
 
     onWindowResize();
     window.addEventListener("resize", onWindowResize);
     return () => window.removeEventListener("resize", onWindowResize);
-  }, [fullPage]);
+  }, []);
 
   useEffect(() => {
     if (!toolbarEnabled) return;
@@ -329,10 +336,10 @@ export function AgentApp({fullPage = false}) {
           </header>
           <div className="wulin-agent-body">
             <ConversationHistory
-              open={historyOpen}
-              width={historyWidth}
+              open={showHistory}
+              width={shownHistoryWidth}
               historyVersion={historyVersion}
-              onToggle={() => setHistoryOpen((v) => !v)}
+              onToggle={() => setHistoryOpen(!showHistory)}
               onResizeStart={handleHistoryResizeStart}
               onApprovalModeChange={handleConversationApprovalMode}
               onStatusChange={setConversationStatus}
