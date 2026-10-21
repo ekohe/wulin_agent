@@ -1,5 +1,6 @@
 /*
- * Theme tokens: defaults mirror Wulin Master _base.scss (Materialize grey palette).
+ * Theme tokens, drawn from the Materialize palette wulin_master builds on:
+ * text-muted is its $text-color and text-subtle its $label-color.
  * syncWulinTheme.js overwrites --wulin-agent-main, font, and nav height from the host page.
  */
 #wulin-agent-root {
@@ -23,11 +24,11 @@
   --wulin-agent-error-strong: #c62828;
   --wulin-agent-error-soft: color-mix(in srgb, var(--wulin-agent-error) 10%, transparent);
   --wulin-agent-success: #43a047;
-  --wulin-agent-warning: #f0b429;
+  --wulin-agent-warning: #ffc107;
   --wulin-agent-warning-strong: #e65100;
   --wulin-agent-warning-soft: color-mix(in srgb, var(--wulin-agent-warning) 10%, transparent);
   --wulin-agent-info: #0288d1;
-  --wulin-agent-aborted: #d1d1d1;
+  --wulin-agent-aborted: #bdbdbd;
   --wulin-agent-aborted-strong: #616161;
 
   --wulin-agent-radius: 2px;
@@ -35,12 +36,12 @@
   --wulin-agent-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   --wulin-agent-measure: 68ch;
 
-  --wulin-agent-chart-1: #2563eb;
-  --wulin-agent-chart-2: #16a34a;
-  --wulin-agent-chart-3: #f59e0b;
-  --wulin-agent-chart-4: #dc2626;
-  --wulin-agent-chart-5: #7c3aed;
-  --wulin-agent-chart-6: #0891b2;
+  --wulin-agent-chart-1: #2196f3;
+  --wulin-agent-chart-2: #4caf50;
+  --wulin-agent-chart-3: #ffc107;
+  --wulin-agent-chart-4: #f44336;
+  --wulin-agent-chart-5: #673ab7;
+  --wulin-agent-chart-6: #00bcd4;
 
   --wulin-agent-nav-height: 48px;
   --wulin-agent-font: inherit;

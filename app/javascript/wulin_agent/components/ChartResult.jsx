@@ -3,7 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, LineChart, Line,
 import {strings} from "../strings";
 
     // Used when the stylesheet has not defined the tokens.
-    const FALLBACK_COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
+    const FALLBACK_COLORS = ["#2196f3", "#4caf50", "#ffc107", "#f44336", "#673ab7", "#00bcd4"];
 
     function token(name, fallback = "") {
       const root = document.getElementById("wulin-agent-root");
