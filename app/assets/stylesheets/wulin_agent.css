@@ -905,9 +905,41 @@ nav ul.right .wulin-agent-toggle-slot {
   background: var(--wulin-agent-main-hover);
 }
 
+.wulin-agent-approval__approve--danger,
+.wulin-agent-approval__approve--danger:hover {
+  background: var(--wulin-agent-error-strong);
+}
+
 .wulin-agent-approval__approve:disabled {
   background: var(--wulin-agent-text-subtle);
   cursor: not-allowed;
+}
+
+.wulin-agent-approval--destructive {
+  border-color: var(--wulin-agent-error);
+  background: var(--wulin-agent-error-soft);
+}
+
+.wulin-agent-approval__fields {
+  margin: 0 0 0.5rem;
+}
+
+.wulin-agent-approval__fields div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 30%) 1fr;
+  gap: 8px;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--wulin-agent-border);
+}
+
+.wulin-agent-approval__fields dt,
+.wulin-agent-approval__fields dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.wulin-agent-approval__fields dt {
+  color: var(--wulin-agent-text-muted);
 }
 
 .wulin-agent-approval__error {
