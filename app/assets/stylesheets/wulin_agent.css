@@ -3,10 +3,11 @@
  * syncWulinTheme.js overwrites --wulin-agent-main, font, and nav height from the host page.
  */
 #wulin-agent-root {
-  /* Mark. The host overwrites this. White text does not clear 4.5:1 on it. */
+  /* Mark. The host overwrites this. White text on the default blue is 3.1:1,
+   * so filled buttons sit on main-strong, a shade darker than wulin_master's. */
   --wulin-agent-main: #2196f3;
   --wulin-agent-main-strong: color-mix(in srgb, var(--wulin-agent-main) 75%, black);
-  --wulin-agent-main-hover: color-mix(in srgb, var(--wulin-agent-main) 88%, white);
+  --wulin-agent-main-hover: color-mix(in srgb, var(--wulin-agent-main) 62%, black);
   --wulin-agent-main-soft: color-mix(in srgb, var(--wulin-agent-main) 12%, transparent);
   --wulin-agent-on-main: #fff;
 
@@ -906,7 +907,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-approval__approve {
   border: none;
-  background: var(--wulin-agent-main);
+  background: var(--wulin-agent-main-strong);
   color: var(--wulin-agent-on-main);
 }
 
@@ -1172,7 +1173,7 @@ nav ul.right .wulin-agent-toggle-slot {
   padding: 0.375rem 0.75rem;
   border: none;
   border-radius: var(--wulin-agent-radius);
-  background: var(--wulin-agent-main);
+  background: var(--wulin-agent-main-strong);
   color: var(--wulin-agent-on-main);
   font-family: inherit;
   font-size: 12px;
@@ -1504,7 +1505,7 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 .wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
-.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main); border-color: var(--wulin-agent-main); color: var(--wulin-agent-on-main); }
+.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main-strong); border-color: var(--wulin-agent-main-strong); color: var(--wulin-agent-on-main); }
 .wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
 .wulin-agent-tokens__text-button:hover { text-decoration: underline; }
 .wulin-agent-tokens__danger { color: var(--wulin-agent-error-strong); }
