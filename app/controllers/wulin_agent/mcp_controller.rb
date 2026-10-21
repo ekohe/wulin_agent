@@ -33,8 +33,18 @@ module WulinAgent
       MCP::Server::Transports::StreamableHTTPTransport.new(
         server,
         stateless: true,
-        allowed_hosts: WulinAgent.config.mcp_allowed_hosts
+        allowed_hosts: allowed_hosts
       )
+    end
+
+    # With config.hosts set, Rails' host authorization has already checked this request's Host, so the
+    # transport takes that answer instead of a second list. With it empty Rails checks nothing, and the
+    # transport keeps its own default of loopback only. mcp_allowed_hosts names the hosts outright.
+    def allowed_hosts
+      return WulinAgent.config.mcp_allowed_hosts if WulinAgent.config.mcp_allowed_hosts.present?
+      return [] if Array(Rails.application.config.hosts).empty?
+
+      Array(request.get_header("HTTP_HOST"))
     end
 
     def authenticate_token!

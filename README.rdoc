@@ -195,7 +195,7 @@ container reads +.env+, not your shell. The other settings live in
   wulin_agent:
     toolbar_enabled: true
     thinking_effort: high      # temperature: 0.7 for non-reasoning models
-    mcp_allowed_hosts:
+    mcp_allowed_hosts:         # optional: the only hosts /wulin_agent/mcp answers on
       - your-app.example.com
 
 Apps built by Wulin Studio ship without a key until the platform can pass
@@ -389,11 +389,16 @@ Mutating tools are annotated (+destructive_hint+) and run in +:auto+ approval
 mode — there is no interactive confirmation step over MCP, so only hand out
 tokens to trusted users/clients.
 
-=== Allowed hosts (required in production)
+=== Allowed hosts
 
-The MCP transport only accepts loopback hosts (+localhost+, +127.0.0.1+, …) by
-default. On a deployed app you *must* allowlist the public hostname in the host
-application's +config/initializers/wulin_agent.rb+, otherwise clients get
+By default the endpoint follows the host application's host authorization.
+When +config.hosts+ is set, Rails has checked each request's +Host+ before it
+arrives, and the endpoint accepts it. When +config.hosts+ is empty, as it is in
+a new app's production and test environments, Rails checks nothing and the
+endpoint answers on loopback hosts only (+localhost+, +127.0.0.1+, +::1+).
+
+To name the hosts outright, list them in the host application's
++config/initializers/wulin_agent.rb+; any other host then gets
 +403 Forbidden: Invalid Host header+:
 
   WulinAgent.setup do |config|
@@ -401,7 +406,10 @@ application's +config/initializers/wulin_agent.rb+, otherwise clients get
   end
 
 Entries may be bare hostnames (any port) or +hostname:port+. Restart the app
-after changing the list. Do not derive the allowlist from request headers.
+after changing either list.
+
+What keeps a DNS rebinding page out is the token: every request needs an
++Authorization: Bearer+ header, which such a page cannot send.
 
 == Knowledge
 
@@ -524,10 +532,9 @@ expired tokens. Each successful request bumps +last_used_at+.
 The engine requires MCP 1.7 or later within the 1.x series for this transport
 configuration. Update the host's bundle when upgrading the engine.
 
-Before connecting a remote client, set +config.mcp_allowed_hosts+ as described
-in *Allowed hosts* above. DNS rebinding protection stays enabled: browser
-requests with an +Origin+ header must be same-origin; non-browser clients may
-omit it.
+Browser requests with an +Origin+ header must be same-origin; non-browser
+clients may omit it. *Allowed hosts* above says which hosts the endpoint
+answers on: on a deployed app, set +config.hosts+ or +mcp_allowed_hosts+.
 
 Point the MCP client at the host app's endpoint and pass the token in the
 +Authorization+ header. Example +mcp.json+ (Cursor):
@@ -551,8 +558,8 @@ Quick smoke test with +curl+ (JSON-RPC +tools/list+):
     -H "Accept: application/json, text/event-stream" \
     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
-A missing or invalid token returns +401 Unauthorized+. An unlisted hostname
-returns +403 Forbidden: Invalid Host header+ — add it to +mcp_allowed_hosts+.
+A missing or invalid token returns +401 Unauthorized+. A host the endpoint
+does not answer on returns +403 Forbidden: Invalid Host header+.
 
 == Development
 
