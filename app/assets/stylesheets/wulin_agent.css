@@ -1528,3 +1528,19 @@ nav ul.right .wulin-agent-toggle-slot {
     animation: none;
   }
 }
+
+/* Materialize fills every focused button (button:focus), which outranks a
+ * single class. Focus shows as the ring, so each control keeps its own fill. */
+.wulin-agent-toggle:focus:not(:hover) { background-color: transparent; }
+.wulin-agent-toggle--open:focus:not(:hover) { background-color: rgba(0, 0, 0, 0.15); }
+.wulin-agent-composer__send:focus:not(:hover),
+.wulin-agent-approval__approve:focus:not(:hover),
+.wulin-agent-tokens__button--primary:focus:not(:hover) { background: var(--wulin-agent-main-strong); }
+.wulin-agent-approval__approve--danger:focus:not(:hover) { background: var(--wulin-agent-error-strong); }
+.wulin-agent-approval__edit:focus:not(:hover),
+.wulin-agent-approval__reject:focus:not(:hover),
+.wulin-agent-turn-copy:focus,
+.wulin-agent-scroll-bottom:focus,
+.wulin-agent-tokens__button:not(.wulin-agent-tokens__button--primary):focus:not(:hover) { background: var(--wulin-agent-bg); }
+.wulin-agent-tokens__trigger:focus:not(:hover),
+.wulin-agent-tokens__text-button:focus { background: transparent; }
