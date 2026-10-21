@@ -20,7 +20,7 @@ RSpec.describe "Frontend conventions" do
     end
 
     expect(importing.map { |f| f.delete_prefix("#{root}/") }).to be_empty
-    expect(File).to exist(File.join(root, "app/assets/stylesheets/wulin_agent.css"))
+    expect(File).to exist(File.join(root, "app/assets/stylesheets/wulin_agent.scss"))
   end
 
   it "ships the esbuild entry hosts import" do

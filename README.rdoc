@@ -26,7 +26,7 @@ adds them. The component template:
 * adds +vendor/gems/wulin_agent+ to +package.json+ workspaces, so the chat UI's
   npm dependencies install into the app
 * imports +app/javascript/wulin_agent.esm.js+ into +app/javascript/application.js+
-* +@use+s +app/assets/stylesheets/wulin_agent.css+ in +application.sass+
+* +@use+s +app/assets/stylesheets/wulin_agent.scss+ in +application.sass+
 * links the assistant page from the menu
 
 No route mount, generator or migration copy is needed: the engine draws its
@@ -205,7 +205,7 @@ secrets to a generated app.
 
 The gem ships source, not a bundle, like every wulin component. The host's own
 esbuild bundles +app/javascript/wulin_agent.esm.js+ into +application.js+, and
-dart-sass compiles +app/assets/stylesheets/wulin_agent.css+ into
+dart-sass compiles +app/assets/stylesheets/wulin_agent.scss+ into
 +application.css+. The chat UI's npm dependencies come from the gem's
 +package.json+, installed into the host through the npm workspace.
 
