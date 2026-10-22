@@ -7,10 +7,9 @@ module WulinAgent
     def wrap(grid, payload)
       return payload unless grid_result?(payload)
 
-      payload.merge(
-        "columns" => column_headers(grid),
-        "display" => "grid"
-      )
+      payload.merge("display" => "grid").tap do |merged|
+        merged["columns"] ||= column_headers(grid)
+      end
     end
 
     def grid_result?(payload)

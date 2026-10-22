@@ -4,6 +4,10 @@ module WulinAgent
   module ColumnMetadata
     BELONGS_TO = "belongs_to"
     COMPUTED_COLUMN_HINT = "Computed column — not filterable or sortable via list_records."
+    NUMERIC_RANGE_HINT =
+      "Numeric range: use gte, lte, gt, lt, or between (value_from / value_to) in list_records filters."
+    DATE_RANGE_HINT =
+      "Date/datetime range filters are not supported; use sort_col and pagination."
 
     module_function
 
@@ -20,6 +24,10 @@ module WulinAgent
         choices: column.choices
       }.compact
 
+      if filterable
+        hint = filter_value_hint(column, model: model)
+        payload[:value_hint] = hint if hint.present?
+      end
       payload[:value_hint] = COMPUTED_COLUMN_HINT if computed_column?(column, model: model)
 
       return payload unless column.sql_type.to_s == BELONGS_TO
@@ -62,6 +70,14 @@ module WulinAgent
         lookup_controller: lookup_controller,
         value_hint: build_value_hint(name, foreign_key, lookup_controller)
       }
+    end
+
+    def filter_value_hint(column, model: nil)
+      sql_type = column.sql_type.to_s
+      return NUMERIC_RANGE_HINT if %w[integer float decimal].include?(sql_type)
+      return DATE_RANGE_HINT if %w[date datetime].include?(sql_type)
+
+      nil
     end
 
     def build_value_hint(name, foreign_key, lookup_controller)

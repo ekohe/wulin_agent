@@ -74,13 +74,16 @@ module WulinAgent
           mutating: false,
           permission: "#{grid.screen_name}#read"
         ) do |params, user|
+          filters = normalize_standard_filters(grid, params["filters"])
+          next filters if filters.is_a?(Hash) && filters.key?("error")
+
           GridDispatcher.call(
             grid.controller,
             "index",
             {
               "offset"   => params["offset"] || 0,
               "count"    => params["count"] || 50,
-              "filters"  => params["filters"],
+              "filters"  => filters,
               "sort_col" => params["sort_col"],
               "sort_dir" => params["sort_dir"]
             }.compact,
@@ -165,8 +168,11 @@ module WulinAgent
         Array(params["id"] || params["ids"]).map(&:to_s).reject(&:empty?).join(",").presence
       end
 
-
-
+      def normalize_standard_filters(grid, filters)
+        ListRecordsFilterNormalizer.normalize(filters, grid: grid)
+      rescue ListRecordsFilterNormalizer::ValidationError => error
+        {"error" => error.message}
+      end
     end
   end
 end

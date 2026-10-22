@@ -123,6 +123,172 @@ RSpec.describe WulinAgent::ToolRegistry do
       expect(result["rows"].map { |row| row[first_name_idx] }).to eq(["Alice"])
     end
 
+    it "projects columns when fields are passed" do
+      tool = described_class.find("list_records", admin)
+      result = tool.execute(
+        people.merge("count" => 50, "fields" => %w[first_name last_name]),
+        admin
+      )
+
+      expect(result["columns"].map { |c| c["name"] }).to eq(%w[id first_name last_name])
+      expect(result["rows"]).to contain_exactly(
+        hash_including("first_name" => "Alice", "last_name" => "Martin"),
+        hash_including("first_name" => "Bob", "last_name" => "Smith")
+      )
+    end
+
+    it "omits host-configured columns by default" do
+      WulinAgent.config.list_records_default_omit_columns = {"people" => %w[signature]}
+      tool = described_class.find("list_records", admin)
+      result = tool.execute(people.merge("count" => 50), admin)
+
+      expect(result["columns"].map { |c| c["name"] }).not_to include("signature")
+      expect(result["rows"].first).not_to have_key("signature")
+    ensure
+      WulinAgent.config.list_records_default_omit_columns = {}
+    end
+
+    it "returns omitted columns when named in fields" do
+      WulinAgent.config.list_records_default_omit_columns = {"people" => %w[signature]}
+      tool = described_class.find("list_records", admin)
+      result = tool.execute(
+        people.merge("count" => 50, "fields" => %w[first_name signature]),
+        admin
+      )
+
+      expect(result["columns"].map { |c| c["name"] }).to include("signature")
+      expect(result["rows"].first).to have_key("signature")
+    ensure
+      WulinAgent.config.list_records_default_omit_columns = {}
+    end
+
+    it "strips sql metadata from list responses unless debug is true" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_return(
+        {"total" => 0, "offset" => 0, "rows" => [], "sql" => "SELECT 1"}
+      )
+
+      result = tool.execute(people.merge("count" => 50), admin)
+
+      expect(result).not_to have_key("sql")
+    end
+
+    it "normalizes include filters for substring search before dispatch" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_return(
+        {"total" => 0, "offset" => 0, "rows" => []}
+      )
+
+      tool.execute(
+        people.merge(
+          "count" => 50,
+          "filters" => [{"column" => "first_name", "value" => "lic", "operator" => "include"}]
+        ),
+        admin
+      )
+
+      expect(WulinAgent::GridDispatcher).to have_received(:call).with(
+        "people",
+        "index",
+        hash_including(
+          "filters" => [{"column" => "first_name", "value" => "%lic%", "operator" => "include"}]
+        ),
+        admin
+      )
+    end
+
+    it "maps starts_with to grid equals before dispatch" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_return(
+        {"total" => 0, "offset" => 0, "rows" => []}
+      )
+
+      tool.execute(
+        people.merge(
+          "count" => 50,
+          "filters" => [{"column" => "first_name", "value" => "Ali", "operator" => "starts_with"}]
+        ),
+        admin
+      )
+
+      expect(WulinAgent::GridDispatcher).to have_received(:call).with(
+        "people",
+        "index",
+        hash_including(
+          "filters" => [{"column" => "first_name", "value" => "Ali", "operator" => "equals"}]
+        ),
+        admin
+      )
+    end
+
+    it "embeds gte filters for numeric columns before dispatch" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_return(
+        {"total" => 0, "offset" => 0, "rows" => []}
+      )
+
+      tool.execute(
+        people.merge(
+          "count" => 50,
+          "filters" => [{"column" => "age", "value" => "30", "operator" => "gte"}]
+        ),
+        admin
+      )
+
+      expect(WulinAgent::GridDispatcher).to have_received(:call).with(
+        "people",
+        "index",
+        hash_including(
+          "filters" => [{"column" => "age", "value" => ">=30", "operator" => "equals"}]
+        ),
+        admin
+      )
+    end
+
+    it "returns an error for date range filters on date columns" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call)
+
+      result = tool.execute(
+        people.merge(
+          "count" => 50,
+          "filters" => [{"column" => "birthdate", "value" => "2000-01-01", "operator" => "gte"}]
+        ),
+        admin
+      )
+
+      expect(result["error"]).to include("not supported", "birthdate")
+      expect(WulinAgent::GridDispatcher).not_to have_received(:call)
+    end
+
+    it "passes agent_fields to the grid when projecting" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call).and_return(
+        {"total" => 0, "offset" => 0, "rows" => []}
+      )
+
+      tool.execute(people.merge("count" => 50, "fields" => %w[first_name last_name]), admin)
+
+      expect(WulinAgent::GridDispatcher).to have_received(:call).with(
+        "people",
+        "index",
+        hash_including("agent_fields" => a_string_including("first_name", "last_name")),
+        admin
+      )
+    end
+
+    it "returns all columns when omit_columns is an empty array" do
+      WulinAgent.config.list_records_default_omit_columns = {"people" => %w[signature]}
+      tool = described_class.find("list_records", admin)
+      first_name_idx = PersonGrid.columns.index { |c| c.name == :first_name }
+      result = tool.execute(people.merge("count" => 50, "omit_columns" => []), admin)
+
+      expect(result["rows"].first).to be_an(Array)
+      expect(result["rows"].first[first_name_idx]).to eq("Alice")
+    ensure
+      WulinAgent.config.list_records_default_omit_columns = {}
+    end
+
     it "is not mutating" do
       tool = described_class.find("list_records", admin)
 

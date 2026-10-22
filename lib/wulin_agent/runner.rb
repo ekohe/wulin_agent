@@ -150,9 +150,15 @@ module WulinAgent
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,
-        and optionally operator (equals, not_equals, include, exclude).
-        For text columns, equals matches values starting with the given prefix.
+        and optionally operator: equals (exact on numbers/ids; text prefix only),
+        starts_with (text prefix), include or contains (substring), not_equals, exclude,
+        gte/lte/gt/lt (numeric columns only), between (value_from and value_to, numeric only).
+        Date/datetime ranges are not supported — use sort_col and pagination.
         Combine multiple filters to narrow results. Use sort_col and sort_dir to order.
+        When listing many records, pass fields with only the columns you need for triage
+        (get_columns lists every column; host defaults may omit some from list_records until
+        you name them in fields). Pass omit_columns: [] to list all columns. Use read_record
+        with id for full row detail.
 
         To show a chart or visualization: first fetch rows with list_records, aggregate
         or count them YOURSELF, then call render_chart with the computed data array

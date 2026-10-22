@@ -7,7 +7,7 @@ module WulinAgent
     FILTER_KEYS = %w[column operator].freeze
 
     TOOL_PARAM_KEYS = {
-      "list_records" => %w[controller count sort_col sort_dir],
+      "list_records" => %w[controller count sort_col sort_dir row_format text_max_chars debug],
       "get_columns" => %w[controller],
       "list_grids" => [],
       "knowledge_search" => %w[category scope],
@@ -58,6 +58,13 @@ module WulinAgent
       filters = params["filters"]
       if filters.is_a?(Array) && !filters.empty?
         output["filters"] = sanitize_filters(filters)
+      end
+
+      %w[fields omit_columns].each do |key|
+        value = params[key]
+        next unless value.is_a?(Array) && value.all? { |item| item.is_a?(String) }
+
+        output[key] = value.map(&:to_s).reject(&:empty?).first(20)
       end
 
       output.reject { |_, value| value.nil? }
