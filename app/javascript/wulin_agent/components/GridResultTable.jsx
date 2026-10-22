@@ -18,7 +18,7 @@ export function GridResultTable({ result }) {
     <div className="wulin-agent-grid-result">
       <p className="wulin-agent-grid-result__meta">
         {total} result{total > 1 ? "s" : ""}
-        {rows.length > 0 && ` · affichage ${from}–${to}`}
+        {rows.length > 0 && ` · showing ${from}–${to}`}
       </p>
       {rows.length === 0 ? (
         <p className="wulin-agent-grid-result__empty">0 lines.</p>

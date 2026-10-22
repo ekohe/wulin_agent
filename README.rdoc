@@ -411,6 +411,43 @@ application's +config/initializers/wulin_agent.rb+, otherwise clients get
 Entries may be bare hostnames (any port) or +hostname:port+. Restart the app
 after changing the list. Do not derive the allowlist from request headers.
 
+=== list_records payload (MCP and in-app agent)
+
++list_records+ returns grid JSON. Large text columns (e.g. article bodies) can
+blow MCP context limits, so the engine can *project* responses:
+
+* +fields+ — return only these column names (+id+ is added automatically when
+  present on the grid). Best for agents: small, explicit column sets.
+* +omit_columns+ — return all columns except these (ignored when +fields+ is set).
+  Pass +omit_columns: []+ to disable host defaults and return every column.
+* +text_max_chars+ — truncate long string cells in projected rows (full text:
+  +read_record+).
+* +row_format+ — +objects+ (default when projecting) or +arrays+ (legacy Wulin
+  row shape). The in-app grid table accepts both.
+
+Per-grid defaults (host app) in +config/initializers/wulin_agent.rb+ — applied
+when the client does not pass +fields+ or +omit_columns+:
+
+  WulinAgent.setup do |config|
+    config.list_records_default_omit_columns = {
+      "articles" => %w[content content_org embedding]
+    }
+    config.list_records_text_max_chars = 500   # optional, when projecting
+    config.list_records_debug_metadata = false # omit sql/query from list JSON
+  end
+
+Keys are grid *controller* names (e.g. +articles+, +people+). Omitted columns
+stay visible in +get_columns+; name them in +fields+ to include them again.
+
+When projection is active, the engine sends +agent_fields+ on the grid index
+request so the host *may* SELECT only those columns in SQL. Grids that ignore
++agent_fields+ still work; projection then strips columns from the JSON response
+only.
+
+Filter operators (+include+ as substring, +gte+/+lte+ on numeric columns, etc.)
+are normalized in the engine before the Wulin grid runs; see tool descriptions
+on +list_records+.
+
 == Knowledge
 
 Domain terms (acronyms, schema mappings, workflows) live in +agent_knowledge+.
