@@ -245,6 +245,35 @@ RSpec.describe WulinAgent::ToolRegistry do
       )
     end
 
+    it "returns an error when a filter is missing value" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call)
+
+      result = tool.execute(
+        people.merge("count" => 50, "filters" => [{"column" => "first_name"}]),
+        admin
+      )
+
+      expect(result["error"]).to include("requires value")
+      expect(WulinAgent::GridDispatcher).not_to have_received(:call)
+    end
+
+    it "returns an error for an unknown filter column" do
+      tool = described_class.find("list_records", admin)
+      allow(WulinAgent::GridDispatcher).to receive(:call)
+
+      result = tool.execute(
+        people.merge(
+          "count" => 50,
+          "filters" => [{"column" => "not_a_column", "value" => "x", "operator" => "equals"}]
+        ),
+        admin
+      )
+
+      expect(result["error"]).to include("Unknown column", "not_a_column")
+      expect(WulinAgent::GridDispatcher).not_to have_received(:call)
+    end
+
     it "returns an error for date range filters on date columns" do
       tool = described_class.find("list_records", admin)
       allow(WulinAgent::GridDispatcher).to receive(:call)
@@ -303,7 +332,12 @@ RSpec.describe WulinAgent::ToolRegistry do
         )
       )
 
-      result = tool.execute(people.merge("filters" => [{"column" => "includes_chain?", "value" => "true"}]), admin)
+      result = tool.execute(
+        people.merge(
+          "filters" => [{"column" => "first_name", "value" => "Alice", "operator" => "equals"}]
+        ),
+        admin
+      )
 
       expect(result).to eq(
         "error" => "Invalid filter or sort: one or more columns cannot be queried in SQL. " \

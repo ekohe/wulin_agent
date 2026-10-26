@@ -114,11 +114,45 @@ RSpec.describe WulinAgent::ListRecordsFilterNormalizer do
       expect(result["error"]).to include("value_from", "value_to")
     end
 
-    it "rejects date range operators when grid column is datetime" do
-      grid = double(
-        "grid",
-        columns: [double(name: :published_at, sql_type: :datetime)]
+    it "returns an error when column is missing" do
+      result = described_class.normalize([{"value" => "x"}])
+
+      expect(result["error"]).to include("column is required")
+    end
+
+    it "returns an error when value is missing" do
+      result = described_class.normalize([{"column" => "title"}])
+
+      expect(result["error"]).to include("requires value")
+    end
+
+    it "returns an error for an unknown operator" do
+      result = described_class.normalize(
+        [{"column" => "title", "value" => "x", "operator" => "regex"}]
       )
+
+      expect(result["error"]).to include("Unknown filter operator")
+    end
+
+    it "returns an error for an unknown column when grid is given" do
+      grid = double("grid", columns: [], grid_class: double(model: nil))
+
+      result = described_class.normalize(
+        [{"column" => "nope", "value" => "1"}],
+        grid: grid
+      )
+
+      expect(result["error"]).to include("Unknown column", "nope")
+    end
+
+    it "rejects date range operators when grid column is datetime" do
+      column = double(
+        name: :published_at,
+        sql_type: :datetime,
+        filterable: true,
+        table_column?: true
+      )
+      grid = double("grid", columns: [column], grid_class: double(model: nil))
 
       result = described_class.normalize(
         [{"column" => "published_at", "value" => "2026-10-15", "operator" => "gte"}],

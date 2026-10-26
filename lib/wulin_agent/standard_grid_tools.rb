@@ -7,6 +7,24 @@ module WulinAgent
       required: ["id"]
     }.freeze
 
+    READ_RECORD_ID_SCHEMA = {
+      properties: {
+        id: {
+          type: "integer",
+          description: "Single record id."
+        },
+        ids: {
+          type: "array",
+          items: {type: "integer"},
+          description: "Multiple record ids (alternative to id). Returns one full row per id."
+        }
+      },
+      required: []
+    }.freeze
+
+    READ_RECORD_DESCRIPTION =
+      "Read one or more records by id (full rows, no text truncation). Pass id or ids."
+
     ATTRIBUTES_SCHEMA = {
       properties: {
         attributes: {
@@ -96,13 +114,13 @@ module WulinAgent
         tool(
           grid,
           "read",
-          description: "Read a single #{grid.controller} record by id",
+          description: READ_RECORD_DESCRIPTION,
           mutating: false,
           permission: "#{grid.screen_name}#read",
-          params_schema: ID_SCHEMA
+          params_schema: READ_RECORD_ID_SCHEMA
         ) do |params, user|
           id = record_id(params)
-          next {"error" => "id is required"} unless id
+          next {"error" => "id or ids is required"} unless id
 
           GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
         end

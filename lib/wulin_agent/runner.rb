@@ -158,7 +158,7 @@ module WulinAgent
         When listing many records, pass fields with only the columns you need for triage
         (get_columns lists every column; host defaults may omit some from list_records until
         you name them in fields). Pass omit_columns: [] to list all columns. Use read_record
-        with id for full row detail.
+        with id or ids for full row detail (one or more records).
 
         To show a chart or visualization: first fetch rows with list_records, aggregate
         or count them YOURSELF, then call render_chart with the computed data array

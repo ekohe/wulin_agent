@@ -17,6 +17,11 @@ module WulinAgent
     DATE_SQL_TYPES = %w[date datetime].freeze
     EMBEDDED_COMPARISON_PATTERN = /\A(>=|<=|>|<|=)/
 
+    OPERATORS = (
+      %w[equals not_equals exclude starts_with contains include between] +
+      COMPARISON_OPERATORS.keys
+    ).freeze
+
     module_function
 
     def normalize(filters, grid: nil)
@@ -46,17 +51,25 @@ module WulinAgent
     end
 
     def normalize_one(filter, grid: nil)
-      return unless filter.is_a?(Hash)
+      unless filter.is_a?(Hash)
+        raise ValidationError, "Each filter must be an object with column and value."
+      end
 
       column = filter["column"].to_s
-      return if column.empty?
+      raise ValidationError, "Filter column is required." if column.empty?
+
+      validate_filterable_column!(grid, column)
 
       operator = filter["operator"].to_s.presence || "equals"
+      validate_operator!(operator)
 
       return normalize_between(column, filter, grid: grid) if operator == "between"
 
       value = filter["value"]
-      return if value.nil?
+      if value.nil?
+        raise ValidationError,
+          "Filter on \"#{column}\" requires value (or operator between with value_from and value_to)."
+      end
 
       case operator
       when "starts_with"
@@ -67,9 +80,31 @@ module WulinAgent
         normalize_comparison(column, operator, value, grid: grid)
       when "equals", "not_equals", "exclude"
         grid_filter(column, operator, value.to_s)
-      else
-        grid_filter(column, operator, value.to_s)
       end
+    end
+
+    def validate_operator!(operator)
+      return if OPERATORS.include?(operator)
+
+      raise ValidationError,
+        "Unknown filter operator \"#{operator}\". " \
+        "Use equals, include, starts_with, gte, lte, between, etc."
+    end
+
+    def validate_filterable_column!(grid, column_name)
+      return unless grid
+
+      column = grid.columns.find { |col| col.name.to_s == column_name }
+      unless column
+        raise ValidationError,
+          "Unknown column \"#{column_name}\". Call get_columns and use filterable column names."
+      end
+
+      model = grid.respond_to?(:grid_class) ? grid.grid_class&.model : nil
+      return if ColumnMetadata.agent_filterable?(column, model: model)
+
+      raise ValidationError,
+        "Column \"#{column_name}\" is not filterable. Call get_columns and use only columns with filterable: true."
     end
 
     def normalize_comparison(column, operator, value, grid:)

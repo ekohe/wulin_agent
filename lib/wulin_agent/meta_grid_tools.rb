@@ -139,7 +139,7 @@ module WulinAgent
                         "Call get_columns first — all columns are listed there even if omitted from " \
                         "list responses by host defaults. Pass fields to choose columns (including " \
                         "any omitted by default). Pass omit_columns: [] to return every column. " \
-                        "id is included automatically when using fields. Use read_record for one full row.",
+                        "id is included automatically when using fields. Use read_record for full row(s) by id or ids.",
           mutating: false,
           params_schema: {
             properties: CONTROLLER.merge(
@@ -205,21 +205,22 @@ module WulinAgent
         make_tool(
           name: "read_record",
           operation: "read",
-          description: "Read a single record by id (full row, no text truncation).",
+          description: StandardGridTools::READ_RECORD_DESCRIPTION,
           mutating: false,
           params_schema: {
             properties: CONTROLLER.merge(
-              id: {type: "integer", description: "Record id"},
+              StandardGridTools::READ_RECORD_ID_SCHEMA[:properties]
+            ).merge(
               debug: {
                 type: "boolean",
                 description: "Include sql/query debug metadata. Default: false."
               }
             ),
-            required: ["controller", "id"]
+            required: ["controller"]
           }
         ) do |grid, params, user|
           id = record_id(params)
-          next {"error" => "id is required"} unless id
+          next {"error" => "id or ids is required"} unless id
 
           result = GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
           result = GridListResponse.sanitize_metadata(result, debug: list_records_debug?(params))
