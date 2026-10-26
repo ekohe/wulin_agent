@@ -16,6 +16,7 @@ module WulinAgent
 
     DATE_SQL_TYPES = %w[date datetime].freeze
     EMBEDDED_COMPARISON_PATTERN = /\A(>=|<=|>|<|=)/
+    FOREIGN_KEY_VALUE_OPERATORS = %w[equals not_equals exclude].freeze
 
     OPERATORS = (
       %w[equals not_equals exclude starts_with contains include between] +
@@ -78,7 +79,8 @@ module WulinAgent
         grid_filter(column, "include", contains_pattern(value.to_s))
       when *COMPARISON_OPERATORS.keys
         normalize_comparison(column, operator, value, grid: grid)
-      when "equals", "not_equals", "exclude"
+      when *FOREIGN_KEY_VALUE_OPERATORS
+        validate_foreign_key_value!(grid, column, value)
         grid_filter(column, operator, value.to_s)
       end
     end
@@ -89,6 +91,19 @@ module WulinAgent
       raise ValidationError,
         "Unknown filter operator \"#{operator}\". " \
         "Use equals, include, starts_with, gte, lte, between, etc."
+    end
+
+    def validate_foreign_key_value!(grid, column_name, value)
+      return unless grid
+
+      column = find_grid_column(grid, column_name)
+      return unless column
+
+      model = grid_model(grid)
+      return unless ColumnMetadata.belongs_to_sql_column?(column, model: model)
+      return if ColumnMetadata.foreign_key_filter_value?(value)
+
+      raise ValidationError, ColumnMetadata.foreign_key_filter_error(column, model: model)
     end
 
     def validate_filterable_column!(grid, column_name)
@@ -109,6 +124,7 @@ module WulinAgent
 
     def normalize_comparison(column, operator, value, grid:)
       reject_date_range!(column, grid, operator)
+      validate_foreign_key_value!(grid, column, value)
 
       embedded = embed_comparison(value.to_s, COMPARISON_OPERATORS.fetch(operator))
       grid_filter(column, "equals", embedded)
@@ -122,6 +138,8 @@ module WulinAgent
       end
 
       reject_date_range!(column, grid, "between")
+      validate_foreign_key_value!(grid, column, from)
+      validate_foreign_key_value!(grid, column, to)
 
       [
         grid_filter(column, "equals", embed_comparison(from.to_s, ">=")),
@@ -139,10 +157,17 @@ module WulinAgent
     end
 
     def column_sql_type(grid, column_name)
+      find_grid_column(grid, column_name)&.sql_type&.to_s
+    end
+
+    def find_grid_column(grid, column_name)
       return nil unless grid
 
-      column = grid.columns.find { |col| col.name.to_s == column_name }
-      column&.sql_type&.to_s
+      grid.columns.find { |col| col.name.to_s == column_name }
+    end
+
+    def grid_model(grid)
+      grid.respond_to?(:grid_class) ? grid.grid_class&.model : nil
     end
 
     def embed_comparison(value, symbol)

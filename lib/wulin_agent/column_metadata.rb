@@ -90,6 +90,35 @@ module WulinAgent
       column.sql_type.to_s == BELONGS_TO && column_reflection(column, model: model).present?
     end
 
+    def foreign_key_filter_value?(value)
+      case value
+      when Integer
+        true
+      when Hash
+        value.key?("id") || value.key?(:id)
+      when String
+        value.strip.match?(/\A\d+\z/)
+      when Numeric
+        true
+      else
+        false
+      end
+    end
+
+    def foreign_key_filter_error(column, model: nil)
+      reflection = column_reflection(column, model: model)
+      name = column.name.to_s
+      lookup_controller =
+        if reflection
+          ModelNaming.for(reflection.klass).plural
+        else
+          "the associated records"
+        end
+
+      "Column \"#{name}\" expects a numeric id (or {\"id\": N}), not a display name. " \
+        "Resolve ids via list_records on \"#{lookup_controller}\"."
+    end
+
     def reflected_sql_column?(column)
       reflection = column_reflection(column)
       return false unless reflection

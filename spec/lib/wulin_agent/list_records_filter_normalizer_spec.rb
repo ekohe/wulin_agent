@@ -145,6 +145,94 @@ RSpec.describe WulinAgent::ListRecordsFilterNormalizer do
       expect(result["error"]).to include("Unknown column", "nope")
     end
 
+    it "rejects a display string on a belongs_to column" do
+      schedule_class = Class.new do
+        def self.model_name
+          ActiveModel::Name.new(self, nil, "Schedule")
+        end
+      end
+      reflection = instance_double(
+        "ActiveRecord::Reflection::BelongsToReflection",
+        foreign_key: "schedule_id",
+        klass: schedule_class
+      )
+      column = WulinAgent::ColumnDescriptor.new(
+        name: :schedule,
+        label: "Schedule",
+        sql_type: :belongs_to,
+        filterable: true,
+        sortable: true,
+        reflection: reflection
+      )
+      model = double("Routine", reflect_on_association: reflection)
+      grid = double("grid", columns: [column], grid_class: double(model: model))
+
+      result = described_class.normalize(
+        [{"column" => "schedule", "value" => "Morning_Block", "operator" => "equals"}],
+        grid: grid
+      )
+
+      expect(result["error"]).to include("numeric id", "display name", "list_records", "schedules")
+    end
+
+    it "allows numeric id strings on a belongs_to column" do
+      reflection = instance_double(
+        "ActiveRecord::Reflection::BelongsToReflection",
+        foreign_key: "schedule_id",
+        klass: Class.new
+      )
+      column = WulinAgent::ColumnDescriptor.new(
+        name: :schedule,
+        sql_type: :belongs_to,
+        filterable: true,
+        reflection: reflection
+      )
+      grid = double("grid", columns: [column], grid_class: double(model: double(reflect_on_association: reflection)))
+
+      result = described_class.normalize(
+        [{"column" => "schedule", "value" => "42", "operator" => "equals"}],
+        grid: grid
+      )
+
+      expect(result).to eq([{"column" => "schedule", "value" => "42", "operator" => "equals"}])
+    end
+
+    it "allows hash id values on a belongs_to column" do
+      reflection = instance_double(
+        "ActiveRecord::Reflection::BelongsToReflection",
+        foreign_key: "schedule_id",
+        klass: Class.new
+      )
+      column = WulinAgent::ColumnDescriptor.new(
+        name: :schedule,
+        sql_type: :belongs_to,
+        filterable: true,
+        reflection: reflection
+      )
+      grid = double("grid", columns: [column], grid_class: double(model: double(reflect_on_association: reflection)))
+
+      result = described_class.normalize(
+        [{"column" => "schedule", "value" => {"id" => 42}, "operator" => "equals"}],
+        grid: grid
+      )
+
+      expect(result.first["operator"]).to eq("equals")
+    end
+
+    it "does not reject display strings on string columns" do
+      column = double(name: :title, sql_type: :string, filterable: true, table_column?: true)
+      grid = double("grid", columns: [column], grid_class: double(model: nil))
+
+      result = described_class.normalize(
+        [{"column" => "title", "value" => "Next_Telecom", "operator" => "equals"}],
+        grid: grid
+      )
+
+      expect(result).to eq(
+        [{"column" => "title", "value" => "Next_Telecom", "operator" => "equals"}]
+      )
+    end
+
     it "rejects date range operators when grid column is datetime" do
       column = double(
         name: :published_at,
