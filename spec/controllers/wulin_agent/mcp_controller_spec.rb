@@ -118,6 +118,30 @@ RSpec.describe WulinAgent::McpController, type: :controller do
     end
   end
 
+  describe "subscriptions/listen" do
+    it "refuses the method instead of opening an SSE stream" do
+      admin = User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true)
+      token = WulinAgent::ApiToken.create!(user: admin).token
+
+      request.headers["MCP-Protocol-Version"] = "2026-07-28"
+      request.headers["Mcp-Method"] = "subscriptions/listen"
+      rpc(
+        "subscriptions/listen",
+        {
+          notifications: {toolsListChanged: true, promptsListChanged: true, resourcesListChanged: true},
+          _meta: {
+            "io.modelcontextprotocol/protocolVersion" => "2026-07-28",
+            "io.modelcontextprotocol/clientCapabilities" => {}
+          }
+        },
+        token: token
+      )
+
+      expect(response).to have_http_status(:not_found)
+      expect(JSON.parse(response.body).dig("error", "code")).to eq(-32601)
+    end
+  end
+
   describe "tools/call" do
     it "executes a tool and returns its result" do
       admin = User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true)

@@ -33,7 +33,8 @@ module WulinAgent
       MCP::Server::Transports::StreamableHTTPTransport.new(
         server,
         stateless: true,
-        allowed_hosts: WulinAgent.config.mcp_allowed_hosts
+        allowed_hosts: WulinAgent.config.mcp_allowed_hosts,
+        serve_subscriptions_listen: false
       )
     end
 
