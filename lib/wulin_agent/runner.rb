@@ -240,7 +240,13 @@ module WulinAgent
       completed_calls = tool_calls.select { |call| completed_ids.include?(call["id"]) }
 
       if completed_calls.any?
-        replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        parts = msg.dig(:metadata, "parts")
+        if parts.present?
+          replay_assistant_rounds!(chat, parts, completed_calls, tool_results)
+        else
+          # Messages stored before parts existed kept no order: one round.
+          replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        end
         return
       end
 
@@ -260,27 +266,48 @@ module WulinAgent
       chat.add_message(role: msg[:role], content: content)
     end
 
-    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
-      calls = tool_calls.index_by { |call| call["id"] }.transform_values do |call|
-        RubyLLM::ToolCall.new(
-          id: call["id"],
-          name: call["name"],
-          arguments: call["arguments"] || {}
-        )
+    # The turn as the model lived it, one round per tool call: the text it
+    # wrote before a call goes with that call, the call's result follows, and
+    # the text after the last call closes the turn.
+    def replay_assistant_rounds!(chat, parts, tool_calls, tool_results)
+      calls = tool_calls.index_by { |call| call["id"] }
+      results = tool_results.index_by { |result| result["id"] }
+      text = []
+
+      parts.each do |part|
+        if part["type"] == "text"
+          text << part["text"] if part["text"].present?
+          next
+        end
+
+        call = calls[part["id"]]
+        next unless call && results[call["id"]]
+
+        chat.add_message(role: :assistant, content: text.join("\n\n"), tool_calls: replayed_calls([call]))
+        replay_tool_result!(chat, call, results[call["id"]])
+        text = []
       end
 
-      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: calls)
+      chat.add_message(role: :assistant, content: text.join("\n\n")) if text.any?
+    end
+
+    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
+      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: replayed_calls(tool_calls))
 
       tool_calls.each do |call|
         tool_result = tool_results.find { |result| result["id"] == call["id"] }
-        next unless tool_result
-
-        chat.add_message(
-          role: :tool,
-          content: tool_result["result"].to_json,
-          tool_call_id: call["id"]
-        )
+        replay_tool_result!(chat, call, tool_result) if tool_result
       end
+    end
+
+    def replayed_calls(calls)
+      calls.index_by { |call| call["id"] }.transform_values do |call|
+        RubyLLM::ToolCall.new(id: call["id"], name: call["name"], arguments: call["arguments"] || {})
+      end
+    end
+
+    def replay_tool_result!(chat, call, tool_result)
+      chat.add_message(role: :tool, content: tool_result["result"].to_json, tool_call_id: call["id"])
     end
 
     # Messages are immutable in ruby_llm 2, so the placeholder result is swapped

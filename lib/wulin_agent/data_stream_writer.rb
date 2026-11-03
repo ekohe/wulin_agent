@@ -5,7 +5,10 @@ module WulinAgent
     def initialize(stream, on_persist: nil)
       @stream = stream
       @on_persist = on_persist
-      @text_parts = []
+      # The turn in the order it happened: text segments and the tool calls
+      # between them. A turn makes one tool call per model round, so text
+      # written before, between and after the calls is several segments.
+      @parts = []
       @tool_calls = []
       @tool_results = []
       @closed = false
@@ -14,6 +17,7 @@ module WulinAgent
     def write(event)
       case event[:type]
       when :text_delta then write_text_delta(event[:content])
+      when :error_text then write_error_text(event[:content])
       when :tool_call then write_tool_call(event)
       when :tool_result then write_tool_result(event)
       when :done then close
@@ -38,14 +42,17 @@ module WulinAgent
       write_line("8", {messageId: id}.to_json)
     end
 
+    # Every text segment, a blank line apart so segments split by a tool call
+    # stay separate paragraphs rather than running into each other.
     def assistant_text
-      @text_parts.join
+      @parts.select { |part| part[:type] == "text" }.map { |part| part[:text] }.join("\n\n")
     end
 
     def metadata
       {
         "tool_calls" => @tool_calls.map(&:deep_stringify_keys),
-        "tool_results" => @tool_results.map(&:deep_stringify_keys)
+        "tool_results" => @tool_results.map(&:deep_stringify_keys),
+        "parts" => @parts.map(&:deep_stringify_keys)
       }
     end
 
@@ -55,8 +62,24 @@ module WulinAgent
       text = content.to_s
       return if text.empty?
 
-      @text_parts << text
+      last = @parts.last
+      if last && last[:type] == "text"
+        last[:text] += text
+      else
+        @parts << {type: "text", text: text}
+      end
       write_line("0", text.to_json)
+      persist!
+    end
+
+    # A failure's message is its own segment, after whatever the turn wrote.
+    def write_error_text(content)
+      text = content.to_s
+      return if text.empty?
+
+      streamed = (@parts.any? { |part| part[:type] == "text" }) ? "\n\n#{text}" : text
+      @parts << {type: "text", text: text}
+      write_line("0", streamed.to_json)
       persist!
     end
 
@@ -66,6 +89,7 @@ module WulinAgent
       arguments = event[:arguments] || {}
 
       @tool_calls << {id: id, name: name, arguments: arguments}
+      @parts << {type: "tool_call", id: id}
 
       write_line("b", {toolCallId: id, toolName: name}.to_json)
       write_line("c", arguments.to_json)

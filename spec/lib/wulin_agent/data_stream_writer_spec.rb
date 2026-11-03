@@ -69,6 +69,32 @@ RSpec.describe WulinAgent::DataStreamWriter do
     )
   end
 
+  it "keeps the turn's text and tool calls in the order they happened" do
+    writer.write(type: :text_delta, content: "Let me ")
+    writer.write(type: :text_delta, content: "check.")
+    writer.write(type: :tool_call, id: "call_1", name: "list_grids", arguments: {})
+    writer.write(type: :tool_result, id: "call_1", name: "list_grids", result: [])
+    writer.write(type: :tool_call, id: "call_2", name: "list_records", arguments: {"controller" => "people"})
+    writer.write(type: :text_delta, content: "Found 2 people.")
+
+    expect(writer.metadata["parts"]).to eq([
+      {"type" => "text", "text" => "Let me check."},
+      {"type" => "tool_call", "id" => "call_1"},
+      {"type" => "tool_call", "id" => "call_2"},
+      {"type" => "text", "text" => "Found 2 people."}
+    ])
+    expect(writer.assistant_text).to eq("Let me check.\n\nFound 2 people.")
+  end
+
+  it "writes a failure's message as a segment of its own" do
+    writer.write(type: :text_delta, content: "Working on it.")
+    writer.write(type: :error_text, content: "Error : boom")
+
+    expect(writer.metadata["parts"].last).to eq("type" => "text", "text" => "Error : boom")
+    expect(writer.assistant_text).to eq("Working on it.\n\nError : boom")
+    expect(output.string).to include('0:"\\n\\nError : boom"')
+  end
+
   it "captures metadata for persistence" do
     writer.write(type: :text_delta, content: "Done.")
     writer.write(
@@ -91,6 +117,10 @@ RSpec.describe WulinAgent::DataStreamWriter do
       ],
       "tool_results" => [
         {"id" => "call_1", "name" => "people__index", "result" => {"total" => 2}}
+      ],
+      "parts" => [
+        {"type" => "text", "text" => "Done."},
+        {"type" => "tool_call", "id" => "call_1"}
       ]
     )
   end
