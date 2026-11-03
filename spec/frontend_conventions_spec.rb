@@ -23,12 +23,10 @@ RSpec.describe "Frontend conventions" do
     expect(File).to exist(File.join(root, "app/assets/stylesheets/wulin_agent.scss"))
   end
 
-  it "takes its colors from wulin_master's theme, not from the page at runtime" do
-    stylesheet = File.read(File.join(root, "app/assets/stylesheets/wulin_agent.scss"))
+  # Colors themselves are checked on the compiled CSS in stylesheet_spec.rb.
+  it "leaves colors to the stylesheet rather than reading them off the page" do
     sync = File.read(File.join(root, "app/javascript/wulin_agent/syncWulinTheme.js"))
 
-    expect(stylesheet).to include('@use "theme.generated"')
-    expect(stylesheet).to include("var(--wulin-secondary-color")
     expect(sync).not_to include("--wulin-agent-main")
   end
 

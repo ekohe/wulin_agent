@@ -53,6 +53,8 @@ authentication checks.
 === Prerequisites
 
 * +wulin_master+ v3 (Propshaft, esbuild, dart-sass)
+* Dart Sass 1.79 or later (+sass-embedded+), whose +color.channel+ the stylesheet
+  uses to compute contrast; wulin_master's template installs a newer one
 * Node.js 22 or later (+engines+ in +package.json+; older lines are end-of-life)
 * +wulin_permits+ (LLM tools are gated by grid permissions)
 * PostgreSQL (+agent_messages.metadata+ is +jsonb+)
@@ -209,13 +211,14 @@ dart-sass compiles +app/assets/stylesheets/wulin_agent.scss+ into
 +application.css+. The chat UI's npm dependencies come from the gem's
 +package.json+, installed into the host through the npm workspace.
 
-The stylesheet takes its colors from wulin_master's theme, as +master.sass+
-does: it +@use+s +theme.generated+ and the Materialize palette, so
-+config.color_theme+ sets the agent's accent, and a page that sets
-+--wulin-secondary-color+ overrides it with the rest of the app. It needs the
-load paths wulin_master's template already gives dart-sass: +node_modules+ and
-+app/assets/stylesheets+. Rebuild with +bin/rails dartsass:build+ after
-+rake wulin_master:generate_theme_color_css+.
+The stylesheet takes its colors from wulin_master's theme at compile time, as
++master.sass+ does: it +@use+s +theme.generated+ and the Materialize palette,
+and the accent is the base shade of +config.color_theme+. Filled buttons sit on
+a darker mix of that shade so white text on them stays at 4.5:1 or above. It
+needs the load paths wulin_master's template already gives dart-sass:
++node_modules+ and +app/assets/stylesheets+. After changing
++config.color_theme+, run +rake wulin_master:generate_theme_color_css+ and then
++bin/rails dartsass:build+; the host's buttons and the panel change together.
 
 React is the exception: the gem lists +react+ and +react-dom+ as peer
 dependencies (<tt>^18.3.1 || ^19.0.0</tt>), and the host declares them in its

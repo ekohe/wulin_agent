@@ -1,35 +1,88 @@
-// Built by the host's dart-sass, which wulin_master points at node_modules and
-// at app/assets/stylesheets, where generate_theme_color_css writes
-// _theme.generated.scss. Colors come from the same Materialize palette as
-// master.sass; text-muted is its $text-color and text-subtle its $label-color.
+// Built by the host's dart-sass alongside wulin_master's master.sass, with the
+// same load paths: app/assets/stylesheets, where
+// rake wulin_master:generate_theme_color_css writes _theme.generated.scss, and
+// node_modules, for the Materialize palette. Every color is resolved here at
+// compile time from config.color_theme, as wulin_master resolves its own.
+@use "sass:color";
+@use "sass:math";
 @use "theme.generated" as theme;
 @use "materialize-css/sass/components/color-variables" as palette;
 
-#wulin-agent-root {
-  // master.sass fills its buttons with --wulin-secondary-color, falling back to
-  // the base shade of config.color_theme. White text on the default blue is
-  // 3.1:1, so filled buttons sit on main-strong, a shade darker than master's.
-  --wulin-agent-main: var(--wulin-secondary-color, #{palette.color(theme.$color-theme, "base")});
-  --wulin-agent-main-strong: color-mix(in srgb, var(--wulin-agent-main) 75%, black);
-  --wulin-agent-main-hover: color-mix(in srgb, var(--wulin-agent-main) 62%, black);
-  --wulin-agent-main-soft: color-mix(in srgb, var(--wulin-agent-main) 12%, transparent);
+$wulin-agent-main: palette.color(theme.$color-theme, "base");
+
+// WCAG 2 relative luminance and contrast ratio.
+@function -linear($channel) {
+  $c: math.div($channel, 255);
+  @if $c <= 0.04045 {
+    @return math.div($c, 12.92);
+  }
+  @return math.pow(math.div($c + 0.055, 1.055), 2.4);
+}
+
+@function -luminance($color) {
+  @return 0.2126 * -linear(color.channel($color, "red", $space: rgb))
+    + 0.7152 * -linear(color.channel($color, "green", $space: rgb))
+    + 0.0722 * -linear(color.channel($color, "blue", $space: rgb));
+}
+
+@function -contrast($a, $b) {
+  $la: -luminance($a);
+  $lb: -luminance($b);
+  @return math.div(math.max($la, $lb) + 0.05, math.min($la, $lb) + 0.05);
+}
+
+$wulin-agent-bg-subtle: palette.color("grey", "lighten-5");
+$wulin-agent-row-odd: palette.color("grey", "lighten-4");
+
+// main-strong is the fill under white text and the accent text color on every
+// panel background: white, bg-subtle, row-odd, and each of those under the
+// 12% main-soft tint (the history's active row). The tint over row-odd is the
+// darkest of them, so 4.5:1 against it covers all. Darker themes pass at 75%
+// accent; light ones (amber, yellow, lime...) need more black.
+$wulin-agent-darkest-panel-bg: color.mix($wulin-agent-main, $wulin-agent-row-odd, 12%);
+
+@function -ink-shade($base) {
+  @for $weight from 75 through 0 {
+    $shade: color.mix($base, black, $weight * 1%);
+    @if -contrast($shade, $wulin-agent-darkest-panel-bg) >= 4.5 {
+      @return $shade;
+    }
+  }
+  @return black;
+}
+
+$wulin-agent-main-strong: -ink-shade($wulin-agent-main);
+$wulin-agent-error: palette.color("red", "base");
+$wulin-agent-warning: palette.color("amber", "base");
+$wulin-agent-border: palette.color("grey", "lighten-2");
+
+// The panel's tokens.
+@mixin tokens {
+  // The accent itself is for borders and tints; text and filled buttons use
+  // main-strong (see -ink-shade), and hover darkens it further.
+  --wulin-agent-main: #{$wulin-agent-main};
+  --wulin-agent-main-strong: #{$wulin-agent-main-strong};
+  --wulin-agent-main-hover: #{color.mix($wulin-agent-main-strong, black, 83%)};
+  --wulin-agent-main-soft: #{color.change($wulin-agent-main, $alpha: 0.12)};
   --wulin-agent-on-main: #fff;
 
   --wulin-agent-text: #{palette.color("grey", "darken-3")};
   --wulin-agent-text-muted: #{palette.color("grey", "darken-2")};
   --wulin-agent-text-subtle: #{palette.color("grey", "base")};
-  --wulin-agent-border: #{palette.color("grey", "lighten-2")};
+  --wulin-agent-border: #{$wulin-agent-border};
   --wulin-agent-bg: #fff;
-  --wulin-agent-bg-subtle: #{palette.color("grey", "lighten-5")};
-  --wulin-agent-row-odd: #{palette.color("grey", "lighten-4")};
+  --wulin-agent-bg-subtle: #{$wulin-agent-bg-subtle};
+  --wulin-agent-row-odd: #{$wulin-agent-row-odd};
 
-  --wulin-agent-error: #{palette.color("red", "base")};
+  --wulin-agent-error: #{$wulin-agent-error};
   --wulin-agent-error-strong: #{palette.color("red", "darken-3")};
-  --wulin-agent-error-soft: color-mix(in srgb, var(--wulin-agent-error) 10%, transparent);
+  --wulin-agent-error-soft: #{color.change($wulin-agent-error, $alpha: 0.1)};
+  --wulin-agent-error-line: #{color.mix($wulin-agent-error, $wulin-agent-border, 35%)};
+  --wulin-agent-error-wash: #{color.mix($wulin-agent-error, $wulin-agent-bg-subtle, 6%)};
   --wulin-agent-success: #{palette.color("green", "darken-1")};
-  --wulin-agent-warning: #{palette.color("amber", "base")};
+  --wulin-agent-warning: #{$wulin-agent-warning};
   --wulin-agent-warning-strong: #{palette.color("orange", "darken-4")};
-  --wulin-agent-warning-soft: color-mix(in srgb, var(--wulin-agent-warning) 10%, transparent);
+  --wulin-agent-warning-soft: #{color.change($wulin-agent-warning, $alpha: 0.1)};
   --wulin-agent-info: #{palette.color("light-blue", "darken-2")};
   --wulin-agent-aborted: #{palette.color("grey", "lighten-1")};
   --wulin-agent-aborted-strong: #{palette.color("grey", "darken-2")};
@@ -50,6 +103,10 @@
   --wulin-agent-font: inherit;
   --wulin-agent-composer-min-height: 32px;
   --wulin-agent-composer-max-height: 120px;
+}
+
+#wulin-agent-root {
+  @include tokens;
 }
 
 #wulin-agent-root :focus-visible {
@@ -664,7 +721,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-message__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error) 35%, var(--wulin-agent-border));
+  border-color: var(--wulin-agent-error-line);
 }
 
 .wulin-agent-message__attachment--error .wulin-agent-message__attachment-hint {
@@ -972,7 +1029,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-approval__reject:hover {
   border-color: var(--wulin-agent-error-strong);
   color: var(--wulin-agent-error-strong);
-  background: color-mix(in srgb, var(--wulin-agent-error) 8%, transparent);
+  background: var(--wulin-agent-error-soft);
 }
 
 .wulin-agent-thread__footer {
@@ -1013,8 +1070,8 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error) 35%, var(--wulin-agent-border));
-  background: color-mix(in srgb, var(--wulin-agent-error) 6%, var(--wulin-agent-bg-subtle));
+  border-color: var(--wulin-agent-error-line);
+  background: var(--wulin-agent-error-wash);
 }
 
 .wulin-agent-composer__attachment--error .wulin-agent-composer__attachment-hint {
