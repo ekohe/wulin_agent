@@ -92,7 +92,8 @@ RSpec.describe WulinAgent::DataStreamWriter do
 
     expect(writer.metadata["parts"].last).to eq("type" => "text", "text" => "Error : boom")
     expect(writer.assistant_text).to eq("Working on it.\n\nError : boom")
-    expect(output.string).to include('0:"\\n\\nError : boom"')
+    expect(output.string).to include('3:"Error : boom"')
+    expect(output.string).not_to include('0:"Error : boom"')
   end
 
   it "captures metadata for persistence" do

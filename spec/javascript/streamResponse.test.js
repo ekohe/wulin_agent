@@ -65,7 +65,7 @@ test("on a resume, settles the paused call in place and yields only what follows
 });
 
 test("writes a stream error as its own text segment", async () => {
-  const update = await last(streamResponse(body(['0:"Working on it."', '3:"boom"'])));
+  const update = await last(streamResponse(body(['0:"Working on it."', '3:"Error : boom"'])));
 
   assert.deepEqual(shape(update.content), ["text:Working on it.", "text:Error : boom"]);
 });

@@ -33,11 +33,6 @@ module WulinAgent
       @closed = true
     end
 
-    def write_error(message)
-      write_line("3", message.to_json)
-      close
-    end
-
     def write_message_saved(id)
       write_line("8", {messageId: id}.to_json)
     end
@@ -72,14 +67,14 @@ module WulinAgent
       persist!
     end
 
-    # A failure's message is its own segment, after whatever the turn wrote.
+    # A failure's message is its own segment, after whatever the turn wrote,
+    # and goes out as an error line so the client starts a segment for it too.
     def write_error_text(content)
       text = content.to_s
       return if text.empty?
 
-      streamed = (@parts.any? { |part| part[:type] == "text" }) ? "\n\n#{text}" : text
       @parts << {type: "text", text: text}
-      write_line("0", streamed.to_json)
+      write_line("3", text.to_json)
       persist!
     end
 

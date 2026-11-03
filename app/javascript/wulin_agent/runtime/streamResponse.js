@@ -115,7 +115,7 @@ export async function* streamResponse(body, existingToolCalls = []) {
         break;
 
       case "error":
-        turn.startText(`Error : ${event.message}`);
+        turn.startText(event.message);
         yield snapshot();
         return;
     }
