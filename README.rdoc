@@ -606,5 +606,11 @@ Prepare the test database and run the tests:
   bundle exec rake app:db:test:prepare
   bundle exec rspec
 
+The chat UI's pure modules (message mapping, stream handling, chart data,
+turn helpers) have node:test unit tests in +spec/javascript+. They run on Node
+alone, bundled with the esbuild that +build-assets+ installs:
+
+  bin/test-js
+
 The dummy schema is +spec/dummy/db/structure.sql+ because wulin_permits
 creates SQL views.

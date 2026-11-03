@@ -145,13 +145,15 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       expect(messages.last.content).to include("split")
     end
 
-    it "streams the error as assistant text" do
+    # The client shows an error line as a text segment of its own (it no
+    # longer throws on one), the same segment the stored reply keeps.
+    it "streams the error on an error line of its own" do
       allow(runner).to receive(:run).and_raise(RuntimeError, "boom")
 
       post :create, params: {message: "Hello"}
 
-      expect(response.body).to include('0:"Error : boom"')
-      expect(response.body).not_to include("3:")
+      expect(response.body).to include('3:"Error : boom"')
+      expect(response.body).not_to include('0:"Error : boom"')
       expect(response.body).to include("[DONE]")
     end
 

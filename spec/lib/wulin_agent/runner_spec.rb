@@ -186,6 +186,110 @@ RSpec.describe WulinAgent::Runner do
       end
     end
 
+    it "replays a stored turn one round per tool call, in the order it happened" do
+      history = [
+        {role: :user, content: "How many people?"},
+        {
+          role: :assistant,
+          content: "Let me check.\n\nThere are 2 people.",
+          metadata: {
+            "tool_calls" => [
+              {"id" => "call_1", "name" => "list_grids", "arguments" => {}},
+              {"id" => "call_2", "name" => "list_records", "arguments" => {"controller" => "people"}}
+            ],
+            "tool_results" => [
+              {"id" => "call_1", "name" => "list_grids", "result" => [{"controller" => "people"}]},
+              {"id" => "call_2", "name" => "list_records", "result" => {"total" => 2}}
+            ],
+            "parts" => [
+              {"type" => "text", "text" => "Let me check."},
+              {"type" => "tool_call", "id" => "call_1"},
+              {"type" => "tool_call", "id" => "call_2"},
+              {"type" => "text", "text" => "There are 2 people."}
+            ]
+          }
+        }
+      ]
+      requests = script_model({content: "ok"})
+
+      described_class.new(user: admin, history: history).run("And now?")
+
+      replayed = requests.first.drop(1).map { |msg| [msg.role, msg.content.to_s, msg.tool_calls&.keys, msg.tool_call_id] }
+      expect(replayed).to eq([
+        [:user, "How many people?", nil, nil],
+        [:assistant, "Let me check.", ["call_1"], nil],
+        [:tool, [{"controller" => "people"}].to_json, nil, "call_1"],
+        [:assistant, "", ["call_2"], nil],
+        [:tool, {"total" => 2}.to_json, nil, "call_2"],
+        [:assistant, "There are 2 people.", nil, nil],
+        [:user, "And now?", nil, nil]
+      ])
+    end
+
+    # A tool that raises ends the turn, so the call without a result is always
+    # the turn's last: it cannot be replayed (a call needs its result), and the
+    # text written before it stays after the previous round, before the error.
+    it "replays a turn whose last tool raised without that call, keeping the text in order" do
+      script_model(
+        {chunks: ["Let me list the grids."], tool_calls: [{id: "call_1", name: "list_grids", arguments: {}}]},
+        {chunks: ["Now the records."], tool_calls: [{id: "call_2", name: "list_records", arguments: {"controller" => "people"}}]}
+      )
+      allow_any_instance_of(WulinAgent::ToolSpec).to receive(:execute).and_wrap_original do |execute, *args, **options|
+        raise "database gone" if execute.receiver.name == "list_records"
+        execute.call(*args, **options)
+      end
+      writer = WulinAgent::DataStreamWriter.new(StringIO.new)
+      begin
+        described_class.new(user: admin).run("How many people?") { |event| writer.write(event) }
+      rescue RuntimeError => e
+        writer.write(type: :error_text, content: "Error : #{e.message}")
+      end
+
+      expect(writer.metadata["parts"].map { |part| (part["type"] == "text") ? part["text"] : part["id"] })
+        .to eq(["Let me list the grids.", "call_1", "Now the records.", "call_2", "Error : database gone"])
+      expect(writer.metadata["tool_results"].map { |result| result["id"] }).to eq(["call_1"])
+
+      history = [
+        {role: :user, content: "How many people?"},
+        {role: :assistant, content: writer.assistant_text, metadata: writer.metadata}
+      ]
+      requests = script_model({content: "ok"})
+      described_class.new(user: admin, history: history).run("Try again")
+
+      replayed = requests.first.drop(1).map { |msg| [msg.role, msg.content.to_s, msg.tool_calls&.keys] }
+      expect(replayed).to eq([
+        [:user, "How many people?", nil],
+        [:assistant, "Let me list the grids.", ["call_1"]],
+        [:tool, requests.first.find { |msg| msg.tool_call_id == "call_1" }.content.to_s, nil],
+        [:assistant, "Now the records.\n\nError : database gone", nil],
+        [:user, "Try again", nil]
+      ])
+    end
+
+    it "replays a turn stored before parts existed as one round, as before" do
+      history = [
+        {role: :user, content: "How many people?"},
+        {
+          role: :assistant,
+          content: "There are 2 people.",
+          metadata: {
+            "tool_calls" => [{"id" => "call_1", "name" => "list_records", "arguments" => {"controller" => "people"}}],
+            "tool_results" => [{"id" => "call_1", "name" => "list_records", "result" => {"total" => 2}}]
+          }
+        }
+      ]
+      requests = script_model({content: "ok"})
+
+      described_class.new(user: admin, history: history).run("And now?")
+
+      replayed = requests.first.drop(1).map { |msg| [msg.role, msg.content.to_s, msg.tool_calls&.keys] }
+      expect(replayed.first(3)).to eq([
+        [:user, "How many people?", nil],
+        [:assistant, "There are 2 people.", ["call_1"]],
+        [:tool, {"total" => 2}.to_json, nil]
+      ])
+    end
+
     it "keeps the system prompt and only the last #{described_class::MAX_CONTEXT_MESSAGES} history messages" do
       history = (1..(described_class::MAX_CONTEXT_MESSAGES + 2)).map { |i| {role: :user, content: "msg #{i}"} }
       requests = script_model({content: "ok"})
@@ -271,6 +375,23 @@ RSpec.describe WulinAgent::Runner do
         {type: :text_delta, content: "OK"},
         {type: :done}
       )
+      expect(tool_message(requests.first, "call_1")).to eq("success" => true)
+    end
+
+    it "settles the paused call of a turn stored with its parts" do
+      alice = Person.create!(first_name: "Alice", last_name: "Martin")
+      arguments = {"controller" => "people", "id" => alice.id}
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1").token
+      history = paused_turn("call_1", "destroy_record", arguments, token)
+      history.last[:content] = "I'll delete Alice."
+      history.last[:metadata]["parts"] = [{"type" => "text", "text" => "I'll delete Alice."}, {"type" => "tool_call", "id" => "call_1"}]
+      requests = script_model({content: "Done."})
+
+      described_class.new(user: admin, history: history).run_approved(token: token)
+
+      expect(Person.find_by(id: alice.id)).to be_nil
+      assistant = requests.first.find { |msg| msg.role == :assistant && msg.tool_calls&.key?("call_1") }
+      expect(assistant.content.to_s).to eq("I'll delete Alice.")
       expect(tool_message(requests.first, "call_1")).to eq("success" => true)
     end
 

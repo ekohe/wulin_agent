@@ -195,7 +195,7 @@ module WulinAgent
       settle_pending_approval_after_failure(conversation, writer)
       if writer
         stream_write do
-          writer.write(type: :text_delta, content: error_text)
+          writer.write(type: :error_text, content: error_text)
           writer.close
         end
       end
