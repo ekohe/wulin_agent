@@ -7,6 +7,7 @@ import {ApprovalModeSelect} from "./ApprovalModeSelect";
 import {McpTokenManager} from "./McpTokenManager";
 import {IconButton} from "./IconButton";
 import {strings} from "../strings";
+import {syncWulinTheme} from "../syncWulinTheme";
 import {
   getConversationId,
   getStoredApprovalMode,
@@ -163,6 +164,8 @@ export function AgentApp({fullPage = false}) {
     const li = document.createElement("li");
     li.className = "wulin-agent-toggle-slot";
     ul.insertBefore(li, ul.firstChild);
+    // The slot sits outside #wulin-agent-root, so it measures the nav for itself.
+    syncWulinTheme(li);
     setToggleSlot(li);
 
     return () => {

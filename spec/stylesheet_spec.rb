@@ -26,9 +26,9 @@ RSpec.describe "wulin_agent.scss" do
     end
   end
 
-  # The custom properties declared on the panel root.
+  # The custom properties declared on the panel root (and the toggle slot).
   def tokens(css)
-    block = css[/#wulin-agent-root\s*\{([^}]*)\}/m, 1]
+    block = css[/#wulin-agent-root,\s*\.wulin-agent-toggle-slot\s*\{([^}]*)\}/m, 1]
     raise "no token block in the compiled CSS" unless block
 
     block.scan(/(--wulin-agent-[a-z0-9-]+):\s*([^;]+);/).to_h { |name, value| [name, value.strip] }
