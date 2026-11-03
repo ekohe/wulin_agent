@@ -1,8 +1,9 @@
 import {getConversationId, runApproved, runRejected, sendMessage} from "../api";
-import {parseDataStream} from "../parseDataStream";
 import { getApprovalDraft, clearApprovalDraft } from "../approvalDrafts";
 import {takePendingArchive} from "../pendingArchive";
 import {registerSentArchive} from "../sentMessageArchives";
+import {findApprovedCall, findRefusedCall} from "../turnParts";
+import {streamResponse} from "./streamResponse";
 
 function archiveFromLastUserMessage(messages) {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -31,143 +32,6 @@ function lastUserText(messages) {
   return "";
 }
 
-async function* streamResponse(body, existingToolCalls = []) {
-  const isResume = existingToolCalls.length > 0;
-  const knownToolCallIds = new Set(
-    existingToolCalls.map((part) => part.toolCallId)
-  );
-  const toolCalls = [];
-  const newToolCalls = [];
-  let accumulatedText = "";
-  let savedMessageId = null;
-
-  function allCalls() {
-    return isResume ? newToolCalls : toolCalls;
-  }
-
-  function snapshot() {
-    const calls = allCalls();
-    const content = [
-      ...calls,
-      ...(accumulatedText
-        ? [{type: "text", text: accumulatedText}]
-        : []),
-    ];
-    return {content};
-  }
-
-  function findCall(event) {
-    const byId = (calls) =>
-      calls.find((part) => part.toolCallId === event.toolCallId);
-
-    if (isResume) {
-      return (
-        byId(existingToolCalls) ||
-        byId(newToolCalls) ||
-        existingToolCalls.find(
-          (part) => part.approval?.approved === true && part.result === undefined
-        )
-      );
-    }
-
-    return (
-      byId(toolCalls) || toolCalls.find((part) => part.toolName === event.name)
-    );
-  }
-
-  function shouldYieldResumeUpdate() {
-    return newToolCalls.length > 0 || accumulatedText;
-  }
-
-  for await (const event of parseDataStream(body)) {
-    switch (event.type) {
-      case "text_delta":
-        accumulatedText += event.content;
-        yield snapshot();
-        break;
-
-      case "tool_call_start": {
-        if (isResume && knownToolCallIds.has(event.toolCallId)) {
-          break;
-        }
-
-        const calls = allCalls();
-        const exists = calls.find(
-          (part) => part.toolCallId === event.toolCallId
-        );
-
-        if (!exists) {
-          const part = {
-            type: "tool-call",
-            toolCallId: event.toolCallId,
-            toolName: event.toolName,
-            args: {},
-            argsText: "",
-          };
-          calls.push(part);
-          if (isResume) knownToolCallIds.add(event.toolCallId);
-        }
-
-        yield snapshot();
-        break;
-      }
-
-      case "tool_call_args": {
-        const calls = isResume
-          ? [...existingToolCalls, ...newToolCalls]
-          : toolCalls;
-        const call =
-          calls.find((part) => part.toolCallId === event.toolCallId) ||
-          allCalls()[allCalls().length - 1];
-        if (call) {
-          call.args = event.arguments;
-          call.argsText = JSON.stringify(event.arguments);
-        }
-        if (!isResume || shouldYieldResumeUpdate()) {
-          yield snapshot();
-        }
-        break;
-      }
-
-      case "tool_result": {
-        const call = findCall(event);
-
-        if (event.result?.status === "approval_required") {
-          if (call) {
-            call.approval = {
-              id: event.result.approval_token,
-              expiresAt: event.result.approval_expires_at,
-            };
-            delete call.result;
-          }
-
-          yield {
-            ...snapshot(),
-            status: {type: "requires-action", reason: "tool-calls"},
-          };
-          return;
-        }
-
-        if (call) call.result = event.result;
-        if (!isResume || shouldYieldResumeUpdate()) {
-          yield snapshot();
-        }
-        break;
-      }
-
-      case "message_saved":
-        savedMessageId = event.messageId;
-        yield {...snapshot(), metadata: {custom: {messageId: savedMessageId}}};
-        break;
-
-      case "error":
-        accumulatedText += `\n\nError : ${event.message}`;
-        yield snapshot();
-        return;
-    }
-  }
-}
-
 /** @type {import("@assistant-ui/react").ChatModelAdapter} */
 export const wulinModelAdapter = {
   async *run({messages, unstable_getMessage, abortSignal}) {
@@ -176,10 +40,7 @@ export const wulinModelAdapter = {
       (part) => part.type === "tool-call"
     );
 
-    const approvedCall = existingToolCalls.find(
-      (part) =>
-        part.approval?.approved === true && part.result === undefined
-    );
+    const approvedCall = findApprovedCall(existingToolCalls);
     if (approvedCall) {
       const token = approvedCall.approval.id;
       const params =
@@ -197,12 +58,7 @@ export const wulinModelAdapter = {
       return;
     }
 
-    // A refusal made just now still carries the approval id; ones read back
-    // from history do not (messageMapper drops it). assistant-ui stores its own
-    // { error } result on a refused call, so the result cannot tell them apart.
-    const rejectedCall = existingToolCalls.findLast(
-      (part) => part.approval?.approved === false && part.approval?.id
-    );
+    const rejectedCall = findRefusedCall(existingToolCalls);
     if (rejectedCall) {
       const {body} = await runRejected({
         token: rejectedCall.approval.id,

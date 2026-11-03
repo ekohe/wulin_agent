@@ -74,6 +74,35 @@ export function hasPendingApprovalInApi(apiMessages) {
   });
 }
 
+function toolCallPart(tc, result, approvalResolutions) {
+  const part = {
+    type: "tool-call",
+    toolCallId: tc.id,
+    toolName: tc.name,
+    args: tc.arguments ?? {},
+    argsText: JSON.stringify(tc.arguments ?? {}),
+  };
+
+  if (result?.status === "approval_required") {
+    const resolved = approvalResolutions.get(result.approval_token);
+    if (resolved?.approved) {
+      part.approval = {approved: true};
+      if (resolved.result) part.result = resolved.result;
+    } else if (resolved) {
+      part.approval = {approved: false};
+    } else {
+      part.approval = {id: result.approval_token, expiresAt: result.approval_expires_at};
+    }
+  } else if (result?.status === "rejected") {
+    part.approval = {approved: false};
+    part.result = result;
+  } else if (result) {
+    part.result = result;
+  }
+
+  return part;
+}
+
 export function toAssistantUiMessages(apiMessages) {
   const approvalResolutions = buildApprovalResolutions(apiMessages);
 
@@ -99,43 +128,35 @@ export function toAssistantUiMessages(apiMessages) {
       };
     }
 
-    const {tool_calls = [], tool_results = []} = msg.metadata ?? {};
+    const {tool_calls = [], tool_results = [], parts: order} = msg.metadata ?? {};
+    const toolParts = new Map(
+      tool_calls.map((tc) => [
+        tc.id,
+        toolCallPart(tc, tool_results.find((r) => r.id === tc.id)?.result, approvalResolutions),
+      ])
+    );
     const parts = [];
 
-    for (const tc of tool_calls) {
-      const tr = tool_results.find((r) => r.id === tc.id);
-      const result = tr?.result;
-
-      const part = {
-        type: "tool-call",
-        toolCallId: tc.id,
-        toolName: tc.name,
-        args: tc.arguments ?? {},
-        argsText: JSON.stringify(tc.arguments ?? {}),
-      };
-
-      if (result?.status === "approval_required") {
-        const resolved = approvalResolutions.get(result.approval_token);
-        if (resolved?.approved) {
-          part.approval = {approved: true};
-          if (resolved.result) part.result = resolved.result;
-        } else if (resolved) {
-          part.approval = {approved: false};
-        } else {
-          part.approval = {id: result.approval_token, expiresAt: result.approval_expires_at};
+    if (Array.isArray(order) && order.length > 0) {
+      // Stored in the order the turn happened: text segments between the calls.
+      for (const entry of order) {
+        if (entry.type === "text" && entry.text?.trim()) {
+          parts.push({type: "text", text: entry.text});
+        } else if (entry.type === "tool_call" && toolParts.has(entry.id)) {
+          parts.push(toolParts.get(entry.id));
+          toolParts.delete(entry.id);
         }
-      } else if (result?.status === "rejected") {
-        part.approval = {approved: false};
-        part.result = result;
-      } else if (result) {
-        part.result = result;
       }
-
-      parts.push(part);
-    }
-
-    if (msg.content?.trim()) {
-      parts.push({type: "text", text: msg.content});
+      parts.push(...toolParts.values());
+      if (!order.some((entry) => entry.type === "text") && msg.content?.trim()) {
+        parts.push({type: "text", text: msg.content});
+      }
+    } else {
+      // Stored before the order was kept: the calls, then all the text.
+      parts.push(...toolParts.values());
+      if (msg.content?.trim()) {
+        parts.push({type: "text", text: msg.content});
+      }
     }
 
     const assistant = {
