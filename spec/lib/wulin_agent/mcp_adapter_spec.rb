@@ -35,8 +35,8 @@ RSpec.describe WulinAgent::McpAdapter do
     it "exposes the params schema for tools with arguments" do
       schema = build_tool("read_record").input_schema_value.to_h
 
-      expect(schema[:properties]).to include(:controller, :id)
-      expect(schema[:required]).to include("controller", "id")
+      expect(schema[:properties]).to include(:controller, :id, :ids)
+      expect(schema[:required]).to eq(["controller"])
     end
 
     it "marks read-only tools with read_only_hint" do

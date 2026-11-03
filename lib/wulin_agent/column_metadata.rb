@@ -4,6 +4,10 @@ module WulinAgent
   module ColumnMetadata
     BELONGS_TO = "belongs_to"
     COMPUTED_COLUMN_HINT = "Computed column — not filterable or sortable via list_records."
+    NUMERIC_RANGE_HINT =
+      "Numeric range: use gte, lte, gt, lt, or between (value_from / value_to) in list_records filters."
+    DATE_RANGE_HINT =
+      "Date/datetime range filters are not supported; use sort_col and pagination."
 
     module_function
 
@@ -20,6 +24,10 @@ module WulinAgent
         choices: column.choices
       }.compact
 
+      if filterable
+        hint = filter_value_hint(column, model: model)
+        payload[:value_hint] = hint if hint.present?
+      end
       payload[:value_hint] = COMPUTED_COLUMN_HINT if computed_column?(column, model: model)
 
       return payload unless column.sql_type.to_s == BELONGS_TO
@@ -64,6 +72,14 @@ module WulinAgent
       }
     end
 
+    def filter_value_hint(column, model: nil)
+      sql_type = column.sql_type.to_s
+      return NUMERIC_RANGE_HINT if %w[integer float decimal].include?(sql_type)
+      return DATE_RANGE_HINT if %w[date datetime].include?(sql_type)
+
+      nil
+    end
+
     def build_value_hint(name, foreign_key, lookup_controller)
       "Foreign key, not a display string. " \
         "Pass #{foreign_key} (integer) or #{name}: {\"id\": N}. " \
@@ -72,6 +88,35 @@ module WulinAgent
 
     def belongs_to_sql_column?(column, model: nil)
       column.sql_type.to_s == BELONGS_TO && column_reflection(column, model: model).present?
+    end
+
+    def foreign_key_filter_value?(value)
+      case value
+      when Integer
+        true
+      when Hash
+        value.key?("id") || value.key?(:id)
+      when String
+        value.strip.match?(/\A\d+\z/)
+      when Numeric
+        true
+      else
+        false
+      end
+    end
+
+    def foreign_key_filter_error(column, model: nil)
+      reflection = column_reflection(column, model: model)
+      name = column.name.to_s
+      lookup_controller =
+        if reflection
+          ModelNaming.for(reflection.klass).plural
+        else
+          "the associated records"
+        end
+
+      "Column \"#{name}\" expects a numeric id (or {\"id\": N}), not a display name. " \
+        "Resolve ids via list_records on \"#{lookup_controller}\"."
     end
 
     def reflected_sql_column?(column)

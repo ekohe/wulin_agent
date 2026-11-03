@@ -49,5 +49,17 @@ RSpec.describe WulinAgent::GridResult do
 
       expect(names).to eq(PersonGrid.columns.map { |c| c.name.to_s })
     end
+
+    it "keeps columns already set by list projection" do
+      payload = {
+        "total" => 0,
+        "rows" => [],
+        "columns" => [{"name" => "first_name", "label" => "First name"}]
+      }
+
+      result = described_class.wrap(PersonGrid, payload)
+
+      expect(result["columns"]).to eq(payload["columns"])
+    end
   end
 end
