@@ -79,6 +79,13 @@ RSpec.describe "wulin_agent.scss" do
         expect(token["--wulin-agent-main"].downcase).to eq(base.downcase)
       end
 
+      it "keeps white text on every filled button at 4.5:1 or more" do
+        %w[main-strong main-hover error-strong error-hover disabled].each do |fill|
+          ratio = contrast(token["--wulin-agent-on-main"], token["--wulin-agent-#{fill}"])
+          expect(ratio).to be >= 4.5, "white on #{fill} (#{token["--wulin-agent-#{fill}"]}) is #{ratio.round(2)}:1"
+        end
+      end
+
       # The history column is bg-subtle; its active row and + New hover add the tint.
       it "keeps accent text at 4.5:1 or more on every background it sits on" do
         strong = token["--wulin-agent-main-strong"]

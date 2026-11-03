@@ -66,6 +66,7 @@ $wulin-agent-border: palette.color("grey", "lighten-2");
   --wulin-agent-main-hover: #{color.mix($wulin-agent-main-strong, black, 83%)};
   --wulin-agent-main-soft: #{color.change($wulin-agent-main, $alpha: 0.12)};
   --wulin-agent-on-main: #fff;
+  --wulin-agent-disabled: #{palette.color("grey", "darken-2")};
 
   --wulin-agent-text: #{palette.color("grey", "darken-3")};
   --wulin-agent-text-muted: #{palette.color("grey", "darken-2")};
@@ -77,6 +78,7 @@ $wulin-agent-border: palette.color("grey", "lighten-2");
 
   --wulin-agent-error: #{$wulin-agent-error};
   --wulin-agent-error-strong: #{palette.color("red", "darken-3")};
+  --wulin-agent-error-hover: #{palette.color("red", "darken-4")};
   --wulin-agent-error-soft: #{color.change($wulin-agent-error, $alpha: 0.1)};
   --wulin-agent-error-line: #{color.mix($wulin-agent-error, $wulin-agent-border, 35%)};
   --wulin-agent-error-wash: #{color.mix($wulin-agent-error, $wulin-agent-bg-subtle, 6%)};
@@ -104,6 +106,33 @@ $wulin-agent-border: palette.color("grey", "lighten-2");
   --wulin-agent-font: inherit;
   --wulin-agent-composer-min-height: 32px;
   --wulin-agent-composer-max-height: 120px;
+}
+
+// A filled button's four states. Materialize fills every focused button
+// (button:focus, specificity 0-1-1); each state below outranks that, and hover
+// and focus skip :disabled so a disabled button always looks disabled.
+@mixin filled-button($fill, $hover) {
+  border-color: $fill;
+  background: $fill;
+  color: var(--wulin-agent-on-main);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $hover;
+    background: $hover;
+  }
+
+  &:focus:not(:hover):not(:disabled) {
+    border-color: $fill;
+    background: $fill;
+  }
+
+  &:disabled {
+    border-color: var(--wulin-agent-disabled);
+    background: var(--wulin-agent-disabled);
+    color: var(--wulin-agent-on-main);
+    cursor: not-allowed;
+  }
 }
 
 #wulin-agent-root,
@@ -977,22 +1006,11 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-approval__approve {
   border: none;
-  background: var(--wulin-agent-main-strong);
-  color: var(--wulin-agent-on-main);
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
 }
 
-.wulin-agent-approval__approve:hover {
-  background: var(--wulin-agent-main-hover);
-}
-
-.wulin-agent-approval__approve--danger,
-.wulin-agent-approval__approve--danger:hover {
-  background: var(--wulin-agent-error-strong);
-}
-
-.wulin-agent-approval__approve:disabled {
-  background: var(--wulin-agent-text-subtle);
-  cursor: not-allowed;
+.wulin-agent-approval__approve--danger {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
 }
 
 .wulin-agent-approval--destructive {
@@ -1243,23 +1261,12 @@ nav ul.right .wulin-agent-toggle-slot {
   padding: 0.375rem 0.75rem;
   border: none;
   border-radius: var(--wulin-agent-radius);
-  background: var(--wulin-agent-main-strong);
-  color: var(--wulin-agent-on-main);
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
-  cursor: pointer;
   box-shadow: var(--wulin-agent-shadow);
-}
-
-.wulin-agent-composer__send:hover:not(:disabled) {
-  background: var(--wulin-agent-main-hover);
-}
-
-.wulin-agent-composer__send:disabled {
-  background: var(--wulin-agent-text-subtle);
-  cursor: not-allowed;
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
 }
 
 .wulin-agent-approval--pending {
@@ -1575,11 +1582,16 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 .wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
-.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main-strong); border-color: var(--wulin-agent-main-strong); color: var(--wulin-agent-on-main); }
+.wulin-agent-tokens__button:hover:not(:disabled) { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__button--primary {
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
+}
 .wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
 .wulin-agent-tokens__text-button:hover { text-decoration: underline; }
 .wulin-agent-tokens__danger { color: var(--wulin-agent-error-strong); }
-.wulin-agent-tokens button:disabled, .wulin-agent-tokens input:disabled, .wulin-agent-tokens select:disabled { color: var(--wulin-agent-text-subtle); cursor: default; }
+.wulin-agent-tokens button:not(.wulin-agent-tokens__button--primary):disabled,
+.wulin-agent-tokens input:disabled,
+.wulin-agent-tokens select:disabled { color: var(--wulin-agent-text-subtle); cursor: default; }
 
 @media (max-width: 480px) {
   .wulin-agent-tokens { padding: 18px; }
@@ -1602,10 +1614,6 @@ nav ul.right .wulin-agent-toggle-slot {
  * single class. Focus shows as the ring, so each control keeps its own fill. */
 .wulin-agent-toggle:focus:not(:hover) { background-color: transparent; }
 .wulin-agent-toggle--open:focus:not(:hover) { background-color: rgba(0, 0, 0, 0.15); }
-.wulin-agent-composer__send:focus:not(:hover),
-.wulin-agent-approval__approve:focus:not(:hover),
-.wulin-agent-tokens__button--primary:focus:not(:hover) { background: var(--wulin-agent-main-strong); }
-.wulin-agent-approval__approve--danger:focus:not(:hover) { background: var(--wulin-agent-error-strong); }
 .wulin-agent-approval__edit:focus:not(:hover),
 .wulin-agent-approval__reject:focus:not(:hover),
 .wulin-agent-turn-copy:focus,
