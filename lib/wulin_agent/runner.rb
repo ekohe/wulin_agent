@@ -29,11 +29,13 @@ module WulinAgent
 
     def run_approved(token:, params: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
+      claim = Approvals.claim!(token, user_id: @user.id)
+      return answer_pending_call(claim.grant, Approvals.expiry_result(tool: claim.grant[:tool])) if claim.expired?
 
+      grant = claim.grant
       spec = ToolRegistry.find(grant[:tool], @user)
-      raise ArgumentError, "tool not found" unless spec
+      # Gone since the pause, its grid permission revoked or the tool removed.
+      return answer_pending_call(grant, {"error" => "#{grant[:tool]} is no longer available to you, so it did not run."}) unless spec
 
       raw = params || grant[:params] || {}
       raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
@@ -45,30 +47,23 @@ module WulinAgent
         approved: true
       )
 
-      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
-
-      replace_tool_result!(grant[:tool_call_id], result)
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
 
     def run_rejected(token:, reason: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
+      claim = Approvals.claim!(token, user_id: @user.id)
+      grant = claim.grant
+      result =
+        if claim.expired?
+          Approvals.expiry_result(tool: grant[:tool])
+        else
+          Approvals.rejection_result(tool: grant[:tool], reason: reason.presence || "User declined #{grant[:tool]}")
+        end
 
-      message = reason.presence || "User declined #{grant[:tool]}"
-      replace_tool_result!(
-        grant[:tool_call_id],
-        Approvals.rejection_result(tool: grant[:tool], reason: message)
-      )
-
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
@@ -167,6 +162,9 @@ module WulinAgent
         - If a tool result has status "rejected", the user declined that action.
           Do not retry that tool or call other tools. Reply in text only and
           briefly acknowledge what was not done.
+        - If a tool result has status "expired", the request timed out before
+          the user answered and the tool did not run. Do not retry it on your
+          own; say so and offer to prepare it again.
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,
@@ -315,6 +313,17 @@ module WulinAgent
       emit(type: :tool_call, id: tool_call.id, name: tool_call.name, arguments: tool_call.arguments)
     end
 
+    # Puts the outcome of an approval (the tool's result, a rejection or an
+    # expiry) where the paused tool call was, streams it so the client and the
+    # stored message can settle that call, and lets the model continue.
+    def answer_pending_call(grant, result)
+      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
+      replace_tool_result!(grant[:tool_call_id], result)
+      response = continue_agent_turn
+      emit(type: :done)
+      response
+    end
+
     def emit_tool_result(result)
       payload = {
         type: :tool_result,
@@ -327,12 +336,14 @@ module WulinAgent
         params = params.stringify_keys
         result = result.merge("params" => params)
         payload[:result] = result
-        payload[:approval_token] = Approvals.issue!(
+        issued = Approvals.issue!(
           tool: result["tool"],
           params: params,
           user_id: @user.id,
           tool_call_id: @current_tool_call&.id
         )
+        payload[:approval_token] = issued.token
+        payload[:approval_expires_at] = issued.expires_at.iso8601
       end
       emit(payload)
       @current_tool_call = nil

@@ -134,7 +134,10 @@ async function* streamResponse(body, existingToolCalls = []) {
 
         if (event.result?.status === "approval_required") {
           if (call) {
-            call.approval = {id: event.result.approval_token};
+            call.approval = {
+              id: event.result.approval_token,
+              expiresAt: event.result.approval_expires_at,
+            };
             delete call.result;
           }
 

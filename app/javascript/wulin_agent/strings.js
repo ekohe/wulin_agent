@@ -60,10 +60,17 @@ export const strings = {
   saveAndApprove: "Save & Approve",
   cancel: "Cancel",
   approvalJsonInvalid: "That is not valid JSON. Fix it before approving.",
+  approvalExpiresIn(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    return `Expires in ${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+  },
+  approvalExpired: "This request expired, so nothing was changed. Ask again to run it.",
+  dismiss: "Dismiss",
   status: {
     running: "Running",
     complete: "Complete",
     rejected: "Rejected",
+    expired: "Expired",
     failed: "Failed",
   },
 

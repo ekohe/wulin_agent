@@ -3,7 +3,8 @@
 module WulinAgent
   # Extracts successful tool steps from an assistant turn for skill distillation.
   class ConversationDistiller
-    SKIP_STATUSES = %w[approval_required rejected].freeze
+    # Calls that did not run: still waiting, declined, or answered too late.
+    SKIP_STATUSES = %w[approval_required rejected expired].freeze
 
     def self.steps_from(message)
       turn_messages(message).flat_map { |m| steps_for_message(m) }

@@ -9,6 +9,7 @@ import {
   resetConversationId,
   setConversationId,
 } from "../api";
+import {serverNow} from "../serverClock";
 import {
   hasPendingApproval,
   hasPendingApprovalInApi,
@@ -52,7 +53,6 @@ export function ConversationHistory({
   onResizeStart,
   onApprovalModeChange,
   onStatusChange,
-  onAwaitingApprovalChange,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +61,8 @@ export function ConversationHistory({
     setNotice((current) => (current === message ? "" : current));
   const [selectedId, setSelectedId] = useState(null);
   const [viewedStatus, setViewedStatus] = useState("idle");
+  // When the open conversation's pending approval stops accepting an answer.
+  const [viewedDeadline, setViewedDeadline] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const newButtonRef = useRef(null);
   const aui = useAui();
@@ -96,16 +98,16 @@ export function ConversationHistory({
       setSelectedId(data.id);
       setConversationId(data.id);
       setViewedStatus(status);
+      setViewedDeadline(data.awaiting_approval_until ?? null);
       onApprovalModeChange?.(data.approval_mode);
       onStatusChange?.(status);
-      onAwaitingApprovalChange?.(hasPendingApprovalInApi(data.messages));
       syncItemStatus(data.id, status);
 
       if (syncThread && (force || !threadRunningRef.current)) {
         aui.thread().reset(toAssistantUiMessages(data.messages));
       }
     },
-    [aui, onApprovalModeChange, onAwaitingApprovalChange, onStatusChange, syncItemStatus]
+    [aui, onApprovalModeChange, onStatusChange, syncItemStatus]
   );
 
   const loadListItems = useCallback(async () => {
@@ -147,8 +149,8 @@ export function ConversationHistory({
         if (error?.status === 404) {
           resetConversationId();
           setViewedStatus("idle");
+          setViewedDeadline(null);
           onStatusChange?.("idle");
-          onAwaitingApprovalChange?.(false);
           return;
         }
         setNotice(strings.historyOpenFailed);
@@ -158,11 +160,11 @@ export function ConversationHistory({
   useEffect(() => {
     if (!threadRunning || !selectedId) return;
 
-    onAwaitingApprovalChange?.(false);
     setViewedStatus("running");
+    setViewedDeadline(null);
     onStatusChange?.("running");
     syncItemStatus(selectedId, "running");
-  }, [threadRunning, selectedId, onAwaitingApprovalChange, onStatusChange, syncItemStatus]);
+  }, [threadRunning, selectedId, onStatusChange, syncItemStatus]);
 
   const hasRunningConversation =
     items.some((item) => item.status === "running") ||
@@ -180,6 +182,35 @@ export function ConversationHistory({
 
     return () => clearInterval(timer);
   }, [hasRunningConversation, loadListItems]);
+
+  // The server reports a paused conversation as awaiting approval only until
+  // its request expires; ask again then, for the list and the open one, so the
+  // marks do not outlive the request.
+  const nextApprovalDeadline = [viewedDeadline, ...items.map((item) => item.awaiting_approval_until)]
+    .map((value) => (value ? Date.parse(value) : NaN))
+    .filter((deadline) => !Number.isNaN(deadline))
+    .reduce((earliest, deadline) => Math.min(earliest, deadline), Infinity);
+
+  useEffect(() => {
+    if (nextApprovalDeadline === Infinity) return undefined;
+
+    const timer = setTimeout(() => {
+      loadListItems().catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      });
+      if (selectedId && viewedDeadline) {
+        fetchConversation(selectedId)
+          .then((data) => applyConversation(data, {syncThread: false}))
+          .catch((error) => {
+            console.error(error);
+            setNotice(strings.historyOpenFailed);
+          });
+      }
+    }, Math.max(0, nextApprovalDeadline - serverNow()) + 1000);
+
+    return () => clearTimeout(timer);
+  }, [nextApprovalDeadline, loadListItems, selectedId, viewedDeadline, applyConversation]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -204,8 +235,8 @@ export function ConversationHistory({
           selectedId,
         });
         setViewedStatus(status);
+        setViewedDeadline(data.awaiting_approval_until ?? null);
         onStatusChange?.(status);
-        onAwaitingApprovalChange?.(hasPendingApprovalInApi(data.messages));
         syncItemStatus(selectedId, status);
         clearNotice(strings.historyOpenFailed);
 
@@ -234,7 +265,7 @@ export function ConversationHistory({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [selectedId, viewedStatus, threadRunning, aui, onAwaitingApprovalChange, onStatusChange, syncItemStatus]);
+  }, [selectedId, viewedStatus, threadRunning, aui, onStatusChange, syncItemStatus]);
 
   async function handleClick(id) {
     try {
@@ -251,8 +282,8 @@ export function ConversationHistory({
     resetConversationId();
     setSelectedId(null);
     setViewedStatus("idle");
+    setViewedDeadline(null);
     onStatusChange?.("idle");
-    onAwaitingApprovalChange?.(false);
     aui.thread().reset([]);
   }
 
@@ -337,6 +368,7 @@ export function ConversationHistory({
             const isActive = String(selectedId) === String(item.id);
             const isRunning =
               item.status === "running" || (isActive && threadRunning);
+            const isAwaiting = !isRunning && item.status === "awaiting_approval";
             const rowClass = [
               "wulin-agent-history__row",
               isActive ? "wulin-agent-history__row--active" : "",
@@ -357,6 +389,7 @@ export function ConversationHistory({
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
                   {isRunning && <StatusMark status="running" />}
+                  {isAwaiting && <StatusMark status="awaiting_approval" />}
                 </button>
                 {!isRunning && (
                   <div className="wulin-agent-history__item-actions">

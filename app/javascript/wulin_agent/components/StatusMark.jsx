@@ -2,8 +2,10 @@ import {strings} from "../strings";
 
 const MARKS = {
   running: {icon: "sync", label: strings.status.running},
+  awaiting_approval: {icon: "pending_actions", label: strings.awaitingApproval},
   complete: {icon: "check", label: strings.status.complete},
   rejected: {icon: "block", label: strings.status.rejected},
+  expired: {icon: "timer_off", label: strings.status.expired},
   failed: {icon: "error", label: strings.status.failed},
 };
 

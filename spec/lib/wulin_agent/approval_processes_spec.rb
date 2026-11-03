@@ -6,12 +6,16 @@ require "open3"
 RSpec.describe "Approval grants across Ruby processes" do
   self.use_transactional_tests = false
 
-  it "shares durable grants and allows exactly one concurrent consumer" do
+  it "shares durable grants and lets exactly one of two concurrent processes claim a grant" do
     user = User.create!(email: "approval-#{SecureRandom.uuid}@example.com", admin: true)
-    token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: user.id)
+    token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: user.id).token
     script = <<~RUBY
-      grant = WulinAgent::Approvals.consume!(ENV.fetch("TEST_APPROVAL_TOKEN"), user_id: ENV.fetch("TEST_APPROVAL_USER"))
-      puts(grant ? "claimed" : "missing")
+      begin
+        WulinAgent::Approvals.claim!(ENV.fetch("TEST_APPROVAL_TOKEN"), user_id: ENV.fetch("TEST_APPROVAL_USER"))
+        puts "claimed"
+      rescue WulinAgent::Approvals::UnknownToken
+        puts "missing"
+      end
     RUBY
     env = {"RAILS_ENV" => "test", "TEST_APPROVAL_TOKEN" => token, "TEST_APPROVAL_USER" => user.id.to_s}
     results = 2.times.map do

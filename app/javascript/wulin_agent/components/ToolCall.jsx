@@ -8,6 +8,8 @@ import {strings} from "../strings";
 
 function toolStatus({isExecuting, isRejected, result}) {
   if (isExecuting) return "running";
+  // Checked before isRejected: dismissing an expired request is not a refusal.
+  if (result?.status === "expired") return "expired";
   if (isRejected || result?.status === "rejected") return "rejected";
   if (result?.status === "error" || result?.error) return "failed";
   if (result != null) return "complete";
@@ -36,7 +38,9 @@ export function ToolCall({toolName, args, result, approval, respondToApproval}) 
   }
 
   let toolClass = "wulin-agent-tool";
-  if (isRejected) {
+  if (status === "expired") {
+    toolClass += " wulin-agent-tool--expired";
+  } else if (isRejected) {
     toolClass += " wulin-agent-tool--rejected";
   } else if (isExecuting) {
     toolClass += " wulin-agent-tool--executing";
