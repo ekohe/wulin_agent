@@ -49,6 +49,8 @@ rspec:
   script:
     - bundle exec rake app:db:test:prepare
     - bundle exec rspec
+    # the chat UI's unit tests, bundled with the esbuild build-assets installed
+    - bin/test-js
 
 # Gems only: linting needs neither Node, the assets nor the database.
 standardrb:
