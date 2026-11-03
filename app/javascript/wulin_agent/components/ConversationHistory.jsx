@@ -18,7 +18,7 @@ import {IconButton} from "./IconButton";
 import {StatusMark} from "./StatusMark";
 import { useThreadRunning } from "../useThreadRunning";
 import {strings} from "../strings";
-import {confirmAction} from "../hostDialogs";
+import {ConfirmDialog} from "./ConfirmDialog";
 
 const LIST_POLL_MS = 2000;
 const CONVERSATION_POLL_MS = 1500;
@@ -61,6 +61,8 @@ export function ConversationHistory({
     setNotice((current) => (current === message ? "" : current));
   const [selectedId, setSelectedId] = useState(null);
   const [viewedStatus, setViewedStatus] = useState("idle");
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const newButtonRef = useRef(null);
   const aui = useAui();
   const threadRunning = useThreadRunning();
   const threadRunningRef = useRef(threadRunning);
@@ -254,12 +256,22 @@ export function ConversationHistory({
     aui.thread().reset([]);
   }
 
-  async function handleDelete(id, event) {
-    event.stopPropagation();
-
+  function isRunningItem(id) {
     const target = items.find((entry) => String(entry.id) === String(id));
-    if (target?.status === "running") return;
-    if (!(await confirmAction(strings.deleteConversation))) return;
+    return target?.status === "running";
+  }
+
+  function requestDelete(id, event) {
+    event.stopPropagation();
+    if (isRunningItem(id)) return;
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    // The list polls while the dialog is open; a run may have started since.
+    if (isRunningItem(id)) return;
 
     try {
       await deleteConversation(id);
@@ -271,6 +283,8 @@ export function ConversationHistory({
       ) {
         startNew();
       }
+      // The row and its delete button are gone; keep focus in the history.
+      newButtonRef.current?.focus();
     } catch (error) {
       console.error(error);
       setNotice(strings.historyDeleteFailed);
@@ -298,6 +312,7 @@ export function ConversationHistory({
               {strings.historyTitle(items.length)}
             </span>
             <button
+              ref={newButtonRef}
               type="button"
               className="wulin-agent-history__new"
               onClick={startNew}
@@ -349,7 +364,7 @@ export function ConversationHistory({
                       icon="delete"
                       label={strings.deleteConversationLabel}
                       className="wulin-agent-history__item-delete"
-                      onClick={(event) => handleDelete(item.id, event)}
+                      onClick={(event) => requestDelete(item.id, event)}
                     />
                   </div>
                 )}
@@ -357,6 +372,15 @@ export function ConversationHistory({
             );
           })}
         </ul>
+      )}
+
+      {pendingDeleteId !== null && (
+        <ConfirmDialog
+          message={strings.deleteConversation}
+          confirmLabel={strings.delete}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDeleteId(null)}
+        />
       )}
 
       {open && (

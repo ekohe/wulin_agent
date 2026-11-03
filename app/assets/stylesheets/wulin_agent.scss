@@ -1600,6 +1600,59 @@ nav ul.right .wulin-agent-toggle-slot {
   .wulin-agent-tokens__revoke { align-items: flex-start; }
 }
 
+.wulin-agent-confirm {
+  box-sizing: border-box;
+  width: calc(100vw - 32px);
+  max-width: 360px;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: 6px;
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: var(--wulin-agent-font);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wulin-agent-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.wulin-agent-confirm__message {
+  margin: 0 0 20px;
+}
+
+.wulin-agent-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wulin-agent-confirm__cancel,
+.wulin-agent-confirm__confirm {
+  padding: 6px 12px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.wulin-agent-confirm__cancel {
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  cursor: pointer;
+}
+
+.wulin-agent-confirm__cancel:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-confirm__confirm {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wulin-agent-drawer {
     transition: none;
@@ -1618,6 +1671,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-approval__reject:focus:not(:hover),
 .wulin-agent-turn-copy:focus,
 .wulin-agent-scroll-bottom:focus,
+.wulin-agent-confirm__cancel:focus:not(:hover),
 .wulin-agent-tokens__button:not(.wulin-agent-tokens__button--primary):focus:not(:hover) { background: var(--wulin-agent-bg); }
 .wulin-agent-tokens__trigger:focus:not(:hover),
 .wulin-agent-tokens__text-button:focus { background: transparent; }
