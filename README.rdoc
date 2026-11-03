@@ -438,8 +438,9 @@ blow MCP context limits, so the engine can *project* responses:
   present on the grid). Best for agents: small, explicit column sets.
 * +omit_columns+ — return all columns except these (ignored when +fields+ is set).
   Pass +omit_columns: []+ to disable host defaults and return every column.
-* +text_max_chars+ — truncate long string cells in projected rows (full text:
-  +read_record+).
+* +text_max_chars+ — truncate long string cells in projected rows, whether
+  +row_format+ is +objects+ or +arrays+ (full text: +read_record+). Object rows
+  also list the shortened columns in +_truncated_columns+.
 * +row_format+ — +objects+ (default when projecting) or +arrays+ (legacy Wulin
   row shape). The in-app grid table accepts both.
 

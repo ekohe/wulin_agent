@@ -17,10 +17,14 @@ module WulinAgent
     READ_RECORD_DESCRIPTION =
       "Read one or more records by id (full rows, no text truncation). Pass id or ids."
 
+    SINGLE_ID_ERROR = "id must be a single integer. Use ids for multiple records."
+    # update_record and destroy_record have no ids: they act on one record.
+    ONE_RECORD_ID_ERROR = "id must be a single integer; this tool acts on one record at a time."
+
     READ_RECORD_ID_PROPERTIES = {
       id: {
         type: "integer",
-        description: "Single record id."
+        description: "One record id. Use ids for more than one record."
       },
       ids: {
         type: "array",
@@ -234,10 +238,18 @@ module WulinAgent
             required: ["controller"]
           }
         ) do |grid, params, user|
-          id = read_record_ids(params)
-          next {"error" => "id or ids is required"} unless id
+          single, error = parse_single_id(params["id"], SINGLE_ID_ERROR)
+          next error if error
 
-          result = GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => id}, user)
+          many, error = parse_id_list(params["ids"])
+          next error if error
+
+          next {"error" => "Pass id or ids, not both."} if single && many
+
+          chosen = single ? [single] : many
+          next {"error" => "id or ids is required"} unless chosen
+
+          result = GridDispatcher.call(grid.controller, "index", {"checkbox_record_ids" => chosen.join(",")}, user)
           result = GridListResponse.sanitize_metadata(result, debug: list_records_debug?(params))
           GridResult.wrap(grid, result)
         end
@@ -272,7 +284,7 @@ module WulinAgent
           mutating: true,
           params_schema: {
             properties: CONTROLLER.merge(
-              id: {type: "integer", description: "Record id"},
+              id: {type: "integer", description: "One record id."},
               attributes: {
                 type: "object",
                 description: "Column name => new value, using the names get_columns returns",
@@ -282,7 +294,8 @@ module WulinAgent
             required: ["controller", "id", "attributes"]
           }
         ) do |grid, params, user|
-          id = record_id(params)
+          id, error = parse_single_id(params["id"], ONE_RECORD_ID_ERROR)
+          next error if error
           next {"error" => "id is required"} unless id
 
           GridDispatcher.call(
@@ -301,23 +314,51 @@ module WulinAgent
           description: "Delete a record by id.",
           mutating: true,
           params_schema: {
-            properties: CONTROLLER.merge(id: {type: "integer", description: "Record id"}),
+            properties: CONTROLLER.merge(id: {type: "integer", description: "One record id."}),
             required: ["controller", "id"]
           }
         ) do |grid, params, user|
-          id = record_id(params)
+          id, error = parse_single_id(params["id"], ONE_RECORD_ID_ERROR)
+          next error if error
           next {"error" => "id is required"} unless id
 
           GridDispatcher.call(grid.controller, "destroy", {"id" => id}, user)
         end
       end
 
-      def record_id(params)
-        Array(params["id"]).map(&:to_s).reject(&:empty?).join(",").presence
+      # [Integer, nil] when value is one id, [nil, nil] when it was not given
+      # (nil or a blank string, as in ids), or [nil, {"error" => message}].
+      # Arrays and comma-separated strings are refused: Wulin would act on
+      # every id in them.
+      def parse_single_id(value, message)
+        return [nil, nil] if blank_id?(value)
+        return [value, nil] if value.is_a?(Integer)
+        return [Integer(value, 10), nil] if value.is_a?(String) && value.match?(/\A\d+\z/)
+
+        [nil, {"error" => message}]
       end
 
-      def read_record_ids(params)
-        Array(params["id"] || params["ids"]).map(&:to_s).reject(&:empty?).join(",").presence
+      # [Array<Integer>, nil] for a list that still has ids after blank entries
+      # are dropped, [nil, nil] when that list is empty or ids was not given.
+      def parse_id_list(value)
+        return [nil, nil] if value.nil?
+        return [nil, {"error" => "ids must be an array of integers."}] unless value.is_a?(Array)
+
+        ids = []
+        value.each do |item|
+          next if blank_id?(item)
+
+          parsed, error = parse_single_id(item, "Each ids value must be a single integer.")
+          return [nil, error] if error
+
+          ids << parsed
+        end
+
+        [ids.presence, nil]
+      end
+
+      def blank_id?(value)
+        value.nil? || (value.is_a?(String) && value.strip.empty?)
       end
 
       def wrap_list_result(grid, result, params, projection = nil)

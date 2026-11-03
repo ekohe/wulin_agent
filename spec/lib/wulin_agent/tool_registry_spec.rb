@@ -359,6 +359,63 @@ RSpec.describe WulinAgent::ToolRegistry do
       expect(result["rows"].first[first_name_idx]).to eq("Alice")
     end
 
+    it "accepts an all-digit id string" do
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => alice.id.to_s), admin)
+
+      expect(result["rows"].size).to eq(1)
+      expect(result["rows"].first[first_name_idx]).to eq("Alice")
+    end
+
+    it "treats an empty ids list as omitted and reads id" do
+      tool = described_class.find("read_record", admin)
+
+      [[], [nil], [""]].each do |ids|
+        result = tool.execute(people.merge("id" => alice.id, "ids" => ids), admin)
+
+        expect(result["rows"].size).to eq(1)
+        expect(result["rows"].first[first_name_idx]).to eq("Alice")
+      end
+    end
+
+    it "refuses an array passed as id" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => [alice.id, bob.id]), admin)
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::SINGLE_ID_ERROR)
+    end
+
+    it "refuses a comma-separated id string" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => "#{alice.id},#{bob.id}"), admin)
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::SINGLE_ID_ERROR)
+    end
+
+    it "treats a blank id as omitted and reads ids" do
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => "", "ids" => [alice.id]), admin)
+
+      expect(result["rows"].size).to eq(1)
+    end
+
+    it "refuses an ids entry that is not one integer" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("ids" => [alice.id, "#{alice.id},#{bob.id}"]), admin)
+
+      expect(result).to eq("error" => "Each ids value must be a single integer.")
+    end
+
+    it "refuses a non-numeric id" do
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => "alice"), admin)
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::SINGLE_ID_ERROR)
+    end
+
     it "returns each record named in ids" do
       bob = Person.create!(first_name: "Bob", last_name: "Martin")
       tool = described_class.find("read_record", admin)
@@ -366,6 +423,13 @@ RSpec.describe WulinAgent::ToolRegistry do
 
       expect(result["rows"].size).to eq(2)
       expect(result["rows"].map { |row| row[first_name_idx] }).to contain_exactly("Alice", "Bob")
+    end
+
+    it "refuses a call that passes both id and ids" do
+      tool = described_class.find("read_record", admin)
+      result = tool.execute(people.merge("id" => alice.id, "ids" => [alice.id]), admin)
+
+      expect(result).to eq("error" => "Pass id or ids, not both.")
     end
   end
 
@@ -421,6 +485,7 @@ RSpec.describe WulinAgent::ToolRegistry do
       tool = described_class.find("update_record", admin)
 
       expect(tool.params_schema[:required]).to contain_exactly("controller", "id", "attributes")
+      expect(tool.params_schema.dig(:properties, :id, :description)).to eq("One record id.")
     end
 
     it "returns an error without attributes" do
@@ -428,6 +493,34 @@ RSpec.describe WulinAgent::ToolRegistry do
       result = tool.execute(people.merge("id" => alice.id), admin, approved: true)
 
       expect(result).to eq("error" => "attributes is required")
+    end
+
+    it "refuses an array of ids" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("update_record", admin)
+      result = tool.execute(
+        people.merge("id" => [alice.id, bob.id], "attributes" => {"first_name" => "Alicia"}),
+        admin,
+        approved: true
+      )
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::ONE_RECORD_ID_ERROR)
+      expect(alice.reload.first_name).to eq("Alice")
+      expect(bob.reload.first_name).to eq("Bob")
+    end
+
+    it "refuses a comma-separated id string" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("update_record", admin)
+      result = tool.execute(
+        people.merge("id" => "#{alice.id},#{bob.id}", "attributes" => {"first_name" => "Alicia"}),
+        admin,
+        approved: true
+      )
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::ONE_RECORD_ID_ERROR)
+      expect(alice.reload.first_name).to eq("Alice")
+      expect(bob.reload.first_name).to eq("Bob")
     end
   end
 
@@ -440,6 +533,40 @@ RSpec.describe WulinAgent::ToolRegistry do
 
       expect(result["success"]).to be(true)
       expect(Person.find_by(id: alice.id)).to be_nil
+    end
+
+    it "describes id as one record" do
+      tool = described_class.find("destroy_record", admin)
+
+      expect(tool.params_schema.dig(:properties, :id, :description)).to eq("One record id.")
+    end
+
+    it "asks for an id when it is blank" do
+      tool = described_class.find("destroy_record", admin)
+      result = tool.execute(people.merge("id" => ""), admin, approved: true)
+
+      expect(result).to eq("error" => "id is required")
+      expect(Person.find_by(id: alice.id)).to eq(alice)
+    end
+
+    it "refuses an array of ids" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("destroy_record", admin)
+      result = tool.execute(people.merge("id" => [alice.id, bob.id]), admin, approved: true)
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::ONE_RECORD_ID_ERROR)
+      expect(Person.find_by(id: alice.id)).to eq(alice)
+      expect(Person.find_by(id: bob.id)).to eq(bob)
+    end
+
+    it "refuses a comma-separated id string" do
+      bob = Person.create!(first_name: "Bob", last_name: "Martin")
+      tool = described_class.find("destroy_record", admin)
+      result = tool.execute(people.merge("id" => "#{alice.id},#{bob.id}"), admin, approved: true)
+
+      expect(result).to eq("error" => WulinAgent::MetaGridTools::ONE_RECORD_ID_ERROR)
+      expect(Person.find_by(id: alice.id)).to eq(alice)
+      expect(Person.find_by(id: bob.id)).to eq(bob)
     end
   end
 end

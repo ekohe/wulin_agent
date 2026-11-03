@@ -136,6 +136,24 @@ RSpec.describe WulinAgent::ListRecordsProjection do
       expect(result["rows"].first["_truncated_columns"]).to eq(["signature"])
     end
 
+    it "truncates long strings inside array rows" do
+      long_signature = "x" * 50
+      payload = {
+        "total" => 1,
+        "rows" => [sample_row("signature" => long_signature)]
+      }
+
+      result = described_class.apply(
+        grid: PersonGrid,
+        payload: payload,
+        fields: %w[signature],
+        row_format: "arrays",
+        text_max_chars: 10
+      )
+
+      expect(result["rows"].first).to eq([1, "#{long_signature[0, 10]}…"])
+    end
+
     it "prepends id when fields are given and the grid has an id column" do
       grid = double(
         "grid",
