@@ -194,11 +194,11 @@ export const wulinModelAdapter = {
       return;
     }
 
+    // A refusal made just now still carries the approval id; ones read back
+    // from history do not (messageMapper drops it). assistant-ui stores its own
+    // { error } result on a refused call, so the result cannot tell them apart.
     const rejectedCall = existingToolCalls.findLast(
-      (part) =>
-        part.approval?.approved === false &&
-        part.approval?.id &&
-        part.result === undefined
+      (part) => part.approval?.approved === false && part.approval?.id
     );
     if (rejectedCall) {
       const {body} = await runRejected({
