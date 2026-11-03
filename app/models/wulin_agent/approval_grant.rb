@@ -12,11 +12,16 @@ module WulinAgent
       where(user_id: user_id)
     end
 
-    def self.available(token, user_id:)
+    # Grants not yet answered, expired or not.
+    def self.unconsumed(token, user_id:)
       return none if token.blank?
 
       for_user(user_id).where(token_digest: Digest::SHA256.hexdigest(token.to_s), consumed_at: nil)
-        .where("expires_at > ?", Time.current)
+    end
+
+    # Grants the user can still answer.
+    def self.available(token, user_id:)
+      unconsumed(token, user_id: user_id).where("expires_at > ?", Time.current)
     end
 
     def grant

@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {createToken, listTokens, revokeToken} from "../tokenApi";
+import {IconButton} from "./IconButton";
 
 function dateLabel(value) {
   return new Date(value).toLocaleString(undefined, {dateStyle: "medium", timeStyle: "short"});
@@ -85,7 +86,7 @@ function TokenDialog({onClose}) {
           <span className="wulin-agent-tokens__eyebrow">External connections</span>
           <h2 id="wulin-agent-tokens-title">MCP tokens</h2>
         </div>
-        <button type="button" className="wulin-agent-panel__close" aria-label="Close token manager" disabled={busy} onClick={onClose}>×</button>
+        <IconButton icon="close" label="Close token manager" disabled={busy} onClick={onClose} />
       </header>
       <p className="wulin-agent-tokens__intro">Connect your MCP client to Wulin Agent using your account permissions.</p>
       <div className="wulin-agent-tokens__endpoint">
@@ -174,7 +175,7 @@ export function McpTokenManager() {
   return (
     <>
       <button ref={trigger} type="button" className="wulin-agent-tokens__trigger" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        <i className="material-icons" aria-hidden="true">vpn_key</i>
+        <span className="material-icons" aria-hidden="true">vpn_key</span>
         MCP tokens
       </button>
       {open && <TokenDialog onClose={close} />}

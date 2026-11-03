@@ -46,7 +46,9 @@ module WulinAgent
               type: {
                 type: "string",
                 enum: TYPES,
-                description: "Chart type: bar, line, or pie."
+                description: "Chart type: bar to compare categories, line for change over time, " \
+                             "pie only for one whole split into at most 6 parts (otherwise use bar). " \
+                             "At most 6 series are drawn; the rest stay in the data table."
               },
               title: {
                 type: "string",

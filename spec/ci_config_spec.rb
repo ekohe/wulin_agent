@@ -15,6 +15,12 @@ RSpec.describe "CI configuration" do
     expect(File.executable?(File.expand_path("dummy/bin/build-assets", __dir__))).to be(true)
   end
 
+  it "runs the chat UI's unit tests after the assets are built" do
+    expect(ci.dig("rspec", "script")).to include("bin/test-js")
+    expect(File.executable?(File.expand_path("../bin/test-js", __dir__))).to be(true)
+    expect(Dir[File.expand_path("javascript/*.test.js", __dir__)]).not_to be_empty
+  end
+
   it "installs psql, which loads the dummy app's structure.sql" do
     install = before_script.find { |command| command.start_with?("apt-get install") }
 

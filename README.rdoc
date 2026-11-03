@@ -26,7 +26,7 @@ adds them. The component template:
 * adds +vendor/gems/wulin_agent+ to +package.json+ workspaces, so the chat UI's
   npm dependencies install into the app
 * imports +app/javascript/wulin_agent.esm.js+ into +app/javascript/application.js+
-* +@use+s +app/assets/stylesheets/wulin_agent.css+ in +application.sass+
+* +@use+s +app/assets/stylesheets/wulin_agent.scss+ in +application.sass+
 * links the assistant page from the menu
 
 No route mount, generator or migration copy is needed: the engine draws its
@@ -53,6 +53,8 @@ authentication checks.
 === Prerequisites
 
 * +wulin_master+ v3 (Propshaft, esbuild, dart-sass)
+* Dart Sass 1.79 or later (+sass-embedded+), whose +color.channel+ the stylesheet
+  uses to compute contrast; wulin_master's template installs a newer one
 * Node.js 22 or later (+engines+ in +package.json+; older lines are end-of-life)
 * +wulin_permits+ (LLM tools are gated by grid permissions)
 * PostgreSQL (+agent_messages.metadata+ is +jsonb+)
@@ -88,6 +90,12 @@ the requesting user. Only a digest of the random token is stored. Approval and
 rejection claim a grant with a conditional database update before proceeding,
 so concurrent requests or a failed follow-up model response cannot replay a
 write. Inspect the actual record before requesting a new action after a failure.
+
+The approval card counts down to the grant's expiry, and the conversation list
+marks conversations waiting on an answer. Once a grant expires the card offers
+only Dismiss: an answer that arrives after expiry, approve or dismiss alike, is
+recorded as expired, the tool does not run, and the model tells the user so it
+can prepare the request again.
 Grants issued by older releases in process memory cannot be recovered; request
 and review a fresh proposal after upgrading.
 
@@ -123,7 +131,8 @@ control creation; include active-user and workspace validation when required.
 Hosts providing their own schema must retain the grant columns and unique
 token-digest index, and use their existing migration strategy rather than
 installing a second creation migration for the same table. Expired grants are
-pruned in batches of up to 100 when that user requests a new grant. Parameters
+kept for a day, so a late answer is still recognised as expired, then pruned in
+batches of up to 100 when that user requests a new grant. Parameters
 are private action data and must not be logged. The legacy +Approvals.reset!+
 method is a compatibility no-op; use transactional fixtures for test isolation.
 
@@ -205,9 +214,18 @@ secrets to a generated app.
 
 The gem ships source, not a bundle, like every wulin component. The host's own
 esbuild bundles +app/javascript/wulin_agent.esm.js+ into +application.js+, and
-dart-sass compiles +app/assets/stylesheets/wulin_agent.css+ into
+dart-sass compiles +app/assets/stylesheets/wulin_agent.scss+ into
 +application.css+. The chat UI's npm dependencies come from the gem's
 +package.json+, installed into the host through the npm workspace.
+
+The stylesheet takes its colors from wulin_master's theme at compile time, as
++master.sass+ does: it +@use+s +theme.generated+ and the Materialize palette,
+and the accent is the base shade of +config.color_theme+. Filled buttons sit on
+a darker mix of that shade so white text on them stays at 4.5:1 or above. It
+needs the load paths wulin_master's template already gives dart-sass:
++node_modules+ and +app/assets/stylesheets+. After changing
++config.color_theme+, run +rake wulin_master:generate_theme_color_css+ and then
++bin/rails dartsass:build+; the host's buttons and the panel change together.
 
 React is the exception: the gem lists +react+ and +react-dom+ as peer
 dependencies (<tt>^18.3.1 || ^19.0.0</tt>), and the host declares them in its
@@ -587,6 +605,12 @@ Prepare the test database and run the tests:
 
   bundle exec rake app:db:test:prepare
   bundle exec rspec
+
+The chat UI's pure modules (message mapping, stream handling, chart data,
+turn helpers) have node:test unit tests in +spec/javascript+. They run on Node
+alone, bundled with the esbuild that +build-assets+ installs:
+
+  bin/test-js
 
 The dummy schema is +spec/dummy/db/structure.sql+ because wulin_permits
 creates SQL views.

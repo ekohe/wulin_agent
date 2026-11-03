@@ -9,9 +9,9 @@ export function MessageArchiveAttachment({archive}) {
 
   return (
     <div className={`wulin-agent-message__attachment${modeClass}`}>
-      <i className="material-icons" aria-hidden="true">
+      <span className="material-icons" aria-hidden="true">
         {attachmentIcon(archive.filename)}
-      </i>
+      </span>
       <div className="wulin-agent-message__attachment-body">
         <span className="wulin-agent-message__attachment-label">
           {archive.filename || "attachment"} · {archive.file_count ?? "?"} file

@@ -1,27 +1,153 @@
-/*
- * Theme tokens: defaults mirror Wulin Master _base.scss (Materialize grey palette).
- * syncWulinTheme.js overwrites --wulin-agent-main (and others) from the host page.
- */
-#wulin-agent-root {
-  --wulin-agent-main: #2196f3;
-  --wulin-agent-main-soft: color-mix(in srgb, var(--wulin-agent-main) 12%, transparent);
-  --wulin-agent-main-hover: color-mix(in srgb, var(--wulin-agent-main) 88%, white);
-  --wulin-agent-text: #424242;
-  --wulin-agent-text-muted: #9e9e9e;
-  --wulin-agent-border: #e0e0e0;
+// Built by the host's dart-sass alongside wulin_master's master.sass, with the
+// same load paths: app/assets/stylesheets, where
+// rake wulin_master:generate_theme_color_css writes _theme.generated.scss, and
+// node_modules, for the Materialize palette. Every color is resolved here at
+// compile time from config.color_theme, as wulin_master resolves its own.
+@use "sass:color";
+@use "sass:math";
+@use "theme.generated" as theme;
+@use "materialize-css/sass/components/color-variables" as palette;
+
+$wulin-agent-main: palette.color(theme.$color-theme, "base");
+
+// WCAG 2 relative luminance and contrast ratio.
+@function -linear($channel) {
+  $c: math.div($channel, 255);
+  @if $c <= 0.04045 {
+    @return math.div($c, 12.92);
+  }
+  @return math.pow(math.div($c + 0.055, 1.055), 2.4);
+}
+
+@function -luminance($color) {
+  @return 0.2126 * -linear(color.channel($color, "red", $space: rgb))
+    + 0.7152 * -linear(color.channel($color, "green", $space: rgb))
+    + 0.0722 * -linear(color.channel($color, "blue", $space: rgb));
+}
+
+@function -contrast($a, $b) {
+  $la: -luminance($a);
+  $lb: -luminance($b);
+  @return math.div(math.max($la, $lb) + 0.05, math.min($la, $lb) + 0.05);
+}
+
+$wulin-agent-bg-subtle: palette.color("grey", "lighten-5");
+$wulin-agent-row-odd: palette.color("grey", "lighten-4");
+
+// main-strong is the fill under white text and the accent text color on every
+// panel background: white, bg-subtle, row-odd, and each of those under the
+// 12% main-soft tint (the history's active row). The tint over row-odd is the
+// darkest of them, so 4.5:1 against it covers all. Darker themes pass at 75%
+// accent; light ones (amber, yellow, lime...) need more black.
+$wulin-agent-darkest-panel-bg: color.mix($wulin-agent-main, $wulin-agent-row-odd, 12%);
+
+@function -ink-shade($base) {
+  @for $weight from 75 through 0 {
+    $shade: color.mix($base, black, $weight * 1%);
+    @if -contrast($shade, $wulin-agent-darkest-panel-bg) >= 4.5 {
+      @return $shade;
+    }
+  }
+  @return black;
+}
+
+$wulin-agent-main-strong: -ink-shade($wulin-agent-main);
+$wulin-agent-error: palette.color("red", "base");
+$wulin-agent-warning: palette.color("amber", "base");
+$wulin-agent-border: palette.color("grey", "lighten-2");
+
+// The panel's tokens. The toolbar toggle renders through a portal into the
+// host nav, outside #wulin-agent-root, so its slot carries them too.
+@mixin tokens {
+  // The accent itself is for borders and tints; text and filled buttons use
+  // main-strong (see -ink-shade), and hover darkens it further.
+  --wulin-agent-main: #{$wulin-agent-main};
+  --wulin-agent-main-strong: #{$wulin-agent-main-strong};
+  --wulin-agent-main-hover: #{color.mix($wulin-agent-main-strong, black, 83%)};
+  --wulin-agent-main-soft: #{color.change($wulin-agent-main, $alpha: 0.12)};
+  --wulin-agent-on-main: #fff;
+  --wulin-agent-disabled: #{palette.color("grey", "darken-2")};
+
+  --wulin-agent-text: #{palette.color("grey", "darken-3")};
+  --wulin-agent-text-muted: #{palette.color("grey", "darken-2")};
+  --wulin-agent-text-subtle: #{palette.color("grey", "base")};
+  --wulin-agent-border: #{$wulin-agent-border};
   --wulin-agent-bg: #fff;
-  --wulin-agent-bg-subtle: #fafafa;
-  --wulin-agent-row-odd: #f5f5f5;
-  --wulin-agent-error: #f44336;
+  --wulin-agent-bg-subtle: #{$wulin-agent-bg-subtle};
+  --wulin-agent-row-odd: #{$wulin-agent-row-odd};
+
+  --wulin-agent-error: #{$wulin-agent-error};
+  --wulin-agent-error-strong: #{palette.color("red", "darken-3")};
+  --wulin-agent-error-hover: #{palette.color("red", "darken-4")};
+  --wulin-agent-error-soft: #{color.change($wulin-agent-error, $alpha: 0.1)};
+  --wulin-agent-error-line: #{color.mix($wulin-agent-error, $wulin-agent-border, 35%)};
+  --wulin-agent-error-wash: #{color.mix($wulin-agent-error, $wulin-agent-bg-subtle, 6%)};
+  --wulin-agent-success: #{palette.color("green", "darken-1")};
+  --wulin-agent-warning: #{$wulin-agent-warning};
+  --wulin-agent-warning-strong: #{palette.color("orange", "darken-4")};
+  --wulin-agent-warning-soft: #{color.change($wulin-agent-warning, $alpha: 0.1)};
+  --wulin-agent-info: #{palette.color("light-blue", "darken-2")};
+  --wulin-agent-aborted: #{palette.color("grey", "lighten-1")};
+  --wulin-agent-aborted-strong: #{palette.color("grey", "darken-2")};
+
+  --wulin-agent-radius: 2px;
+  --wulin-agent-radius-md: 8px;
+  --wulin-agent-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --wulin-agent-measure: 68ch;
+
+  // Series colors, in this fixed order. Validated as a categorical set on
+  // white: lightness band, chroma, >= 3:1 contrast, and adjacent pairs apart
+  // under protanopia and deuteranopia (the pie's last slice touches its first,
+  // and that pair passes too). None is a status color; the order is the
+  // safety mechanism, so change the set only by re-running the validation.
+  --wulin-agent-chart-1: #{palette.color("blue", "base")};
+  --wulin-agent-chart-2: #{palette.color("deep-orange", "base")};
+  --wulin-agent-chart-3: #{palette.color("teal", "base")};
+  --wulin-agent-chart-4: #{palette.color("orange", "darken-3")};
+  --wulin-agent-chart-5: #{palette.color("pink", "darken-3")};
+  --wulin-agent-chart-6: #{palette.color("indigo", "base")};
+
   --wulin-agent-nav-height: 48px;
   --wulin-agent-font: inherit;
-  --wulin-agent-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --wulin-agent-radius: 2px;
-  --wulin-agent-aborted: #d1d1d1;
-  --wulin-agent-warning: #f0b429;
-  --wulin-agent-warning-soft: color-mix(in srgb, var(--wulin-agent-warning) 10%, transparent);
   --wulin-agent-composer-min-height: 32px;
   --wulin-agent-composer-max-height: 120px;
+}
+
+// A filled button's four states. Materialize fills every focused button
+// (button:focus, specificity 0-1-1); each state below outranks that, and hover
+// and focus skip :disabled so a disabled button always looks disabled.
+@mixin filled-button($fill, $hover) {
+  border-color: $fill;
+  background: $fill;
+  color: var(--wulin-agent-on-main);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $hover;
+    background: $hover;
+  }
+
+  &:focus:not(:hover):not(:disabled) {
+    border-color: $fill;
+    background: $fill;
+  }
+
+  &:disabled {
+    border-color: var(--wulin-agent-disabled);
+    background: var(--wulin-agent-disabled);
+    color: var(--wulin-agent-on-main);
+    cursor: not-allowed;
+  }
+}
+
+#wulin-agent-root,
+.wulin-agent-toggle-slot {
+  @include tokens;
+}
+
+#wulin-agent-root :focus-visible {
+  outline: 2px solid var(--wulin-agent-main-strong);
+  outline-offset: 2px;
 }
 
 nav ul.right .wulin-agent-toggle-slot {
@@ -36,11 +162,18 @@ nav ul.right .wulin-agent-toggle-slot {
   border: none;
   border-radius: 0;
   background: transparent;
-  color: #fff;
+  color: var(--wulin-agent-on-main);
   font-family: var(--wulin-agent-font);
   cursor: pointer;
   box-shadow: none;
   transition: background-color 0.3s;
+}
+
+// The toggle sits on the host's colored nav, where the panel's ring would
+// vanish; it takes the nav's own ink, inset so the nav does not clip it.
+.wulin-agent-toggle:focus-visible {
+  outline: 2px solid var(--wulin-agent-on-main);
+  outline-offset: -4px;
 }
 
 .wulin-agent-toggle:hover {
@@ -55,7 +188,7 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 20px;
   line-height: inherit;
   vertical-align: middle;
-  color: #fff;
+  color: var(--wulin-agent-on-main);
 }
 
 .wulin-agent-backdrop {
@@ -69,7 +202,6 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-backdrop:focus {
   background: rgba(0, 0, 0, 0.2);
-  outline: none;
 }
 
 .wulin-agent-drawer {
@@ -143,14 +275,26 @@ nav ul.right .wulin-agent-toggle-slot {
   flex: 0 0 auto;
   height: auto;
   padding: 0.125rem 0.375rem;
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
+}
+
+.wulin-agent-panel__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
 .wulin-agent-panel__title {
   margin: 0;
   font-size: 16px;
   font-weight: bold;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-panel__status {
+  font-size: 12px;
   color: var(--wulin-agent-text);
 }
 
@@ -162,7 +306,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-panel__model-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -173,7 +317,7 @@ nav ul.right .wulin-agent-toggle-slot {
   display: inline-block;
   max-width: 100%;
   padding: 0.125rem 0.375rem;
-  font-size: 11px;
+  font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   line-height: 1.4;
   color: var(--wulin-agent-text);
@@ -185,8 +329,9 @@ nav ul.right .wulin-agent-toggle-slot {
   white-space: nowrap;
 }
 
-.wulin-agent-panel__close {
-  display: flex;
+.wulin-agent-icon-button {
+  position: relative;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
@@ -196,15 +341,44 @@ nav ul.right .wulin-agent-toggle-slot {
   border-radius: var(--wulin-agent-radius);
   background: transparent;
   color: var(--wulin-agent-text-muted);
-  font-size: 1.25rem;
-  line-height: 1;
   cursor: pointer;
 }
 
-.wulin-agent-panel__close:hover {
+.wulin-agent-icon-button .material-icons {
+  font-size: 18px;
+}
+
+.wulin-agent-icon-button:hover:not(:disabled) {
   background: var(--wulin-agent-row-odd);
   color: var(--wulin-agent-text);
 }
+
+/* Materialize fills every focused button (button:focus); focus shows as the ring. */
+.wulin-agent-icon-button:focus:not(:hover) {
+  background: transparent;
+}
+
+.wulin-agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-status .material-icons {
+  font-size: 14px;
+}
+
+.wulin-agent-status--running .material-icons { color: var(--wulin-agent-info); }
+.wulin-agent-status--complete .material-icons { color: var(--wulin-agent-success); }
+.wulin-agent-status--rejected .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--expired .material-icons { color: var(--wulin-agent-aborted-strong); }
+.wulin-agent-status--awaiting_approval .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--failed .material-icons { color: var(--wulin-agent-error-strong); }
 
 .wulin-agent-body {
   flex: 1;
@@ -215,7 +389,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history {
   position: relative;
-  flex-shrink: 0;
+  flex-shrink: 1;
   display: flex;
   flex-direction: column;
   width: 200px;
@@ -243,6 +417,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history--collapsed {
   width: 36px;
+  min-width: 36px;
 }
 
 .wulin-agent-history__header {
@@ -276,7 +451,6 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 .wulin-agent-history__toggle:focus {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__toggle .material-icons {
@@ -284,7 +458,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-history__title {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -296,9 +470,9 @@ nav ul.right .wulin-agent-toggle-slot {
   border: none;
   border-radius: var(--wulin-agent-radius);
   background: transparent;
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
   font-family: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   user-select: none;
@@ -310,11 +484,9 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__new:focus:not(:hover) {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__new:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -343,7 +515,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-history__row--active .wulin-agent-history__item {
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
   font-weight: 500;
 }
 
@@ -360,45 +532,32 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 
-.wulin-agent-history__row--running .wulin-agent-history__item-actions,
-.wulin-agent-history__row:hover .wulin-agent-history__item-actions {
+.wulin-agent-history__row:hover .wulin-agent-history__item-actions,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-actions {
   pointer-events: auto;
 }
 
 .wulin-agent-history__item-delete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 22px;
   height: 22px;
-  padding: 0;
-  border: none;
-  border-radius: var(--wulin-agent-radius);
-  background: transparent;
-  color: var(--wulin-agent-text-muted);
-  cursor: pointer;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
-  box-shadow: none;
 }
 
-.wulin-agent-history__row:hover .wulin-agent-history__item-delete {
+.wulin-agent-history__row:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-delete {
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 
 .wulin-agent-history__row--active .wulin-agent-history__item-delete {
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
 }
 
-.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete {
+.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row--active:focus-within .wulin-agent-history__item-delete {
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 
@@ -409,17 +568,10 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__row--active .wulin-agent-history__item-delete:hover {
   background: transparent;
-  color: var(--wulin-agent-main);
-}
-
-.wulin-agent-history__item-delete:focus {
-  outline: none;
+  color: var(--wulin-agent-main-strong);
 }
 
 .wulin-agent-history__item-delete:focus-visible {
-  opacity: 1;
-  visibility: visible;
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
@@ -429,7 +581,9 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-history__item {
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 0.25rem 6px;
   border: none;
   border-radius: var(--wulin-agent-radius);
@@ -442,32 +596,44 @@ nav ul.right .wulin-agent-toggle-slot {
   cursor: pointer;
 }
 
-.wulin-agent-history__row--running .wulin-agent-history__item,
-.wulin-agent-history__row:hover .wulin-agent-history__item {
+.wulin-agent-history__row:hover .wulin-agent-history__item,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item {
   padding-right: 28px;
 }
 
 .wulin-agent-history__item-text {
   display: block;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wulin-agent-history__item-spinner {
-  width: 12px;
-  height: 12px;
-  border-width: 1.5px;
-}
-
 .wulin-agent-history__item:focus {
   background: transparent;
-  outline: none;
 }
 
 .wulin-agent-history__item:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
+}
+
+// A touch screen has no hover to reveal the delete button, and tapping a
+// button does not focus it on every platform; show it on every row there.
+@media (hover: none) {
+  .wulin-agent-history__item-actions {
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item-delete,
+  .wulin-agent-history__row--active .wulin-agent-history__item-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item {
+    padding-right: 28px;
+  }
 }
 
 .wulin-agent-history__status {
@@ -483,6 +649,25 @@ nav ul.right .wulin-agent-toggle-slot {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.wulin-agent-scroll-bottom {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 8px);
+  z-index: 1;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius-md);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-scroll-bottom:disabled {
+  display: none;
 }
 
 .wulin-agent-thread__viewport {
@@ -579,7 +764,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-message__attachment .material-icons {
   font-size: 16px;
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
 }
 
 .wulin-agent-message__attachment-body {
@@ -599,22 +784,22 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-message__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error, #c62828) 35%, var(--wulin-agent-border));
+  border-color: var(--wulin-agent-error-line);
 }
 
 .wulin-agent-message__attachment--error .wulin-agent-message__attachment-hint {
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error-strong);
 }
 
 .wulin-agent-message--assistant {
   color: var(--wulin-agent-text);
-  max-width: 90%;
-  margin-right: auto;
+  width: 100%;
+  max-width: 100%;
 }
 
 .wulin-agent-message__role {
   margin-bottom: 0.25rem;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -630,12 +815,12 @@ nav ul.right .wulin-agent-toggle-slot {
   max-width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
-  color: var(--wulin-agent-error);
+  color: var(--wulin-agent-error-strong);
   font-size: 12px;
 }
 
 .wulin-agent-markdown {
-  max-width: 100%;
+  max-width: var(--wulin-agent-measure);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -677,7 +862,7 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-markdown a {
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
 }
 
 .wulin-agent-markdown blockquote {
@@ -747,7 +932,12 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-tool summary {
   cursor: pointer;
   font-weight: 500;
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-tool summary .wulin-agent-status {
+  margin-left: 8px;
+  vertical-align: middle;
 }
 
 .wulin-agent-tool pre {
@@ -755,7 +945,7 @@ nav ul.right .wulin-agent-toggle-slot {
   max-width: 100%;
   max-height: 240px;
   overflow: auto;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--wulin-agent-text);
 }
 
@@ -777,7 +967,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-approval__tool {
   font-weight: 600;
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
 }
 
 .wulin-agent-approval__args {
@@ -787,7 +977,7 @@ nav ul.right .wulin-agent-toggle-slot {
   border: 1px solid var(--wulin-agent-border);
   border-radius: var(--wulin-agent-radius);
   background: var(--wulin-agent-bg);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
   color: var(--wulin-agent-text);
 }
@@ -799,6 +989,23 @@ nav ul.right .wulin-agent-toggle-slot {
   box-sizing: border-box;
   resize: vertical;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.wulin-agent-approval__expiry {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-approval__expiry--soon {
+  color: var(--wulin-agent-warning-strong);
+  font-weight: 600;
+}
+
+.wulin-agent-approval__expired {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text);
 }
 
 .wulin-agent-approval__actions {
@@ -830,7 +1037,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-approval__edit:hover {
   border-color: var(--wulin-agent-main);
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
   background: var(--wulin-agent-main-soft);
 }
 
@@ -841,12 +1048,44 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-approval__approve {
   border: none;
-  background: var(--wulin-agent-main);
-  color: #fff;
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
 }
 
-.wulin-agent-approval__approve:hover {
-  background: var(--wulin-agent-main-hover);
+.wulin-agent-approval__approve--danger {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
+}
+
+.wulin-agent-approval--destructive {
+  border-color: var(--wulin-agent-error);
+  background: var(--wulin-agent-error-soft);
+}
+
+.wulin-agent-approval__fields {
+  margin: 0 0 0.5rem;
+}
+
+.wulin-agent-approval__fields div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 30%) 1fr;
+  gap: 8px;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--wulin-agent-border);
+}
+
+.wulin-agent-approval__fields dt,
+.wulin-agent-approval__fields dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.wulin-agent-approval__fields dt {
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-approval__error {
+  margin: 0 0 0.5rem;
+  color: var(--wulin-agent-error-strong);
+  font-size: 12px;
 }
 
 .wulin-agent-approval__reject {
@@ -857,9 +1096,9 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-approval__reject:hover {
-  border-color: var(--wulin-agent-error);
-  color: var(--wulin-agent-error);
-  background: color-mix(in srgb, var(--wulin-agent-error) 8%, transparent);
+  border-color: var(--wulin-agent-error-strong);
+  color: var(--wulin-agent-error-strong);
+  background: var(--wulin-agent-error-soft);
 }
 
 .wulin-agent-thread__footer {
@@ -900,17 +1139,17 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attachment--error {
-  border-color: color-mix(in srgb, var(--wulin-agent-error, #c62828) 35%, var(--wulin-agent-border));
-  background: color-mix(in srgb, var(--wulin-agent-error, #c62828) 6%, var(--wulin-agent-bg-subtle));
+  border-color: var(--wulin-agent-error-line);
+  background: var(--wulin-agent-error-wash);
 }
 
 .wulin-agent-composer__attachment--error .wulin-agent-composer__attachment-hint {
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error-strong);
 }
 
 .wulin-agent-composer__attachment .material-icons {
   font-size: 18px;
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
 }
 
 .wulin-agent-composer__attachment-label {
@@ -947,6 +1186,7 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-composer {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.375rem;
   width: 100%;
@@ -982,12 +1222,11 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__input:focus {
-  outline: none;
   border-color: var(--wulin-agent-main);
 }
 
 .wulin-agent-composer__input:disabled {
-  opacity: 0.6;
+  color: var(--wulin-agent-text-subtle);
   cursor: not-allowed;
 }
 
@@ -1013,7 +1252,6 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-composer__attach:focus,
 .wulin-agent-composer__attach:active {
   background: transparent;
-  outline: none;
   box-shadow: none;
   color: var(--wulin-agent-text-muted);
 }
@@ -1024,12 +1262,11 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attach:focus-visible {
-  outline: 2px solid var(--wulin-agent-main);
   outline-offset: -2px;
 }
 
 .wulin-agent-composer__attach:disabled {
-  opacity: 0.5;
+  color: var(--wulin-agent-text-subtle);
   cursor: not-allowed;
 }
 
@@ -1039,12 +1276,23 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-composer__attach-error {
-  position: absolute;
-  left: 0.5rem;
-  bottom: calc(100% + 0.25rem);
-  max-width: calc(100% - 1rem);
+  flex: 1 0 100%;
   font-size: 12px;
-  color: var(--wulin-agent-error, #c62828);
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-history__notice,
+.wulin-agent-panel__notice,
+.wulin-agent-feedback__error {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-feedback__error {
+  flex: 1 0 100%;
+  padding-left: 0;
 }
 
 .wulin-agent-composer__send {
@@ -1055,23 +1303,12 @@ nav ul.right .wulin-agent-toggle-slot {
   padding: 0.375rem 0.75rem;
   border: none;
   border-radius: var(--wulin-agent-radius);
-  background: var(--wulin-agent-main);
-  color: #fff;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
-  cursor: pointer;
   box-shadow: var(--wulin-agent-shadow);
-}
-
-.wulin-agent-composer__send:hover:not(:disabled) {
-  background: var(--wulin-agent-main-hover);
-}
-
-.wulin-agent-composer__send:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
 }
 
 .wulin-agent-approval--pending {
@@ -1085,17 +1322,19 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-tool--executing summary {
-  color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
 }
 
-.wulin-agent-tool--rejected {
+.wulin-agent-tool--rejected,
+.wulin-agent-tool--expired {
   border: 1px solid var(--wulin-agent-aborted);
   background: var(--wulin-agent-bg);
-  color: var(--wulin-agent-aborted);
+  color: var(--wulin-agent-aborted-strong);
 }
 
-.wulin-agent-tool--rejected summary {
-  color: var(--wulin-agent-aborted);
+.wulin-agent-tool--rejected summary,
+.wulin-agent-tool--expired summary {
+  color: var(--wulin-agent-aborted-strong);
 }
 
 .wulin-agent-tool--approved {
@@ -1120,12 +1359,13 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-grid-result {
+  width: 100%;
   margin-top: 0.5rem;
 }
 
 .wulin-agent-grid-result__meta {
   margin: 0 0 0.375rem;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--wulin-agent-text-muted);
 }
 
@@ -1162,6 +1402,8 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-chart {
+  width: 100%;
+  min-height: 280px;
   margin-top: 0.5rem;
   padding: 0.5rem;
   background: var(--wulin-agent-bg);
@@ -1176,6 +1418,26 @@ nav ul.right .wulin-agent-toggle-slot {
   color: var(--wulin-agent-text);
 }
 
+.wulin-agent-chart__note {
+  margin: 0.25rem 0 0;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-chart__data {
+  margin-top: 0.5rem;
+  font-size: 12px;
+}
+
+.wulin-agent-chart__data summary {
+  cursor: pointer;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-chart__data .wulin-agent-grid-result__scroll {
+  margin-top: 0.375rem;
+}
+
 .wulin-agent-chart__empty {
   margin: 0.5rem 0;
   font-size: 12px;
@@ -1183,52 +1445,60 @@ nav ul.right .wulin-agent-toggle-slot {
   color: var(--wulin-agent-text-muted);
 }
 
+.wulin-agent-turn-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.375rem;
+}
+
+.wulin-agent-turn-copy__button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-turn-copy__button:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-turn-copy__result {
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-turn-copy__result--failed {
+  color: var(--wulin-agent-error-strong);
+}
+
 .wulin-agent-feedback {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   margin-top: 0.375rem;
 }
 
-.wulin-agent-feedback__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.125rem;
-  border: none;
-  background: transparent;
-  color: var(--wulin-agent-text-muted);
-  cursor: pointer;
-  border-radius: var(--wulin-agent-radius);
-  opacity: 0.5;
-  transition: opacity 0.15s ease, color 0.15s ease;
+.wulin-agent-feedback .wulin-agent-icon-button {
+  width: 24px;
+  height: 24px;
 }
 
-.wulin-agent-feedback__btn:hover:not(:disabled) {
-  opacity: 1;
-}
-
-.wulin-agent-feedback__btn:disabled {
-  opacity: 0.25;
-  cursor: not-allowed;
-}
-
-.wulin-agent-feedback__btn.is-active {
-  opacity: 1;
-  color: var(--wulin-agent-accent, #2563eb);
-}
-
-.wulin-agent-feedback__btn .material-icons {
+.wulin-agent-feedback .wulin-agent-icon-button .material-icons {
   font-size: 16px;
 }
 
-.wulin-agent-feedback__btn:focus {
-  background: transparent;
-  outline: none;
+.wulin-agent-feedback .wulin-agent-icon-button:disabled {
+  color: var(--wulin-agent-text-subtle);
+  cursor: not-allowed;
 }
 
-.wulin-agent-feedback__btn:focus-visible {
-  background: transparent;
-  outline: none;
+.wulin-agent-feedback .wulin-agent-icon-button.is-active {
+  color: var(--wulin-agent-main-strong);
 }
 /* Dedicated workspace: fill the host screen while retaining its navigation. */
 #wulin-agent-page,
@@ -1250,12 +1520,6 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-page .wulin-agent-panel__meta {
   flex-wrap: wrap;
-}
-
-@media (max-width: 600px) {
-  .wulin-agent-page .wulin-agent-history {
-    max-width: 40vw;
-  }
 }
 
 /* Google Material Symbols cognition; the host Material Icons font lacks it.
@@ -1344,10 +1608,10 @@ nav ul.right .wulin-agent-toggle-slot {
 
 .wulin-agent-tokens::backdrop { background: rgba(0, 0, 0, 0.35); }
 .wulin-agent-tokens__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.wulin-agent-tokens .wulin-agent-panel__close,
-.wulin-agent-tokens .wulin-agent-panel__close:focus { background: transparent; color: var(--wulin-agent-text); }
-.wulin-agent-tokens .wulin-agent-panel__close:hover { background: var(--wulin-agent-row-odd); }
-.wulin-agent-tokens__eyebrow { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.wulin-agent-tokens .wulin-agent-icon-button,
+.wulin-agent-tokens .wulin-agent-icon-button:focus { background: transparent; color: var(--wulin-agent-text); }
+.wulin-agent-tokens .wulin-agent-icon-button:hover { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
 .wulin-agent-tokens h2 { margin: 4px 0 0; font-size: 22px; font-weight: 600; line-height: 1.3; }
 .wulin-agent-tokens h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
 .wulin-agent-tokens p { margin: 8px 0; }
@@ -1355,7 +1619,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-tokens__endpoint { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--wulin-agent-bg-subtle); }
 .wulin-agent-tokens code { overflow-wrap: anywhere; font-size: 12px; user-select: text; }
 .wulin-agent-tokens__notice { padding: 8px 0; font-size: 12px; }
-.wulin-agent-tokens__error { color: var(--wulin-agent-error); }
+.wulin-agent-tokens__error { color: var(--wulin-agent-error-strong); }
 .wulin-agent-tokens__reveal { padding: 16px; margin: 16px 0; background: var(--wulin-agent-main-soft); border: 1px solid var(--wulin-agent-main); }
 .wulin-agent-tokens__copy-row { display: flex; gap: 8px; align-items: center; }
 .wulin-agent-tokens__copy-row input { min-width: 0; flex: 1; }
@@ -1365,8 +1629,8 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-tokens__list li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--wulin-agent-border); }
 .wulin-agent-tokens__token-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .wulin-agent-tokens__token-info strong { font-size: 13px; }
-.wulin-agent-tokens__token-info span { font-size: 11px; }
-.wulin-agent-tokens__revoke { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; font-size: 11px; }
+.wulin-agent-tokens__token-info span { font-size: 12px; }
+.wulin-agent-tokens__revoke { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; font-size: 12px; }
 .wulin-agent-tokens__form { border-top: 1px solid var(--wulin-agent-border); padding-top: 20px; }
 .wulin-agent-tokens__fields { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 16px; margin-bottom: 16px; }
 .wulin-agent-tokens label { display: block; font-size: 12px; color: var(--wulin-agent-text); margin-bottom: 6px; }
@@ -1385,7 +1649,7 @@ nav ul.right .wulin-agent-toggle-slot {
   font-size: 13px;
   box-shadow: none;
 }
-.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { outline: 2px solid var(--wulin-agent-main); outline-offset: 2px; border-color: var(--wulin-agent-main); box-shadow: none; }
+.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { border-color: var(--wulin-agent-main); box-shadow: none; }
 .wulin-agent-tokens__select { position: relative; }
 .wulin-agent-tokens__select select { appearance: none; -webkit-appearance: none; padding-right: 36px; }
 .wulin-agent-tokens__select-chevron {
@@ -1401,12 +1665,16 @@ nav ul.right .wulin-agent-toggle-slot {
   pointer-events: none;
 }
 .wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
-.wulin-agent-tokens__button--primary { background: var(--wulin-agent-main); border-color: var(--wulin-agent-main); color: white; }
+.wulin-agent-tokens__button:hover:not(:disabled) { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__button--primary {
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
+}
 .wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
 .wulin-agent-tokens__text-button:hover { text-decoration: underline; }
-.wulin-agent-tokens__danger { color: var(--wulin-agent-error); }
-.wulin-agent-tokens button:disabled, .wulin-agent-tokens input:disabled, .wulin-agent-tokens select:disabled { opacity: 0.55; cursor: default; }
-.wulin-agent-tokens button:focus-visible, .wulin-agent-tokens__trigger:focus-visible { outline: 2px solid var(--wulin-agent-main); outline-offset: 3px; }
+.wulin-agent-tokens__danger { color: var(--wulin-agent-error-strong); }
+.wulin-agent-tokens button:not(.wulin-agent-tokens__button--primary):disabled,
+.wulin-agent-tokens input:disabled,
+.wulin-agent-tokens select:disabled { color: var(--wulin-agent-text-subtle); cursor: default; }
 
 @media (max-width: 480px) {
   .wulin-agent-tokens { padding: 18px; }
@@ -1414,3 +1682,79 @@ nav ul.right .wulin-agent-toggle-slot {
   .wulin-agent-tokens__list li { flex-wrap: wrap; }
   .wulin-agent-tokens__revoke { align-items: flex-start; }
 }
+
+.wulin-agent-confirm {
+  box-sizing: border-box;
+  width: calc(100vw - 32px);
+  max-width: 360px;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: 6px;
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: var(--wulin-agent-font);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wulin-agent-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.wulin-agent-confirm__message {
+  margin: 0 0 20px;
+}
+
+.wulin-agent-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wulin-agent-confirm__cancel,
+.wulin-agent-confirm__confirm {
+  padding: 6px 12px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.wulin-agent-confirm__cancel {
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  cursor: pointer;
+}
+
+.wulin-agent-confirm__cancel:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-confirm__confirm {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wulin-agent-drawer {
+    transition: none;
+  }
+
+  .wulin-agent-spinner {
+    animation: none;
+  }
+}
+
+/* Materialize fills every focused button (button:focus), which outranks a
+ * single class. Focus shows as the ring, so each control keeps its own fill. */
+.wulin-agent-toggle:focus:not(:hover) { background-color: transparent; }
+.wulin-agent-toggle--open:focus:not(:hover) { background-color: rgba(0, 0, 0, 0.15); }
+.wulin-agent-approval__edit:focus:not(:hover),
+.wulin-agent-approval__reject:focus:not(:hover),
+.wulin-agent-turn-copy__button:focus:not(:hover),
+.wulin-agent-scroll-bottom:focus,
+.wulin-agent-confirm__cancel:focus:not(:hover),
+.wulin-agent-tokens__button:not(.wulin-agent-tokens__button--primary):focus:not(:hover) { background: var(--wulin-agent-bg); }
+.wulin-agent-tokens__trigger:focus:not(:hover),
+.wulin-agent-tokens__text-button:focus { background: transparent; }

@@ -29,11 +29,13 @@ module WulinAgent
 
     def run_approved(token:, params: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
+      claim = Approvals.claim!(token, user_id: @user.id)
+      return answer_pending_call(claim.grant, Approvals.expiry_result(tool: claim.grant[:tool])) if claim.expired?
 
+      grant = claim.grant
       spec = ToolRegistry.find(grant[:tool], @user)
-      raise ArgumentError, "tool not found" unless spec
+      # Gone since the pause, its grid permission revoked or the tool removed.
+      return answer_pending_call(grant, {"error" => "#{grant[:tool]} is no longer available to you, so it did not run."}) unless spec
 
       raw = params || grant[:params] || {}
       raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
@@ -45,30 +47,23 @@ module WulinAgent
         approved: true
       )
 
-      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
-
-      replace_tool_result!(grant[:tool_call_id], result)
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
 
     def run_rejected(token:, reason: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
+      claim = Approvals.claim!(token, user_id: @user.id)
+      grant = claim.grant
+      result =
+        if claim.expired?
+          Approvals.expiry_result(tool: grant[:tool])
+        else
+          Approvals.rejection_result(tool: grant[:tool], reason: reason.presence || "User declined #{grant[:tool]}")
+        end
 
-      message = reason.presence || "User declined #{grant[:tool]}"
-      replace_tool_result!(
-        grant[:tool_call_id],
-        Approvals.rejection_result(tool: grant[:tool], reason: message)
-      )
-
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
@@ -167,6 +162,9 @@ module WulinAgent
         - If a tool result has status "rejected", the user declined that action.
           Do not retry that tool or call other tools. Reply in text only and
           briefly acknowledge what was not done.
+        - If a tool result has status "expired", the request timed out before
+          the user answered and the tool did not run. Do not retry it on your
+          own; say so and offer to prepare it again.
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,
@@ -242,7 +240,13 @@ module WulinAgent
       completed_calls = tool_calls.select { |call| completed_ids.include?(call["id"]) }
 
       if completed_calls.any?
-        replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        parts = msg.dig(:metadata, "parts")
+        if parts.present?
+          replay_assistant_rounds!(chat, parts, completed_calls, tool_results)
+        else
+          # Messages stored before parts existed kept no order: one round.
+          replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        end
         return
       end
 
@@ -262,27 +266,48 @@ module WulinAgent
       chat.add_message(role: msg[:role], content: content)
     end
 
-    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
-      calls = tool_calls.index_by { |call| call["id"] }.transform_values do |call|
-        RubyLLM::ToolCall.new(
-          id: call["id"],
-          name: call["name"],
-          arguments: call["arguments"] || {}
-        )
+    # The turn as the model lived it, one round per tool call: the text it
+    # wrote before a call goes with that call, the call's result follows, and
+    # the text after the last call closes the turn.
+    def replay_assistant_rounds!(chat, parts, tool_calls, tool_results)
+      calls = tool_calls.index_by { |call| call["id"] }
+      results = tool_results.index_by { |result| result["id"] }
+      text = []
+
+      parts.each do |part|
+        if part["type"] == "text"
+          text << part["text"] if part["text"].present?
+          next
+        end
+
+        call = calls[part["id"]]
+        next unless call && results[call["id"]]
+
+        chat.add_message(role: :assistant, content: text.join("\n\n"), tool_calls: replayed_calls([call]))
+        replay_tool_result!(chat, call, results[call["id"]])
+        text = []
       end
 
-      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: calls)
+      chat.add_message(role: :assistant, content: text.join("\n\n")) if text.any?
+    end
+
+    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
+      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: replayed_calls(tool_calls))
 
       tool_calls.each do |call|
         tool_result = tool_results.find { |result| result["id"] == call["id"] }
-        next unless tool_result
-
-        chat.add_message(
-          role: :tool,
-          content: tool_result["result"].to_json,
-          tool_call_id: call["id"]
-        )
+        replay_tool_result!(chat, call, tool_result) if tool_result
       end
+    end
+
+    def replayed_calls(calls)
+      calls.index_by { |call| call["id"] }.transform_values do |call|
+        RubyLLM::ToolCall.new(id: call["id"], name: call["name"], arguments: call["arguments"] || {})
+      end
+    end
+
+    def replay_tool_result!(chat, call, tool_result)
+      chat.add_message(role: :tool, content: tool_result["result"].to_json, tool_call_id: call["id"])
     end
 
     # Messages are immutable in ruby_llm 2, so the placeholder result is swapped
@@ -315,6 +340,17 @@ module WulinAgent
       emit(type: :tool_call, id: tool_call.id, name: tool_call.name, arguments: tool_call.arguments)
     end
 
+    # Puts the outcome of an approval (the tool's result, a rejection or an
+    # expiry) where the paused tool call was, streams it so the client and the
+    # stored message can settle that call, and lets the model continue.
+    def answer_pending_call(grant, result)
+      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
+      replace_tool_result!(grant[:tool_call_id], result)
+      response = continue_agent_turn
+      emit(type: :done)
+      response
+    end
+
     def emit_tool_result(result)
       payload = {
         type: :tool_result,
@@ -327,12 +363,14 @@ module WulinAgent
         params = params.stringify_keys
         result = result.merge("params" => params)
         payload[:result] = result
-        payload[:approval_token] = Approvals.issue!(
+        issued = Approvals.issue!(
           tool: result["tool"],
           params: params,
           user_id: @user.id,
           tool_call_id: @current_tool_call&.id
         )
+        payload[:approval_token] = issued.token
+        payload[:approval_expires_at] = issued.expires_at.iso8601
       end
       emit(payload)
       @current_tool_call = nil

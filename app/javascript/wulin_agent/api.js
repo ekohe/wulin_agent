@@ -1,3 +1,5 @@
+import {noteServerTime} from "./serverClock";
+
 const BASE = "/wulin_agent/conversations";
 const STORAGE_CONVERSATION_KEY = "wulin_agent_conversation_id";
 const STORAGE_APPROVAL_MODE_KEY = "wulin_agent_approval_mode";
@@ -7,6 +9,12 @@ let pendingApprovalMode =
   sessionStorage.getItem(STORAGE_APPROVAL_MODE_KEY) ?? "confirm_writes";
 
 let onConversationCreated = null;
+
+function httpError(status, message = `HTTP ${status}`) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
 
 export function setOnConversationCreated(cb) {
   onConversationCreated = cb;
@@ -85,12 +93,13 @@ export async function sendMessage(message, explicitConversationId, {archiveId, s
     body: JSON.stringify(body),
     signal,
   });
+  noteServerTime(response);
 
   if (response.status === 401) {
-    throw new Error("Unauthorized (401)");
+    throw httpError(401, "Unauthorized (401)");
   }
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   const newConversationId =
@@ -118,9 +127,10 @@ export async function runApproved({ token, params, signal } = {}) {
     body: JSON.stringify({ token, params }),
     signal,
   });
+  noteServerTime(response);
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return { body: response.body };
@@ -137,9 +147,10 @@ export async function runRejected({ token, reason, signal } = {}) {
     body: JSON.stringify({ token, reason }),
     signal,
   });
+  noteServerTime(response);
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return { body: response.body };
@@ -158,7 +169,7 @@ export async function sendFeedback(rating, messageId, { signal } = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return response.json(); // { message_id, rating }
@@ -171,11 +182,12 @@ export async function listConversations({ signal } = {}) {
     headers: getHeaders(),
     signal,
   });
+  noteServerTime(response);
   if (response.status === 401) {
-    throw new Error("Not authenticated (401)");
+    throw httpError(401, "Not authenticated (401)");
   }
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
   return response.json();
 }
@@ -187,15 +199,16 @@ export async function fetchConversation(id, { signal } = {}) {
     headers: getHeaders(),
     signal,
   });
+  noteServerTime(response);
 
   if (response.status === 401) {
-    throw new Error("Not authenticated (401)");
+    throw httpError(401, "Not authenticated (401)");
   }
   if (response.status === 404) {
-    throw new Error("Conversation not found (404)");
+    throw httpError(404, "Conversation not found (404)");
   }
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return response.json();
@@ -210,10 +223,10 @@ export async function fetchAgentConfig({ signal } = {}) {
   });
 
   if (response.status === 401) {
-    throw new Error("Not authenticated (401)");
+    throw httpError(401, "Not authenticated (401)");
   }
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return response.json(); // { model: "gpt-6-luna" }
@@ -237,12 +250,12 @@ export async function uploadArchive(file, { signal } = {}) {
   });
 
   if (response.status === 401) {
-    throw new Error("Unauthorized (401)");
+    throw httpError(401, "Unauthorized (401)");
   }
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || `HTTP ${response.status}`);
+    throw httpError(response.status, data.error);
   }
 
   return data;
@@ -257,13 +270,13 @@ export async function deleteConversation(id, { signal } = {}) {
   });
 
   if (response.status === 401) {
-    throw new Error("Not authenticated (401)");
+    throw httpError(401, "Not authenticated (401)");
   }
   if (response.status === 404) {
-    throw new Error("Conversation not found (404)");
+    throw httpError(404, "Conversation not found (404)");
   }
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 }
 
@@ -280,7 +293,7 @@ export async function updateApprovalMode(id, approvalMode, { signal } = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw httpError(response.status);
   }
 
   return response.json(); // { id, approval_mode }

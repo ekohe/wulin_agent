@@ -1,3 +1,14 @@
+export function isFirstAssistantInTurn(messages, messageIndex) {
+  if (messages[messageIndex]?.role !== "assistant") return false;
+
+  for (let i = messageIndex - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return true;
+    if (messages[i].role === "assistant") return false;
+  }
+
+  return true;
+}
+
 export function isLastAssistantInTurn(messages, messageIndex) {
   if (messages[messageIndex]?.role !== "assistant") return false;
 
@@ -7,6 +18,20 @@ export function isLastAssistantInTurn(messages, messageIndex) {
   }
 
   return true;
+}
+
+// The text of every assistant message in the turn that ends at messageIndex:
+// a turn that paused for an approval continues in a later message.
+export function turnText(messages, messageIndex) {
+  const parts = [];
+  for (let i = messageIndex; i >= 0 && messages[i].role === "assistant"; i--) {
+    const text = messages[i].content
+      .filter((part) => part.type === "text" && part.text.trim())
+      .map((part) => part.text.trim())
+      .join("\n\n");
+    if (text) parts.unshift(text);
+  }
+  return parts.join("\n\n");
 }
 
 export function isInLatestTurn(messages, messageIndex) {

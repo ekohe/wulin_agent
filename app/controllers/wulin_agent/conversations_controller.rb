@@ -6,6 +6,8 @@ module WulinAgent
 
     before_action :require_current_user!
     before_action :disable_stream_caching, only: %i[create approve reject]
+    # The panel counts down to approval deadlines in the server's time.
+    before_action { response.headers["X-Server-Time"] = Time.current.iso8601(3) }
 
     def create
       stream_conversation_turn
@@ -76,7 +78,7 @@ module WulinAgent
           title: conversation_title(conversation),
           updated_at: conversation.updated_at.iso8601,
           approval_mode: conversation.approval_mode,
-          status: conversation_status(conversation)
+          **status_fields(conversation)
         }
       }
     end
@@ -96,15 +98,33 @@ module WulinAgent
 
     private
 
-    def conversation_status(conversation)
-      conversation.running? ? "running" : "idle"
+    # Running, awaiting an answer to an approval (until when), or idle.
+    def status_fields(conversation)
+      return {status: "running", awaiting_approval_until: nil} if conversation.running?
+
+      deadline = approval_deadline(conversation)
+      {status: deadline ? "awaiting_approval" : "idle", awaiting_approval_until: deadline&.iso8601}
+    end
+
+    # A turn pauses on its last assistant message and waits until the first of
+    # that pause's grants stops accepting an answer; nil when nothing waits.
+    def approval_deadline(conversation)
+      last = conversation.messages.select { |msg| msg.role == "assistant" }.max_by { |msg| [msg.created_at, msg.id] }
+      return unless last
+
+      last.metadata.fetch("tool_results", []).filter_map do |tool_result|
+        token = tool_result_approval_token(tool_result)
+        next unless token && tool_result["result"]["status"] == "approval_required"
+
+        WulinAgent::Approvals.pending_expiry(token, user_id: current_user.id)
+      end.min
     end
 
     def conversation_payload(conversation)
       {
         id: conversation.id,
         approval_mode: conversation.approval_mode,
-        status: conversation_status(conversation),
+        **status_fields(conversation),
         messages: conversation.messages.chronological.map do |message|
           {id: message.id, role: message.role, content: message.content, metadata: message.metadata, rating: message.rating}
         end
@@ -171,9 +191,11 @@ module WulinAgent
         "[wulin_agent] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}"
       )
       error_text = assistant_error_text(e)
+      # A tool the user approved may have run before the failure; keep its result.
+      settle_pending_approval_after_failure(conversation, writer)
       if writer
         stream_write do
-          writer.write(type: :text_delta, content: error_text)
+          writer.write(type: :error_text, content: error_text)
           writer.close
         end
       end
@@ -280,53 +302,40 @@ module WulinAgent
       )
     end
 
+    # The runner streams how the paused call ended (its result, a rejection or
+    # an expiry) under the call's id; store that on the message that paused.
     def resolve_pending_approval!(conversation, writer)
       token = params[:token]
       return if token.blank?
 
       message = conversation.messages.chronological.reverse.find do |msg|
-        msg.metadata.fetch("tool_results", []).any? do |tr|
-          tool_result_approval_token(tr) == token
-        end
+        msg.metadata.fetch("tool_results", []).any? { |tr| tool_result_approval_token(tr) == token }
       end
       return unless message
 
-      result =
-        if action_name == "approve"
-          writer.metadata["tool_results"]&.find { |tr| tr["result"].present? }&.dig("result")
-        else
-          tool = pending_tool_name(message, token)
-          reason = params[:reason].presence || "User declined #{tool}"
-          WulinAgent::Approvals.rejection_result(tool: tool, reason: reason)
-        end
+      call_id = message.metadata["tool_results"].find { |tr| tool_result_approval_token(tr) == token }["id"]
+      result = writer.metadata["tool_results"].find { |tr| tr["id"] == call_id }&.dig("result")
       return unless result
 
       tool_results = message.metadata["tool_results"].map do |tr|
-        if tool_result_approval_token(tr) == token
-          tr.merge("result" => result)
-        else
-          tr
-        end
+        (tool_result_approval_token(tr) == token) ? tr.merge("result" => result) : tr
       end
 
       message.update!(metadata: message.metadata.merge("tool_results" => tool_results))
     end
 
+    def settle_pending_approval_after_failure(conversation, writer)
+      return unless writer && %w[approve reject].include?(action_name)
+
+      resolve_pending_approval!(conversation, writer)
+    rescue => e
+      # The turn's own error still has to reach the user; this one only logs.
+      Rails.logger.error("[wulin_agent] could not store the approval outcome: #{e.class}: #{e.message}")
+    end
+
     def tool_result_approval_token(tool_result)
       result = tool_result["result"]
       result["approval_token"] if result.is_a?(Hash)
-    end
-
-    def pending_tool_name(message, token)
-      tool_calls = message.metadata.fetch("tool_calls", [])
-      message.metadata.fetch("tool_results", []).each do |tool_result|
-        next unless tool_result_approval_token(tool_result) == token
-
-        call = tool_calls.find { |tc| tc["id"] == tool_result["id"] }
-        return call["name"] if call&.dig("name").present?
-      end
-
-      "tool"
     end
 
     def rated_message(conversation)
