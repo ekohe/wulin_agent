@@ -68,6 +68,13 @@ export const strings = {
   },
 
   chartEmpty: "No data to chart.",
+  chartData: "Data",
+  chartLabel: "Label",
+  chartValue: "Value",
+  chartOther: "Other",
+  chartSeriesHidden(count) {
+    return `${count} more ${count === 1 ? "series is" : "series are"} in the data table but not drawn.`;
+  },
   gridSummary(total) {
     return `${total} ${total === 1 ? "result" : "results"}`;
   },

@@ -109,6 +109,20 @@ RSpec.describe "wulin_agent.scss" do
     expect(contrast(strong, tint(token["--wulin-agent-error"], token["--wulin-agent-bg"], 0.1))).to be >= 4.5
   end
 
+  # The set itself was validated for color-vision deficiency with the dataviz
+  # palette validator; these guard what a later edit could quietly break.
+  it "keeps the chart series distinct, visible on white and apart from status colors" do
+    token = tokens(self.class.compile(stylesheet, node_modules, "blue"))
+    series = (1..6).map { |i| token["--wulin-agent-chart-#{i}"].downcase }
+    status = %w[success error error-strong error-hover warning warning-strong info].map { |name| token["--wulin-agent-#{name}"].downcase }
+
+    expect(series.uniq.size).to eq(6)
+    expect(series & status).to be_empty
+    series.each do |color|
+      expect(contrast(color, token["--wulin-agent-bg"])).to be >= 3, "chart color #{color} is under 3:1 on white"
+    end
+  end
+
   it "resolves every color at compile time" do
     css = self.class.compile(stylesheet, node_modules, "blue")
 
