@@ -39,6 +39,8 @@ export const strings = {
   working: "Working…",
   latest: "Latest",
   copy: "Copy",
+  copied: "Copied",
+  copyFailed: "Could not copy. Select the text and copy it yourself.",
   goodResponse: "Good response",
   badResponse: "Bad response",
   feedbackFailed: "Could not save that rating.",

@@ -1382,7 +1382,13 @@ nav ul.right .wulin-agent-toggle-slot {
 }
 
 .wulin-agent-turn-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 0.375rem;
+}
+
+.wulin-agent-turn-copy__button {
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--wulin-agent-border);
   border-radius: var(--wulin-agent-radius);
@@ -1391,6 +1397,19 @@ nav ul.right .wulin-agent-toggle-slot {
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+}
+
+.wulin-agent-turn-copy__button:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-turn-copy__result {
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-turn-copy__result--failed {
+  color: var(--wulin-agent-error-strong);
 }
 
 .wulin-agent-feedback {
@@ -1669,7 +1688,7 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-toggle--open:focus:not(:hover) { background-color: rgba(0, 0, 0, 0.15); }
 .wulin-agent-approval__edit:focus:not(:hover),
 .wulin-agent-approval__reject:focus:not(:hover),
-.wulin-agent-turn-copy:focus,
+.wulin-agent-turn-copy__button:focus:not(:hover),
 .wulin-agent-scroll-bottom:focus,
 .wulin-agent-confirm__cancel:focus:not(:hover),
 .wulin-agent-tokens__button:not(.wulin-agent-tokens__button--primary):focus:not(:hover) { background: var(--wulin-agent-bg); }

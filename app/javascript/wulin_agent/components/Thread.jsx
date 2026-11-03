@@ -1,6 +1,5 @@
 import {useState} from "react";
 import {
-  ActionBarPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
@@ -10,6 +9,7 @@ import {sendFeedback} from "../api";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {ToolCall} from "./ToolCall";
+import {CopyButton} from "./CopyButton";
 import {IconButton} from "./IconButton";
 import {ArchiveUploadButton} from "./ArchiveUploadButton";
 import {ComposerSendButton} from "./ComposerSendButton";
@@ -19,7 +19,7 @@ import {lookupSentArchive} from "../sentMessageArchives";
 import {useThreadBusy} from "../useThreadBusy";
 import {strings} from "../strings";
 import {useThreadRunning} from "../useThreadRunning";
-import {useShowTurnCopy, useShowTurnFeedback, useShowTurnRole} from "../useShowTurnFeedback";
+import {useShowTurnFeedback, useShowTurnRole, useTurnCopyText} from "../useShowTurnFeedback";
 import {LoadingSpinner} from "./LoadingSpinner";
 
 
@@ -102,7 +102,7 @@ function AssistantText({text}) {
 
 function AssistantMessage() {
   const showRole = useShowTurnRole();
-  const showCopy = useShowTurnCopy();
+  const copyText = useTurnCopyText();
 
   return (
     <MessagePrimitive.Root className="wulin-agent-message wulin-agent-message--assistant">
@@ -118,11 +118,7 @@ function AssistantMessage() {
           tools: { Fallback: ToolCall },
         }}
       />
-      {showCopy && (
-        <ActionBarPrimitive.Copy className="wulin-agent-turn-copy">
-          {strings.copy}
-        </ActionBarPrimitive.Copy>
-      )}
+      {copyText && <CopyButton text={copyText} />}
       <MessageFeedback />
     </MessagePrimitive.Root>
   );

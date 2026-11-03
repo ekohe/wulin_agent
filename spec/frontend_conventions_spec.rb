@@ -35,6 +35,10 @@ RSpec.describe "Frontend conventions" do
     expect(sources.select { |_, code| code.match?(/window\.confirm|displayCustomizedConfirmModal/) }.keys).to be_empty
   end
 
+  it "copies replies with a button that reports failure, not assistant-ui's silent one" do
+    expect(sources.select { |_, code| code.include?("ActionBarPrimitive.Copy") }.keys).to be_empty
+  end
+
   it "ships the esbuild entry hosts import" do
     expect(File).to exist(File.join(root, "app/javascript/wulin_agent.esm.js"))
   end
