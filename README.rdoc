@@ -90,6 +90,12 @@ the requesting user. Only a digest of the random token is stored. Approval and
 rejection claim a grant with a conditional database update before proceeding,
 so concurrent requests or a failed follow-up model response cannot replay a
 write. Inspect the actual record before requesting a new action after a failure.
+
+The approval card counts down to the grant's expiry, and the conversation list
+marks conversations waiting on an answer. Once a grant expires the card offers
+only Dismiss: an answer that arrives after expiry, approve or dismiss alike, is
+recorded as expired, the tool does not run, and the model tells the user so it
+can prepare the request again.
 Grants issued by older releases in process memory cannot be recovered; request
 and review a fresh proposal after upgrading.
 
@@ -125,7 +131,8 @@ control creation; include active-user and workspace validation when required.
 Hosts providing their own schema must retain the grant columns and unique
 token-digest index, and use their existing migration strategy rather than
 installing a second creation migration for the same table. Expired grants are
-pruned in batches of up to 100 when that user requests a new grant. Parameters
+kept for a day, so a late answer is still recognised as expired, then pruned in
+batches of up to 100 when that user requests a new grant. Parameters
 are private action data and must not be logged. The legacy +Approvals.reset!+
 method is a compatibility no-op; use transactional fixtures for test isolation.
 

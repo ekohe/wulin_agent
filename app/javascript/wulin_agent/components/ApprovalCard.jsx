@@ -5,7 +5,31 @@ import {
   parseApprovalDraft,
   setApprovalDraft,
 } from "../approvalDrafts";
+import {serverNow} from "../serverClock";
 import {strings} from "../strings";
+
+const SOON_SECONDS = 60;
+
+// Seconds left before the server stops accepting an answer, ticking once a
+// second; null when the request carries no expiry (older stored messages).
+function useSecondsLeft(expiresAt) {
+  const deadline = expiresAt ? Date.parse(expiresAt) : NaN;
+  const left = () => Math.max(0, Math.ceil((deadline - serverNow()) / 1000));
+  const [seconds, setSeconds] = useState(() => (Number.isNaN(deadline) ? null : left()));
+
+  useEffect(() => {
+    if (Number.isNaN(deadline)) return undefined;
+    setSeconds(left());
+    const timer = setInterval(() => {
+      const next = left();
+      setSeconds(next);
+      if (next === 0) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
+  return seconds;
+}
 
 export function ApprovalCard({toolName, args, approval, respondToApproval}) {
   const [editing, setEditing] = useState(false);
@@ -15,6 +39,8 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
   const destructive = isDestructiveToolName(toolName);
   const hasArgs = args && Object.keys(args).length > 0;
   const flat = hasArgs && isFlatApprovalArgs(args);
+  const secondsLeft = useSecondsLeft(approval?.expiresAt);
+  const expired = secondsLeft === 0;
 
   useEffect(() => {
     setDraft(args);
@@ -38,6 +64,12 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
 
   const handleReject = () => {
     respondToApproval({approved: false, reason: "User declined"});
+  };
+
+  // The server records an answer to an expired request as expired; this only
+  // lets the turn move on.
+  const handleDismiss = () => {
+    respondToApproval({approved: false, reason: "Expired"});
   };
 
   const handleDraftChange = (event) => {
@@ -64,8 +96,15 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
         <span className="wulin-agent-approval__tool">{toolName}</span>
         {" "}{strings.requiresApproval}
       </p>
+      {expired ? (
+        <p className="wulin-agent-approval__expired" role="status">{strings.approvalExpired}</p>
+      ) : secondsLeft != null && (
+        <p className={`wulin-agent-approval__expiry${secondsLeft <= SOON_SECONDS ? " wulin-agent-approval__expiry--soon" : ""}`}>
+          {strings.approvalExpiresIn(secondsLeft)}
+        </p>
+      )}
       {hasArgs && (
-        editing ? (
+        editing && !expired ? (
           <>
             <textarea
               className="wulin-agent-approval__args wulin-agent-approval__textarea"
@@ -93,7 +132,11 @@ export function ApprovalCard({toolName, args, approval, respondToApproval}) {
         )
       )}
       <div className="wulin-agent-approval__actions">
-        {!editing ? (
+        {expired ? (
+          <button type="button" className="wulin-agent-approval__reject" onClick={handleDismiss}>
+            {strings.dismiss}
+          </button>
+        ) : !editing ? (
           <>
             <button type="button" className="wulin-agent-approval__edit" onClick={() => setEditing(true)}>
               {strings.edit}

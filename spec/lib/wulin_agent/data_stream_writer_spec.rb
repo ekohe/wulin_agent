@@ -52,18 +52,21 @@ RSpec.describe WulinAgent::DataStreamWriter do
     expect(output.string).to include('"total":2')
   end
 
-  it "includes approval_token in streamed tool results" do
+  it "includes the approval token and its expiry in streamed and stored tool results" do
     writer.write(
       type: :tool_result,
       id: "call_1",
       name: "people__destroy",
       result: {"status" => "approval_required"},
-      approval_token: "tok-123"
+      approval_token: "tok-123",
+      approval_expires_at: "2026-11-03T04:00:00Z"
     )
     write_done
 
-    expect(output.string).to include("approval_token")
-    expect(output.string).to include("tok-123")
+    expect(output.string).to include('"approval_token":"tok-123"', '"approval_expires_at":"2026-11-03T04:00:00Z"')
+    expect(writer.metadata["tool_results"].first["result"]).to include(
+      "approval_token" => "tok-123", "approval_expires_at" => "2026-11-03T04:00:00Z"
+    )
   end
 
   it "captures metadata for persistence" do

@@ -1,3 +1,5 @@
+import {noteServerTime} from "./serverClock";
+
 const BASE = "/wulin_agent/conversations";
 const STORAGE_CONVERSATION_KEY = "wulin_agent_conversation_id";
 const STORAGE_APPROVAL_MODE_KEY = "wulin_agent_approval_mode";
@@ -91,6 +93,7 @@ export async function sendMessage(message, explicitConversationId, {archiveId, s
     body: JSON.stringify(body),
     signal,
   });
+  noteServerTime(response);
 
   if (response.status === 401) {
     throw httpError(401, "Unauthorized (401)");
@@ -124,6 +127,7 @@ export async function runApproved({ token, params, signal } = {}) {
     body: JSON.stringify({ token, params }),
     signal,
   });
+  noteServerTime(response);
 
   if (!response.ok) {
     throw httpError(response.status);
@@ -143,6 +147,7 @@ export async function runRejected({ token, reason, signal } = {}) {
     body: JSON.stringify({ token, reason }),
     signal,
   });
+  noteServerTime(response);
 
   if (!response.ok) {
     throw httpError(response.status);
@@ -177,6 +182,7 @@ export async function listConversations({ signal } = {}) {
     headers: getHeaders(),
     signal,
   });
+  noteServerTime(response);
   if (response.status === 401) {
     throw httpError(401, "Not authenticated (401)");
   }
@@ -193,6 +199,7 @@ export async function fetchConversation(id, { signal } = {}) {
     headers: getHeaders(),
     signal,
   });
+  noteServerTime(response);
 
   if (response.status === 401) {
     throw httpError(401, "Not authenticated (401)");

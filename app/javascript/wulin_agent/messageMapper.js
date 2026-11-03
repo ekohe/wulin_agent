@@ -21,7 +21,8 @@ function buildApprovalResolutions(apiMessages) {
           (r) =>
             r.name === tc.name &&
             r.result?.status !== "approval_required" &&
-            r.result?.status !== "rejected"
+            r.result?.status !== "rejected" &&
+            r.result?.status !== "expired"
         );
 
       if (success) {
@@ -121,7 +122,7 @@ export function toAssistantUiMessages(apiMessages) {
         } else if (resolved) {
           part.approval = {approved: false};
         } else {
-          part.approval = {id: result.approval_token};
+          part.approval = {id: result.approval_token, expiresAt: result.approval_expires_at};
         }
       } else if (result?.status === "rejected") {
         part.approval = {approved: false};

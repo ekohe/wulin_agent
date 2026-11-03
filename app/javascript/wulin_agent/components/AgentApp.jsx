@@ -64,7 +64,6 @@ export function AgentApp({fullPage = false}) {
   const [drawerWidth, setDrawerWidth] = useState(getStoredDrawerWidth);
   const [historyWidth, setHistoryWidth] = useState(getStoredHistoryWidth);
   const [conversationStatus, setConversationStatus] = useState("idle");
-  const [awaitingApproval, setAwaitingApproval] = useState(false);
   const [shellError, setShellError] = useState("");
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
@@ -307,7 +306,7 @@ export function AgentApp({fullPage = false}) {
             <div className="wulin-agent-panel__header-row">
               <div className="wulin-agent-panel__heading">
                 <h2 className="wulin-agent-panel__title">{strings.panelTitle}</h2>
-                {awaitingApproval && (
+                {conversationStatus === "awaiting_approval" && (
                   <span className="wulin-agent-panel__status">{strings.awaitingApproval}</span>
                 )}
               </div>
@@ -346,7 +345,6 @@ export function AgentApp({fullPage = false}) {
               onResizeStart={handleHistoryResizeStart}
               onApprovalModeChange={handleConversationApprovalMode}
               onStatusChange={setConversationStatus}
-              onAwaitingApprovalChange={setAwaitingApproval}
             />
             <Thread conversationStatus={conversationStatus} />
           </div>

@@ -75,6 +75,7 @@ module WulinAgent
     def write_tool_result(event)
       result = (event[:result] || {}).dup
       result["approval_token"] = event[:approval_token] if event[:approval_token]
+      result["approval_expires_at"] = event[:approval_expires_at] if event[:approval_expires_at]
 
       @tool_results << {id: event[:id], name: event[:name], result: result}
 

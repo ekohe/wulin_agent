@@ -168,6 +168,79 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
     end
   end
 
+  describe "GET #index" do
+    def paused_conversation(token)
+      conversation = WulinAgent::Conversation.create!(user: user)
+      conversation.messages.create!(role: "user", content: "Delete Alice")
+      conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {
+          "tool_calls" => [{"id" => "call_1", "name" => "destroy_record", "arguments" => {"id" => 1}}],
+          "tool_results" => [{
+            "id" => "call_1",
+            "name" => "destroy_record",
+            "result" => {"status" => "approval_required", "approval_token" => token}
+          }]
+        }
+      )
+      conversation
+    end
+
+    def listed_status(conversation)
+      get :index
+      JSON.parse(response.body).find { |item| item["id"] == conversation.id }["status"]
+    end
+
+    it "lists a conversation paused on a request the user can still answer as awaiting approval, until when" do
+      issued = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {}, user_id: user.id, tool_call_id: "call_1")
+      conversation = paused_conversation(issued.token)
+
+      expect(listed_status(conversation)).to eq("awaiting_approval")
+      item = JSON.parse(response.body).find { |entry| entry["id"] == conversation.id }
+      expect(Time.zone.parse(item["awaiting_approval_until"])).to be_within(1.second).of(issued.expires_at)
+    end
+
+    it "lists it as idle once that request has expired" do
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {}, user_id: user.id, tool_call_id: "call_1").token
+      WulinAgent::ApprovalGrant.update_all(expires_at: 1.minute.ago)
+
+      expect(listed_status(paused_conversation(token))).to eq("idle")
+    end
+
+    it "lists it as idle once the request is answered" do
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {}, user_id: user.id, tool_call_id: "call_1").token
+      conversation = paused_conversation(token)
+      WulinAgent::Approvals.claim!(token, user_id: user.id)
+
+      expect(listed_status(conversation)).to eq("idle")
+    end
+
+    it "stamps the server's time on the response, for the panel's countdowns" do
+      get :index
+
+      expect(Time.zone.parse(response.headers["X-Server-Time"])).to be_within(5.seconds).of(Time.current)
+    end
+
+    it "gives the open conversation's approval deadline too" do
+      issued = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {}, user_id: user.id, tool_call_id: "call_1")
+      conversation = paused_conversation(issued.token)
+
+      get :show, params: {id: conversation.id}
+
+      payload = JSON.parse(response.body)
+      expect(payload["status"]).to eq("awaiting_approval")
+      expect(Time.zone.parse(payload["awaiting_approval_until"])).to be_within(1.second).of(issued.expires_at)
+    end
+
+    it "lists a running conversation as running" do
+      conversation = WulinAgent::Conversation.create!(user: user)
+      conversation.mark_running!
+
+      expect(listed_status(conversation)).to eq("running")
+    end
+  end
+
   describe "GET #show" do
     it "returns the conversation messages as json" do
       conversation = WulinAgent::Conversation.create!(user: user)
@@ -280,7 +353,7 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
         }
       )
       allow(runner).to receive(:run_approved) do |**_args, &block|
-        block&.call(type: :tool_result, name: "people__destroy", result: {"success" => true})
+        block&.call(type: :tool_result, id: "call_1", name: "people__destroy", result: {"success" => true})
         block&.call(type: :text_delta, content: "Done.")
         block&.call(type: :done)
         "Done."
@@ -291,6 +364,48 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
       expect(conversation.messages.chronological.first.metadata["tool_results"].last["result"]).to eq(
         "success" => true
       )
+    end
+  end
+
+  describe "POST #approve when the model fails after the tool ran" do
+    it "still settles the pending approval with the tool's result" do
+      conversation = WulinAgent::Conversation.create!(user: user)
+      conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {
+          "tool_calls" => [{"id" => "call_1", "name" => "people__destroy", "arguments" => {"id" => 26}}],
+          "tool_results" => [{
+            "id" => "call_1",
+            "name" => "people__destroy",
+            "result" => {"status" => "approval_required", "approval_token" => "tok-1"}
+          }]
+        }
+      )
+      allow(runner).to receive(:run_approved) do |**_args, &block|
+        block&.call(type: :tool_result, id: "call_1", name: "people__destroy", result: {"success" => true})
+        raise "model unavailable"
+      end
+
+      post :approve, params: {id: conversation.id, token: "tok-1"}
+
+      expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq("success" => true)
+      expect(conversation.messages.chronological.last.content).to include("model unavailable")
+    end
+  end
+
+  describe "POST #approve when storing the outcome fails as well" do
+    it "still tells the user what went wrong with the turn" do
+      conversation = WulinAgent::Conversation.create!(user: user)
+      allow(runner).to receive(:run_approved) do |**_args, &block|
+        block&.call(type: :tool_result, id: "call_1", name: "people__destroy", result: {"success" => true})
+        raise "model unavailable"
+      end
+      allow(controller).to receive(:resolve_pending_approval!).and_raise(ActiveRecord::StatementInvalid, "db gone")
+
+      post :approve, params: {id: conversation.id, token: "tok-1"}
+
+      expect(conversation.messages.chronological.last.content).to include("model unavailable")
     end
   end
 
@@ -323,7 +438,9 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
           }]
         }
       )
+      rejection = WulinAgent::Approvals.rejection_result(tool: "people__destroy", reason: "No thanks")
       allow(runner).to receive(:run_rejected) do |**_args, &block|
+        block&.call(type: :tool_result, id: "call_1", name: "people__destroy", result: rejection)
         block&.call(type: :text_delta, content: "Understood.")
         block&.call(type: :done)
         "Understood."
@@ -331,9 +448,33 @@ RSpec.describe WulinAgent::ConversationsController, type: :controller do
 
       post :reject, params: {id: conversation.id, token: "tok-1", reason: "No thanks"}
 
-      expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq(
-        WulinAgent::Approvals.rejection_result(tool: "people__destroy", reason: "No thanks")
+      expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq(rejection)
+    end
+
+    it "marks a request answered after it expired as expired on the original assistant message" do
+      conversation = WulinAgent::Conversation.create!(user: user)
+      conversation.messages.create!(
+        role: "assistant",
+        content: "",
+        metadata: {
+          "tool_calls" => [{"id" => "call_1", "name" => "people__destroy", "arguments" => {"id" => 26}}],
+          "tool_results" => [{
+            "id" => "call_1",
+            "name" => "people__destroy",
+            "result" => {"status" => "approval_required", "approval_token" => "tok-1"}
+          }]
+        }
       )
+      expiry = WulinAgent::Approvals.expiry_result(tool: "people__destroy")
+      allow(runner).to receive(:run_rejected) do |**_args, &block|
+        block&.call(type: :tool_result, id: "call_1", name: "people__destroy", result: expiry)
+        block&.call(type: :done)
+        ""
+      end
+
+      post :reject, params: {id: conversation.id, token: "tok-1", reason: "Expired"}
+
+      expect(conversation.messages.chronological.first.metadata["tool_results"].first["result"]).to eq(expiry)
     end
   end
 

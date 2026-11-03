@@ -4,6 +4,8 @@ require "rails_helper"
 require "ruby_llm"
 
 RSpec.describe WulinAgent::Runner do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:admin) { User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true) }
 
   before do
@@ -255,7 +257,7 @@ RSpec.describe WulinAgent::Runner do
     it "executes the approved tool and streams the follow-up response" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       arguments = {"controller" => "people", "id" => alice.id}
-      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1")
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1").token
       requests = script_model({content: "Done.", chunks: ["OK"]})
 
       events = []
@@ -275,7 +277,7 @@ RSpec.describe WulinAgent::Runner do
     it "runs the tool with the params the user confirmed" do
       Person.create!(first_name: "Alice", last_name: "Martin")
       proposed = {"controller" => "people", "attributes" => {"first_name" => "Bob"}}
-      token = WulinAgent::Approvals.issue!(tool: "create_record", params: proposed, user_id: admin.id, tool_call_id: "call_1")
+      token = WulinAgent::Approvals.issue!(tool: "create_record", params: proposed, user_id: admin.id, tool_call_id: "call_1").token
       script_model({content: "Created."})
 
       runner = described_class.new(user: admin, history: paused_turn("call_1", "create_record", proposed, token))
@@ -285,15 +287,47 @@ RSpec.describe WulinAgent::Runner do
       expect(Person.where(first_name: "Bob")).not_to exist
     end
 
+    it "does not run an expired request, and tells the model and the client so" do
+      alice = Person.create!(first_name: "Alice", last_name: "Martin")
+      arguments = {"controller" => "people", "id" => alice.id}
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1").token
+      requests = script_model({content: "That request expired."})
+
+      events = []
+      travel WulinAgent::Approvals::TTL + 1.second do
+        runner = described_class.new(user: admin, history: paused_turn("call_1", "destroy_record", arguments, token))
+        runner.run_approved(token: token) { |event| events << event }
+      end
+
+      expect(Person.find_by(id: alice.id)).to eq(alice)
+      expiry = WulinAgent::Approvals.expiry_result(tool: "destroy_record")
+      expect(events.first).to eq(type: :tool_result, id: "call_1", name: "destroy_record", result: expiry)
+      expect(tool_message(requests.first, "call_1")).to eq(expiry)
+    end
+
+    it "answers with an error when the tool is no longer available to the user" do
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {"controller" => "people", "id" => 1},
+        user_id: admin.id, tool_call_id: "call_1").token
+      requests = script_model({content: "It is no longer available."})
+      allow(WulinAgent::ToolRegistry).to receive(:find).with("destroy_record", admin).and_return(nil)
+
+      events = []
+      described_class.new(user: admin, history: paused_turn("call_1", "destroy_record", {}, token))
+        .run_approved(token: token) { |event| events << event }
+
+      expect(events.first).to include(type: :tool_result, id: "call_1", result: {"error" => a_string_including("no longer available")})
+      expect(tool_message(requests.first, "call_1")).to include("error")
+    end
+
     it "raises when the token is invalid" do
       script_model
       runner = described_class.new(user: admin)
 
-      expect { runner.run_approved(token: "bad") }.to raise_error(ArgumentError, "invalid approval token")
+      expect { runner.run_approved(token: "bad") }.to raise_error(WulinAgent::Approvals::UnknownToken)
     end
 
     it "claims the grant before a tool runs and cannot replay it after a model failure" do
-      token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: admin.id, tool_call_id: "call_1")
+      token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: admin.id, tool_call_id: "call_1").token
       script_model({raise: "model unavailable"})
       spec = WulinAgent::ToolRegistry.find("list_grids", admin)
       allow(WulinAgent::ToolRegistry).to receive(:find).with("list_grids", admin).and_return(spec)
@@ -304,11 +338,11 @@ RSpec.describe WulinAgent::Runner do
       runner = described_class.new(user: admin, history: paused_turn("call_1", "list_grids", {}, token))
 
       expect { runner.run_approved(token: token) }.to raise_error("model unavailable")
-      expect { runner.run_approved(token: token) }.to raise_error(ArgumentError, "invalid approval token")
+      expect { runner.run_approved(token: token) }.to raise_error(WulinAgent::Approvals::UnknownToken)
     end
 
     it "executes tools that require no params" do
-      token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: admin.id, tool_call_id: "call_1")
+      token = WulinAgent::Approvals.issue!(tool: "list_grids", params: {}, user_id: admin.id, tool_call_id: "call_1").token
       script_model({content: "Done."})
 
       events = []
@@ -322,7 +356,7 @@ RSpec.describe WulinAgent::Runner do
     it "continues the agent turn and pauses again at the next write" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       token = WulinAgent::Approvals.issue!(tool: "list_records", params: {"controller" => "people"},
-        user_id: admin.id, tool_call_id: "call_list")
+        user_id: admin.id, tool_call_id: "call_list").token
       script_model(
         {tool_calls: [{id: "call_destroy", name: "destroy_record", arguments: {"controller" => "people", "id" => alice.id}}]}
       )
@@ -335,7 +369,8 @@ RSpec.describe WulinAgent::Runner do
       expect(events).to include(
         hash_including(type: :tool_result, id: "call_list", name: "list_records"),
         hash_including(type: :tool_call, id: "call_destroy", name: "destroy_record"),
-        hash_including(type: :tool_result, id: "call_destroy", name: "destroy_record", approval_token: a_kind_of(String))
+        hash_including(type: :tool_result, id: "call_destroy", name: "destroy_record",
+          approval_token: a_kind_of(String), approval_expires_at: a_string_matching(/\A\d{4}-\d{2}-\d{2}T/))
       )
       expect(Person.find_by(id: alice.id)).to eq(alice)
       expect(events).not_to include(hash_including(type: :text_delta))
@@ -346,7 +381,7 @@ RSpec.describe WulinAgent::Runner do
     it "invalidates the token, tells the model, and streams the follow-up response" do
       alice = Person.create!(first_name: "Alice", last_name: "Martin")
       arguments = {"controller" => "people", "id" => alice.id}
-      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1")
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1").token
       requests = script_model({content: "Understood.", chunks: ["OK"]})
 
       events = []
@@ -355,15 +390,19 @@ RSpec.describe WulinAgent::Runner do
 
       expect(Person.find_by(id: alice.id)).to eq(alice)
       expect(response).to eq("Understood.")
-      expect(events).to eq([{type: :text_delta, content: "OK"}, {type: :done}])
-      expect(tool_message(requests.first, "call_1"))
-        .to include("status" => "rejected", "reason" => "User declined destroy_record")
-      expect(WulinAgent::Approvals.consume!(token, user_id: admin.id)).to be_nil
+      rejection = WulinAgent::Approvals.rejection_result(tool: "destroy_record", reason: "User declined destroy_record")
+      expect(events).to eq([
+        {type: :tool_result, id: "call_1", name: "destroy_record", result: rejection},
+        {type: :text_delta, content: "OK"},
+        {type: :done}
+      ])
+      expect(tool_message(requests.first, "call_1")).to eq(rejection)
+      expect(WulinAgent::Approvals.pending_expiry(token, user_id: admin.id)).to be_nil
     end
 
     it "uses a custom rejection reason" do
       token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: {"controller" => "people", "id" => 1},
-        user_id: admin.id, tool_call_id: "call_1")
+        user_id: admin.id, tool_call_id: "call_1").token
       requests = script_model({content: "OK"})
 
       runner = described_class.new(user: admin,
@@ -373,11 +412,26 @@ RSpec.describe WulinAgent::Runner do
       expect(tool_message(requests.first, "call_1")).to include("status" => "rejected", "reason" => "No thanks")
     end
 
+    it "records a dismissed expired request as expired, not declined" do
+      arguments = {"controller" => "people", "id" => 1}
+      token = WulinAgent::Approvals.issue!(tool: "destroy_record", params: arguments, user_id: admin.id, tool_call_id: "call_1").token
+      requests = script_model({content: "OK"})
+
+      events = []
+      travel WulinAgent::Approvals::TTL + 1.second do
+        described_class.new(user: admin, history: paused_turn("call_1", "destroy_record", arguments, token))
+          .run_rejected(token: token, reason: "Expired") { |event| events << event }
+      end
+
+      expect(events.first).to include(type: :tool_result, result: WulinAgent::Approvals.expiry_result(tool: "destroy_record"))
+      expect(tool_message(requests.first, "call_1")).to include("status" => "expired")
+    end
+
     it "raises when the token is invalid" do
       script_model
       runner = described_class.new(user: admin)
 
-      expect { runner.run_rejected(token: "bad") }.to raise_error(ArgumentError, "invalid approval token")
+      expect { runner.run_rejected(token: "bad") }.to raise_error(WulinAgent::Approvals::UnknownToken)
     end
   end
 end

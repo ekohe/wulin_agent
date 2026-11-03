@@ -376,6 +376,8 @@ nav ul.right .wulin-agent-toggle-slot {
 .wulin-agent-status--running .material-icons { color: var(--wulin-agent-info); }
 .wulin-agent-status--complete .material-icons { color: var(--wulin-agent-success); }
 .wulin-agent-status--rejected .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--expired .material-icons { color: var(--wulin-agent-aborted-strong); }
+.wulin-agent-status--awaiting_approval .material-icons { color: var(--wulin-agent-warning-strong); }
 .wulin-agent-status--failed .material-icons { color: var(--wulin-agent-error-strong); }
 
 .wulin-agent-body {
@@ -989,6 +991,23 @@ nav ul.right .wulin-agent-toggle-slot {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+.wulin-agent-approval__expiry {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-approval__expiry--soon {
+  color: var(--wulin-agent-warning-strong);
+  font-weight: 600;
+}
+
+.wulin-agent-approval__expired {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text);
+}
+
 .wulin-agent-approval__actions {
   display: flex;
   gap: 0.375rem;
@@ -1306,13 +1325,15 @@ nav ul.right .wulin-agent-toggle-slot {
   color: var(--wulin-agent-main-strong);
 }
 
-.wulin-agent-tool--rejected {
+.wulin-agent-tool--rejected,
+.wulin-agent-tool--expired {
   border: 1px solid var(--wulin-agent-aborted);
   background: var(--wulin-agent-bg);
   color: var(--wulin-agent-aborted-strong);
 }
 
-.wulin-agent-tool--rejected summary {
+.wulin-agent-tool--rejected summary,
+.wulin-agent-tool--expired summary {
   color: var(--wulin-agent-aborted-strong);
 }
 
