@@ -616,6 +616,24 @@ nav ul.right .wulin-agent-toggle-slot {
   outline-offset: -2px;
 }
 
+// A touch screen has no hover to reveal the delete button, and tapping a
+// button does not focus it on every platform; show it on every row there.
+@media (hover: none) {
+  .wulin-agent-history__item-actions {
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item-delete,
+  .wulin-agent-history__row--active .wulin-agent-history__item-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item {
+    padding-right: 28px;
+  }
+}
+
 .wulin-agent-history__status {
   margin: 0;
   padding: 0.375rem 12px;
