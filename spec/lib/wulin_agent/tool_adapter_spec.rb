@@ -9,8 +9,7 @@ RSpec.describe WulinAgent::ToolAdapter do
   before do
     WulinAgent::Catalog.reset!
     WulinAgent::ToolRegistry.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   describe ".build" do
@@ -34,8 +33,7 @@ RSpec.describe WulinAgent::ToolAdapter do
       spec = WulinAgent::ToolRegistry.find("people__greet", admin)
       tool = described_class.build([spec], user: admin).first
 
-      schema = tool.class.params_schema_definition.instance_variable_get(:@schema)
-      expect(schema[:properties]).to include(name: {type: "string"})
+      expect(tool.parameters_schema["properties"]).to include("name" => {"type" => "string"})
     end
 
     it "delegates execute to ToolSpec with user and approval_mode" do
@@ -47,14 +45,32 @@ RSpec.describe WulinAgent::ToolAdapter do
       expect(result).to eq("success" => true, "message" => "Hello, Axel!")
     end
 
-    it "halts with approval_required for mutating tools under confirm_writes" do
-      spec = WulinAgent::ToolRegistry.find("destroy_record", admin)
+    it "requires approval for mutating tools under confirm_writes, and only for those" do
+      destroy = WulinAgent::ToolRegistry.find("destroy_record", admin)
+      list = WulinAgent::ToolRegistry.find("list_records", admin)
+      tools = described_class.build([destroy, list], user: admin, approval_mode: :confirm_writes)
+
+      expect(tools.map { |tool| [tool.name, tool.requires_approval?] })
+        .to eq([["destroy_record", true], ["list_records", false]])
+    end
+
+    it "pauses a valid write for approval and lets one its schema refuses run to its error" do
+      spec = WulinAgent::ToolRegistry.find("create_record", admin)
       tool = described_class.build([spec], user: admin, approval_mode: :confirm_writes).first
+      call = ->(attributes) {
+        RubyLLM::ToolCall.new(id: "c1", name: "create_record", arguments: {"controller" => "people", "attributes" => attributes})
+      }
 
-      result = tool.execute(controller: "people", id: 1)
+      expect(tool.approval_resolver.call(call.call({"first_name" => "Ada"}))).to be_nil
+      expect(tool.approval_resolver.call(call.call({}))).to be(true)
+      expect(tool.execute(controller: "people", attributes: {})["error"]).to start_with("attributes needs at least 1 field")
+    end
 
-      expect(result).to be_a(RubyLLM::Tool::Halt)
-      expect(result.content["status"]).to eq("approval_required")
+    it "requires no approval under auto" do
+      spec = WulinAgent::ToolRegistry.find("destroy_record", admin)
+      tool = described_class.build([spec], user: admin, approval_mode: :auto).first
+
+      expect(tool.requires_approval?).to be(false)
     end
   end
 end

@@ -25,7 +25,7 @@ module WulinAgent
       }.compact
 
       if filterable
-        hint = filter_value_hint(column, model: model)
+        hint = filter_value_hint(column)
         payload[:value_hint] = hint if hint.present?
       end
       payload[:value_hint] = COMPUTED_COLUMN_HINT if computed_column?(column, model: model)
@@ -72,7 +72,7 @@ module WulinAgent
       }
     end
 
-    def filter_value_hint(column, model: nil)
+    def filter_value_hint(column)
       sql_type = column.sql_type.to_s
       return NUMERIC_RANGE_HINT if %w[integer float decimal].include?(sql_type)
       return DATE_RANGE_HINT if %w[date datetime].include?(sql_type)
@@ -92,8 +92,6 @@ module WulinAgent
 
     def foreign_key_filter_value?(value)
       case value
-      when Integer
-        true
       when Hash
         value.key?("id") || value.key?(:id)
       when String

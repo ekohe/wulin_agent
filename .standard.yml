@@ -1,0 +1,8 @@
+# Copies of other gems and installed packages, not this project's code.
+ignore:
+  - "vendor/**/*"
+  - "node_modules/**/*"
+  - "tmp/**/*"
+  - "spec/dummy/vendor/**/*"
+  - "spec/dummy/node_modules/**/*"
+  - "spec/dummy/tmp/**/*"

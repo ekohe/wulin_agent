@@ -9,13 +9,17 @@ import {
   resetConversationId,
   setConversationId,
 } from "../api";
+import {serverNow} from "../serverClock";
 import {
   hasPendingApproval,
   hasPendingApprovalInApi,
   toAssistantUiMessages,
 } from "../messageMapper";
-import { LoadingSpinner } from "./LoadingSpinner";
+import {IconButton} from "./IconButton";
+import {StatusMark} from "./StatusMark";
 import { useThreadRunning } from "../useThreadRunning";
+import {strings} from "../strings";
+import {ConfirmDialog} from "./ConfirmDialog";
 
 const LIST_POLL_MS = 2000;
 const CONVERSATION_POLL_MS = 1500;
@@ -52,8 +56,15 @@ export function ConversationHistory({
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState("");
+  const clearNotice = (message) =>
+    setNotice((current) => (current === message ? "" : current));
   const [selectedId, setSelectedId] = useState(null);
   const [viewedStatus, setViewedStatus] = useState("idle");
+  // When the open conversation's pending approval stops accepting an answer.
+  const [viewedDeadline, setViewedDeadline] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const newButtonRef = useRef(null);
   const aui = useAui();
   const threadRunning = useThreadRunning();
   const threadRunningRef = useRef(threadRunning);
@@ -87,6 +98,7 @@ export function ConversationHistory({
       setSelectedId(data.id);
       setConversationId(data.id);
       setViewedStatus(status);
+      setViewedDeadline(data.awaiting_approval_until ?? null);
       onApprovalModeChange?.(data.approval_mode);
       onStatusChange?.(status);
       syncItemStatus(data.id, status);
@@ -101,14 +113,21 @@ export function ConversationHistory({
   const loadListItems = useCallback(async () => {
     const nextItems = await listConversations();
     setItems(withLocalRunning(nextItems, {threadRunning, selectedId}));
+    clearNotice(strings.historyLoadFailed);
   }, [threadRunning, selectedId]);
 
   useEffect(() => {
     if (historyVersion === 0) setLoading(true);
 
     listConversations()
-      .then(setItems)
-      .catch(console.error)
+      .then((nextItems) => {
+        setItems(nextItems);
+        setNotice("");
+      })
+      .catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      })
       .finally(() => setLoading(false));
   }, [historyVersion]);
 
@@ -125,10 +144,16 @@ export function ConversationHistory({
 
     fetchConversation(storedId)
       .then((data) => applyConversation(data))
-      .catch(() => {
-        resetConversationId();
-        setViewedStatus("idle");
-        onStatusChange?.("idle");
+      .catch((error) => {
+        console.error(error);
+        if (error?.status === 404) {
+          resetConversationId();
+          setViewedStatus("idle");
+          setViewedDeadline(null);
+          onStatusChange?.("idle");
+          return;
+        }
+        setNotice(strings.historyOpenFailed);
       });
   }, [applyConversation, onStatusChange]);
 
@@ -136,6 +161,7 @@ export function ConversationHistory({
     if (!threadRunning || !selectedId) return;
 
     setViewedStatus("running");
+    setViewedDeadline(null);
     onStatusChange?.("running");
     syncItemStatus(selectedId, "running");
   }, [threadRunning, selectedId, onStatusChange, syncItemStatus]);
@@ -148,11 +174,43 @@ export function ConversationHistory({
     if (!hasRunningConversation) return;
 
     const timer = setInterval(() => {
-      loadListItems().catch(console.error);
+      loadListItems().catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      });
     }, LIST_POLL_MS);
 
     return () => clearInterval(timer);
   }, [hasRunningConversation, loadListItems]);
+
+  // The server reports a paused conversation as awaiting approval only until
+  // its request expires; ask again then, for the list and the open one, so the
+  // marks do not outlive the request.
+  const nextApprovalDeadline = [viewedDeadline, ...items.map((item) => item.awaiting_approval_until)]
+    .map((value) => (value ? Date.parse(value) : NaN))
+    .filter((deadline) => !Number.isNaN(deadline))
+    .reduce((earliest, deadline) => Math.min(earliest, deadline), Infinity);
+
+  useEffect(() => {
+    if (nextApprovalDeadline === Infinity) return undefined;
+
+    const timer = setTimeout(() => {
+      loadListItems().catch((error) => {
+        console.error(error);
+        setNotice(strings.historyLoadFailed);
+      });
+      if (selectedId && viewedDeadline) {
+        fetchConversation(selectedId)
+          .then((data) => applyConversation(data, {syncThread: false}))
+          .catch((error) => {
+            console.error(error);
+            setNotice(strings.historyOpenFailed);
+          });
+      }
+    }, Math.max(0, nextApprovalDeadline - serverNow()) + 1000);
+
+    return () => clearTimeout(timer);
+  }, [nextApprovalDeadline, loadListItems, selectedId, viewedDeadline, applyConversation]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -177,8 +235,10 @@ export function ConversationHistory({
           selectedId,
         });
         setViewedStatus(status);
+        setViewedDeadline(data.awaiting_approval_until ?? null);
         onStatusChange?.(status);
         syncItemStatus(selectedId, status);
+        clearNotice(strings.historyOpenFailed);
 
         if (!threadRunningRef.current) {
           const mapped = toAssistantUiMessages(data.messages);
@@ -195,6 +255,7 @@ export function ConversationHistory({
         }
       } catch (error) {
         console.error(error);
+        setNotice(strings.historyOpenFailed);
       }
     }
 
@@ -207,23 +268,41 @@ export function ConversationHistory({
   }, [selectedId, viewedStatus, threadRunning, aui, onStatusChange, syncItemStatus]);
 
   async function handleClick(id) {
-    const data = await fetchConversation(id);
-    applyConversation(data, {force: true});
+    try {
+      const data = await fetchConversation(id);
+      applyConversation(data, {force: true});
+      setNotice("");
+    } catch (error) {
+      console.error(error);
+      setNotice(strings.historyOpenFailed);
+    }
   }
 
   function startNew() {
     resetConversationId();
     setSelectedId(null);
     setViewedStatus("idle");
+    setViewedDeadline(null);
     onStatusChange?.("idle");
     aui.thread().reset([]);
   }
 
-  async function handleDelete(id, event) {
-    event.stopPropagation();
-
+  function isRunningItem(id) {
     const target = items.find((entry) => String(entry.id) === String(id));
-    if (target?.status === "running") return;
+    return target?.status === "running";
+  }
+
+  function requestDelete(id, event) {
+    event.stopPropagation();
+    if (isRunningItem(id)) return;
+    setPendingDeleteId(id);
+  }
+
+  async function confirmDelete() {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    // The list polls while the dialog is open; a run may have started since.
+    if (isRunningItem(id)) return;
 
     try {
       await deleteConversation(id);
@@ -235,8 +314,11 @@ export function ConversationHistory({
       ) {
         startNew();
       }
+      // The row and its delete button are gone; keep focus in the history.
+      newButtonRef.current?.focus();
     } catch (error) {
       console.error(error);
+      setNotice(strings.historyDeleteFailed);
     }
   }
 
@@ -248,31 +330,36 @@ export function ConversationHistory({
           className="wulin-agent-history__toggle"
           onClick={onToggle}
           aria-expanded={open}
-          aria-label={open ? "Hide history" : "Show history"}
+          aria-label={open ? strings.hideHistory : strings.showHistory}
         >
-          <i className="material-icons" aria-hidden="true">
+          <span className="material-icons" aria-hidden="true">
             {open ? "chevron_left" : "chevron_right"}
-          </i>
+          </span>
         </button>
 
         {open && !loading && (
           <>
             <span className="wulin-agent-history__title">
-              History ({items.length})
+              {strings.historyTitle(items.length)}
             </span>
             <button
+              ref={newButtonRef}
               type="button"
               className="wulin-agent-history__new"
               onClick={startNew}
             >
-              + New
+              {strings.newConversation}
             </button>
           </>
         )}
       </div>
 
+      {open && notice && (
+        <p className="wulin-agent-history__notice" role="alert">{notice}</p>
+      )}
+
       {open && loading && (
-        <p className="wulin-agent-history__status">Loading…</p>
+        <p className="wulin-agent-history__status">{strings.loading}</p>
       )}
 
       {open && !loading && (
@@ -281,6 +368,7 @@ export function ConversationHistory({
             const isActive = String(selectedId) === String(item.id);
             const isRunning =
               item.status === "running" || (isActive && threadRunning);
+            const isAwaiting = !isRunning && item.status === "awaiting_approval";
             const rowClass = [
               "wulin-agent-history__row",
               isActive ? "wulin-agent-history__row--active" : "",
@@ -300,28 +388,32 @@ export function ConversationHistory({
                   }}
                 >
                   <span className="wulin-agent-history__item-text">{item.title}</span>
+                  {isRunning && <StatusMark status="running" />}
+                  {isAwaiting && <StatusMark status="awaiting_approval" />}
                 </button>
-                <div className="wulin-agent-history__item-actions">
-                  {isRunning ? (
-                    <LoadingSpinner
-                      className="wulin-agent-history__item-spinner"
-                      label="Working in progress"
-                    />
-                  ) : (
-                    <button
-                      type="button"
+                {!isRunning && (
+                  <div className="wulin-agent-history__item-actions">
+                    <IconButton
+                      icon="delete"
+                      label={strings.deleteConversationLabel}
                       className="wulin-agent-history__item-delete"
-                      aria-label="Delete conversation"
-                      onClick={(event) => handleDelete(item.id, event)}
-                    >
-                      <i className="material-icons" aria-hidden="true">delete</i>
-                    </button>
-                  )}
-                </div>
+                      onClick={(event) => requestDelete(item.id, event)}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}
         </ul>
+      )}
+
+      {pendingDeleteId !== null && (
+        <ConfirmDialog
+          message={strings.deleteConversation}
+          confirmLabel={strings.delete}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDeleteId(null)}
+        />
       )}
 
       {open && (
@@ -329,7 +421,7 @@ export function ConversationHistory({
           className="wulin-agent-history__resize"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize history"
+          aria-label={strings.resizeHistory}
           onMouseDown={onResizeStart}
         />
       )}

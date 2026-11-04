@@ -10,7 +10,7 @@ class PeopleController < WulinMaster::ScreenController
 
   def tag
     ids = Array(params[:person_ids]).map(&:to_i)
-    render json: { success: true, count: ids.size }
+    render json: {success: true, count: ids.size}
   end
 
   def noop

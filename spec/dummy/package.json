@@ -1,0 +1,20 @@
+{
+  "name": "wulin_agent_dummy",
+  "private": true,
+  "workspaces": [
+    "vendor/gems/wulin_master",
+    "vendor/gems/wulin_agent"
+  ],
+  "devDependencies": {
+    "esbuild": "^0.28.0"
+  },
+  "dependencies": {
+    "rails-ujs": "^5.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "scripts": {
+    "build": "esbuild app/javascript/application.js --bundle --sourcemap --format=iife --outfile=app/assets/builds/application.js --public-path=/assets --loader:.woff=file --loader:.woff2=file --external:*.css --preserve-symlinks",
+    "copy-icons": "node script/copy_material_icons.js"
+  }
+}

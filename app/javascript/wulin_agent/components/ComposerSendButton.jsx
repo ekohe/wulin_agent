@@ -7,8 +7,9 @@ import {
   takePendingArchive,
 } from "../pendingArchive";
 import {useThreadBusy} from "../useThreadBusy";
+import {strings} from "../strings";
 
-export function ComposerSendButton() {
+export function ComposerSendButton({held = false}) {
   const aui = useAui();
   const text = useAuiState((state) => state.composer.text);
   const canSend = useAuiState((state) => state.composer.canSend);
@@ -20,7 +21,7 @@ export function ComposerSendButton() {
 
   const hasText = text.trim().length > 0;
   const hasArchive = Boolean(pendingArchive);
-  const canSubmit = !threadBusy && ((hasText && canSend) || (hasArchive && !hasText));
+  const canSubmit = !held && !threadBusy && ((hasText && canSend) || (hasArchive && !hasText));
 
   const sendWithArchive = () => {
     const archive = takePendingArchive();
@@ -58,7 +59,7 @@ export function ComposerSendButton() {
       disabled={!canSubmit}
       onClick={handleClick}
     >
-      Send
+      {strings.send}
     </button>
   );
 }

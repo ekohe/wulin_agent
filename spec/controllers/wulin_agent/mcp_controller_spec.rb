@@ -31,6 +31,26 @@ RSpec.describe WulinAgent::McpController, type: :controller do
   describe "host validation" do
     let(:token) { WulinAgent::ApiToken.create!(user: User.create!(email: "admin-#{SecureRandom.hex(4)}@example.com", admin: true)).token }
 
+    it "keeps to loopback hosts when the app checks no hosts" do
+      allow(Rails.application.config).to receive(:hosts).and_return([])
+      request.host = "agent.example.com"
+
+      rpc("tools/list", token: token)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.body).to include("Invalid Host header")
+    end
+
+    it "keeps to loopback hosts when host authorization is switched off" do
+      allow(Rails.application.config).to receive(:hosts).and_return(nil)
+      request.host = "agent.example.com"
+
+      rpc("tools/list", token: token)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.body).to include("Invalid Host header")
+    end
+
     it "accepts a hostname configured by the host application" do
       allow(WulinAgent.config).to receive(:mcp_allowed_hosts).and_return(["agent.example.com"])
       request.host = "agent.example.com"
@@ -41,13 +61,25 @@ RSpec.describe WulinAgent::McpController, type: :controller do
       expect(tool_names(response)).to include("list_grids")
     end
 
-    it "rejects a hostname not configured by the host application" do
+    it "rejects a hostname outside the configured hosts" do
+      allow(WulinAgent.config).to receive(:mcp_allowed_hosts).and_return(["agent.example.com"])
       request.host = "untrusted.example.com"
 
       rpc("tools/list", token: token)
 
       expect(response).to have_http_status(:forbidden)
       expect(response.body).to include("Invalid Host header")
+    end
+
+    it "rejects a browser request from another site" do
+      allow(Rails.application.config).to receive(:hosts).and_return(["agent.example.com"])
+      request.host = "agent.example.com"
+      request.headers["Origin"] = "https://evil.example.com"
+
+      rpc("tools/list", token: token)
+
+      expect(response).to have_http_status(:forbidden)
+      expect(response.body).to include("Invalid Origin header")
     end
   end
 

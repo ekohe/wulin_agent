@@ -76,7 +76,7 @@ module WulinAgent
           callable: ->(params, user) { create(params, user) }
         )
       end
-      
+
       def build_update
         ToolSpec.new(
           name: "skill_update",
@@ -97,7 +97,7 @@ module WulinAgent
           callable: ->(params, _user) { update(params) }
         )
       end
-      
+
       def build_delete
         ToolSpec.new(
           name: "skill_delete",
@@ -129,11 +129,11 @@ module WulinAgent
       rescue ActiveRecord::RecordInvalid => e
         {"error" => e.record.errors.full_messages.join(", ")}
       end
-      
+
       def update(params)
         skill = WulinAgent::Skill.find_by("name ILIKE ?", params["name"])
         return {"error" => "skill not found"} unless skill
-      
+
         attrs = params.slice("description", "instructions", "tool_sequence").compact
         skill.update!(attrs)
         detail(skill)

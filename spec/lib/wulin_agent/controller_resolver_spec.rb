@@ -5,8 +5,7 @@ require "rails_helper"
 RSpec.describe WulinAgent::ControllerResolver do
   before do
     WulinAgent::Catalog.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   after do

@@ -8,6 +8,6 @@ RSpec.describe "wulin_agent migrations" do
       .map { |path| File.basename(path).split("_").first }
 
     duplicates = versions.group_by(&:itself).select { |_, group| group.size > 1 }.keys
-    expect(duplicates).to be_empty, "duplicate migration versions: #{duplicates.join(', ')}"
+    expect(duplicates).to be_empty, "duplicate migration versions: #{duplicates.join(", ")}"
   end
 end

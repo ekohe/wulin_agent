@@ -7,7 +7,7 @@ module WulinAgent
     FILTER_KEYS = %w[column operator].freeze
 
     TOOL_PARAM_KEYS = {
-      "list_records" => %w[controller count sort_col sort_dir row_format text_max_chars debug],
+      "list_records" => %w[controller count sort_col sort_dir row_format text_max_chars],
       "get_columns" => %w[controller],
       "list_grids" => [],
       "knowledge_search" => %w[category scope],
@@ -97,8 +97,6 @@ module WulinAgent
       when Array
         return value if value.length <= 5 && value.all? { |item| primitive?(item) }
 
-        nil
-      else
         nil
       end
     end

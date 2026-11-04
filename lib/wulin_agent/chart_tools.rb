@@ -24,7 +24,6 @@ module WulinAgent
       required: %w[label value]
     }.freeze
 
-
     class << self
       def build
         [build_render_chart]
@@ -47,19 +46,21 @@ module WulinAgent
               type: {
                 type: "string",
                 enum: TYPES,
-                description: "Chart type: bar, line, or pie."
+                description: "Chart type: bar to compare categories, line for change over time, " \
+                             "pie only for one whole split into at most 6 parts (otherwise use bar). " \
+                             "At most 6 series are drawn; the rest stay in the data table."
               },
               title: {
                 type: "string",
                 description: "Title shown above the chart."
               },
               data: {
-                  type: "array",
-                  description: 'Aggregated points. Example: [{"label":"Match 1","value":12}]',
-                  items: DATA_ITEM
-                },
-                x: {type: "string", description: 'Optional X axis label (default "label").'},
-                y: {type: "string", description: 'Optional Y axis label (default "value").'}
+                type: "array",
+                description: 'Aggregated points. Example: [{"label":"Match 1","value":12}]',
+                items: DATA_ITEM
+              },
+              x: {type: "string", description: 'Optional X axis label (default "label").'},
+              y: {type: "string", description: 'Optional Y axis label (default "value").'}
 
             },
             required: %w[type data]
@@ -101,6 +102,5 @@ module WulinAgent
         value
       end
     end
-    
   end
 end

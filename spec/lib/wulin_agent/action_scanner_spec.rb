@@ -8,8 +8,7 @@ RSpec.describe WulinAgent::ActionScanner do
 
   before do
     WulinAgent::Catalog.reset!
-    PersonScreen
-    PersonGrid
+    load_dummy_grids
   end
 
   after do
@@ -24,7 +23,8 @@ RSpec.describe WulinAgent::ActionScanner do
       expect(output).to include("declared people__greet")
       expect(output).to include("inferred people__tag")
       expect(output).to include("partial  people__noop")
-      expect(output).to include("Summary: 1 declared, 1 inferred, 1 partial, 0 manual, 1 skipped")
+      # Engine grids (wulin_permits' users, roles, …) are scanned too.
+      expect(output).to match(/Summary: 1 declared, \d+ inferred, 1 partial, 0 manual, \d+ skipped/)
     end
 
     it "writes draft agent_action declarations when write: true" do

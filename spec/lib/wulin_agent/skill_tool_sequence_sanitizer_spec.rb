@@ -60,6 +60,33 @@ RSpec.describe WulinAgent::SkillToolSequenceSanitizer do
       )
     end
 
+    it "keeps list projection params and drops the debug flag" do
+      steps = [
+        {
+          "tool" => "list_records",
+          "params" => {
+            "controller" => "articles",
+            "row_format" => "objects",
+            "text_max_chars" => 500,
+            "debug" => true
+          }
+        }
+      ]
+
+      expect(described_class.sanitize_sequence(steps)).to eq(
+        [
+          {
+            "tool" => "list_records",
+            "params" => {
+              "controller" => "articles",
+              "row_format" => "objects",
+              "text_max_chars" => 500
+            }
+          }
+        ]
+      )
+    end
+
     it "removes consecutive duplicate sanitized steps" do
       steps = [
         {"tool" => "analyze_config_flow", "params" => {"plan" => {"theme_id" => 1}}},

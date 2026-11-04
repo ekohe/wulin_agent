@@ -20,19 +20,22 @@ module WulinAgent
       scope_messages_for_completion!
       payload = ArchiveService.enrich_message(message, archive_id: archive_id, user: @user)
       response = chat.ask(payload) { |chunk| emit_text_delta(chunk) }
+      paused = pause_for_approval!
       emit(type: :done)
-      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
+      paused ? "" : response.content
     ensure
       @on_event = nil
     end
 
     def run_approved(token:, params: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
+      claim = Approvals.claim!(token, user_id: @user.id)
+      return answer_pending_call(claim.grant, Approvals.expiry_result(tool: claim.grant[:tool])) if claim.expired?
 
+      grant = claim.grant
       spec = ToolRegistry.find(grant[:tool], @user)
-      raise ArgumentError, "tool not found" unless spec
+      # Gone since the pause, its grid permission revoked or the tool removed.
+      return answer_pending_call(grant, {"error" => "#{grant[:tool]} is no longer available to you, so it did not run."}) unless spec
 
       raw = params || grant[:params] || {}
       raw = raw.to_unsafe_h if raw.respond_to?(:to_unsafe_h)
@@ -44,30 +47,23 @@ module WulinAgent
         approved: true
       )
 
-      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
-
-      replace_tool_result!(grant[:tool_call_id], result)
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
 
     def run_rejected(token:, reason: nil, &block)
       @on_event = block
-      grant = Approvals.consume!(token, user_id: @user.id)
-      raise ArgumentError, "invalid approval token" unless grant
-    
-      message = reason.presence || "User declined #{grant[:tool]}"
-      replace_tool_result!(
-        grant[:tool_call_id],
-        Approvals.rejection_result(tool: grant[:tool], reason: message)
-      )
+      claim = Approvals.claim!(token, user_id: @user.id)
+      grant = claim.grant
+      result =
+        if claim.expired?
+          Approvals.expiry_result(tool: grant[:tool])
+        else
+          Approvals.rejection_result(tool: grant[:tool], reason: reason.presence || "User declined #{grant[:tool]}")
+        end
 
-      response = continue_agent_turn
-      emit(type: :done)
-      response
+      answer_pending_call(grant, result)
     ensure
       @on_event = nil
     end
@@ -96,25 +92,44 @@ module WulinAgent
     end
 
     def build_chat
-      Rails.logger.info("[wulin_agent] model=#{resolved_model}")
+      Rails.logger.info("[wulin_agent] model=#{resolved_model} provider=#{WulinAgent.provider || "direct"}")
 
-      chat = RubyLLM.chat(model: resolved_model)
+      chat = RubyLLM.chat(**WulinAgent.chat_options(resolved_model))
       chat = apply_llm_options(chat)
       chat = chat
-        .with_tools(*tools, calls: :one)
+        .with_tools(*tools)
+        .with_tool_options(calls: :one)
         .with_instructions(system_prompt)
-        .on_tool_call { |tc| emit_tool_call(tc) }
-        .on_tool_result { |result| emit_tool_result(result) }
+        .before_tool_call { |tc| emit_tool_call(tc) }
+        .after_tool_result { |result| emit_tool_result(result) }
       @history.each { |msg| replay_message!(chat, msg) }
       chat
     end
 
+    # ruby_llm sends both options as set. A model the registry says cannot
+    # take one would fail every turn, so leave it out and say why; a model the
+    # registry does not describe gets the option as configured.
     def apply_llm_options(chat)
       config = WulinAgent.config
-      chat = chat.with_temperature(config.temperature) unless config.temperature.nil?
-      if config.thinking_effort.present?
-        chat = chat.with_thinking(effort: config.thinking_effort)
+      model = chat.model
+
+      unless config.temperature.nil?
+        if model.metadata[:temperature] == false
+          Rails.logger.warn("[wulin_agent] #{model.id} does not take temperature; not sent")
+        else
+          chat = chat.with_temperature(config.temperature)
+        end
       end
+
+      if (effort = config.thinking_effort.presence)
+        efforts = model.reasoning_option_values(:effort)
+        if efforts.any? && !efforts.include?(effort.to_s)
+          Rails.logger.warn("[wulin_agent] #{model.id} takes thinking effort #{efforts.join("/")}, not #{effort}; not sent")
+        else
+          chat = chat.with_thinking(effort: effort)
+        end
+      end
+
       chat
     end
 
@@ -147,6 +162,9 @@ module WulinAgent
         - If a tool result has status "rejected", the user declined that action.
           Do not retry that tool or call other tools. Reply in text only and
           briefly acknowledge what was not done.
+        - If a tool result has status "expired", the request timed out before
+          the user answered and the tool did not run. Do not retry it on your
+          own; say so and offer to prepare it again.
 
         To search or filter records, call list_records with a filters array.
         Each filter needs column (from get_columns, must be filterable), value,
@@ -190,25 +208,35 @@ module WulinAgent
 
     def skill_prompt_section
       return unless defined?(WulinAgent::Skill)
-    
+
       lines = WulinAgent::Skill.for_prompt.map { |name, desc| "- #{name}: #{desc}" }
       return if lines.empty?
-    
+
       "\n\nAvailable skills (call skill_read to load instructions):\n#{lines.join("\n")}"
     end
 
     def scope_messages_for_completion!
-      if chat.respond_to?(:with_messages)
-        chat.with_messages { |msgs| limited_messages(msgs) }
-      else
-        chat.instance_variable_set(:@messages, limited_messages(chat.messages))
-      end
+      chat.messages = limited_messages(chat.messages)
     end
 
     def continue_agent_turn
       scope_messages_for_completion!
       response = chat.complete { |chunk| emit_text_delta(chunk) }
-      response.is_a?(RubyLLM::Tool::Halt) ? "" : response.content
+      pause_for_approval! ? "" : response.content
+    end
+
+    # ruby_llm stops before running a tool that requires approval. The call is
+    # reported like any other, with the approval_required result its ToolSpec
+    # returns unapproved; emit_tool_result attaches the ApprovalGrant token and
+    # the turn ends there. Returns whether the turn paused.
+    def pause_for_approval!
+      pending = chat.awaiting_approval? ? chat.pending_approvals : []
+      pending.each do |tool_call|
+        emit_tool_call(tool_call)
+        spec = ToolRegistry.find(tool_call.name, @user)
+        emit_tool_result(spec.execute(tool_call.arguments.to_h.stringify_keys, @user, approval_mode: @approval_mode))
+      end
+      pending.any?
     end
 
     def replay_message!(chat, msg)
@@ -218,7 +246,13 @@ module WulinAgent
       completed_calls = tool_calls.select { |call| completed_ids.include?(call["id"]) }
 
       if completed_calls.any?
-        replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        parts = msg.dig(:metadata, "parts")
+        if parts.present?
+          replay_assistant_rounds!(chat, parts, completed_calls, tool_results)
+        else
+          # Messages stored before parts existed kept no order: one round.
+          replay_assistant_tool_turn!(chat, msg[:content], completed_calls, tool_results)
+        end
         return
       end
 
@@ -238,35 +272,61 @@ module WulinAgent
       chat.add_message(role: msg[:role], content: content)
     end
 
-    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
-      calls = tool_calls.index_by { |call| call["id"] }.transform_values do |call|
-        RubyLLM::ToolCall.new(
-          id: call["id"],
-          name: call["name"],
-          arguments: call["arguments"] || {}
-        )
+    # The turn as the model lived it, one round per tool call: the text it
+    # wrote before a call goes with that call, the call's result follows, and
+    # the text after the last call closes the turn.
+    def replay_assistant_rounds!(chat, parts, tool_calls, tool_results)
+      calls = tool_calls.index_by { |call| call["id"] }
+      results = tool_results.index_by { |result| result["id"] }
+      text = []
+
+      parts.each do |part|
+        if part["type"] == "text"
+          text << part["text"] if part["text"].present?
+          next
+        end
+
+        call = calls[part["id"]]
+        next unless call && results[call["id"]]
+
+        chat.add_message(role: :assistant, content: text.join("\n\n"), tool_calls: replayed_calls([call]))
+        replay_tool_result!(chat, call, results[call["id"]])
+        text = []
       end
 
-      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: calls)
+      chat.add_message(role: :assistant, content: text.join("\n\n")) if text.any?
+    end
+
+    def replay_assistant_tool_turn!(chat, content, tool_calls, tool_results)
+      chat.add_message(role: :assistant, content: content.presence || "", tool_calls: replayed_calls(tool_calls))
 
       tool_calls.each do |call|
         tool_result = tool_results.find { |result| result["id"] == call["id"] }
-        next unless tool_result
-
-        chat.add_message(
-          role: :tool,
-          content: tool_result["result"].to_json,
-          tool_call_id: call["id"]
-        )
+        replay_tool_result!(chat, call, tool_result) if tool_result
       end
     end
 
+    def replayed_calls(calls)
+      calls.index_by { |call| call["id"] }.transform_values do |call|
+        RubyLLM::ToolCall.new(id: call["id"], name: call["name"], arguments: call["arguments"] || {})
+      end
+    end
+
+    def replay_tool_result!(chat, call, tool_result)
+      chat.add_message(role: :tool, content: tool_result["result"].to_json, tool_call_id: call["id"])
+    end
+
+    # Messages are immutable in ruby_llm 2, so the placeholder result is swapped
+    # for a new message rather than edited.
     def replace_tool_result!(tool_call_id, result)
-      message = chat.messages.find { |msg| msg.tool_result? && msg.tool_call_id == tool_call_id }
-      if message
-        message.content = result
+      replacement = RubyLLM::Message.new(role: :tool, content: result.to_json, tool_call_id: tool_call_id)
+      index = chat.messages.index { |msg| msg.tool_result? && msg.tool_call_id == tool_call_id }
+      if index
+        messages = chat.messages.dup
+        messages[index] = replacement
+        chat.messages = messages
       else
-        chat.add_message(role: :tool, content: result.to_json, tool_call_id: tool_call_id)
+        chat.add_message(replacement)
       end
     end
 
@@ -285,10 +345,19 @@ module WulinAgent
       @current_tool_call = tool_call
       emit(type: :tool_call, id: tool_call.id, name: tool_call.name, arguments: tool_call.arguments)
     end
-    
-    def emit_tool_result(result)
-      result = result.content if result.is_a?(RubyLLM::Tool::Halt)
 
+    # Puts the outcome of an approval (the tool's result, a rejection or an
+    # expiry) where the paused tool call was, streams it so the client and the
+    # stored message can settle that call, and lets the model continue.
+    def answer_pending_call(grant, result)
+      emit(type: :tool_result, id: grant[:tool_call_id], name: grant[:tool], result: result)
+      replace_tool_result!(grant[:tool_call_id], result)
+      response = continue_agent_turn
+      emit(type: :done)
+      response
+    end
+
+    def emit_tool_result(result)
       payload = {
         type: :tool_result,
         id: @current_tool_call&.id,
@@ -300,12 +369,14 @@ module WulinAgent
         params = params.stringify_keys
         result = result.merge("params" => params)
         payload[:result] = result
-        payload[:approval_token] = Approvals.issue!(
+        issued = Approvals.issue!(
           tool: result["tool"],
           params: params,
           user_id: @user.id,
           tool_call_id: @current_tool_call&.id
         )
+        payload[:approval_token] = issued.token
+        payload[:approval_expires_at] = issued.expires_at.iso8601
       end
       emit(payload)
       @current_tool_call = nil
@@ -314,7 +385,7 @@ module WulinAgent
     def emit_text_delta(chunk)
       content = chunk.content
       return if content.nil? || content.to_s.empty?
-    
+
       emit(type: :text_delta, content: content.to_s)
     end
   end

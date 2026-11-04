@@ -2,6 +2,7 @@
 
 require "spec_helper"
 require "wulin_agent/conversation_distiller"
+require "wulin_agent/skill_tool_sequence_sanitizer"
 
 RSpec.describe WulinAgent::ConversationDistiller do
   def message(metadata)
@@ -9,19 +10,21 @@ RSpec.describe WulinAgent::ConversationDistiller do
   end
 
   describe ".steps_from" do
-    it "keeps successful steps and drops errors, rejections and approval-required" do
+    it "keeps successful steps and drops errors, rejections, expiries and approval-required" do
       msg = message(
         "tool_calls" => [
-          {"id" => "1", "name" => "list_records",   "arguments" => {"controller" => "people"}},
+          {"id" => "1", "name" => "list_records", "arguments" => {"controller" => "people"}},
           {"id" => "2", "name" => "destroy_record", "arguments" => {"id" => 9}},
-          {"id" => "3", "name" => "create_record",  "arguments" => {"controller" => "people"}},
-          {"id" => "4", "name" => "people__attach", "arguments" => {"id" => 1}}
+          {"id" => "3", "name" => "create_record", "arguments" => {"controller" => "people"}},
+          {"id" => "4", "name" => "people__attach", "arguments" => {"id" => 1}},
+          {"id" => "5", "name" => "destroy_record", "arguments" => {"id" => 7}}
         ],
         "tool_results" => [
           {"id" => "1", "result" => [{"id" => 1}]},
           {"id" => "2", "result" => {"status" => "rejected"}},
           {"id" => "3", "result" => {"error" => "boom"}},
-          {"id" => "4", "result" => {"status" => "approval_required", "approval_token" => "t"}}
+          {"id" => "4", "result" => {"status" => "approval_required", "approval_token" => "t"}},
+          {"id" => "5", "result" => {"status" => "expired", "tool" => "destroy_record"}}
         ]
       )
 

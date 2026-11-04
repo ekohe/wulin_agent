@@ -1,0 +1,1760 @@
+// Built by the host's dart-sass alongside wulin_master's master.sass, with the
+// same load paths: app/assets/stylesheets, where
+// rake wulin_master:generate_theme_color_css writes _theme.generated.scss, and
+// node_modules, for the Materialize palette. Every color is resolved here at
+// compile time from config.color_theme, as wulin_master resolves its own.
+@use "sass:color";
+@use "sass:math";
+@use "theme.generated" as theme;
+@use "materialize-css/sass/components/color-variables" as palette;
+
+$wulin-agent-main: palette.color(theme.$color-theme, "base");
+
+// WCAG 2 relative luminance and contrast ratio.
+@function -linear($channel) {
+  $c: math.div($channel, 255);
+  @if $c <= 0.04045 {
+    @return math.div($c, 12.92);
+  }
+  @return math.pow(math.div($c + 0.055, 1.055), 2.4);
+}
+
+@function -luminance($color) {
+  @return 0.2126 * -linear(color.channel($color, "red", $space: rgb))
+    + 0.7152 * -linear(color.channel($color, "green", $space: rgb))
+    + 0.0722 * -linear(color.channel($color, "blue", $space: rgb));
+}
+
+@function -contrast($a, $b) {
+  $la: -luminance($a);
+  $lb: -luminance($b);
+  @return math.div(math.max($la, $lb) + 0.05, math.min($la, $lb) + 0.05);
+}
+
+$wulin-agent-bg-subtle: palette.color("grey", "lighten-5");
+$wulin-agent-row-odd: palette.color("grey", "lighten-4");
+
+// main-strong is the fill under white text and the accent text color on every
+// panel background: white, bg-subtle, row-odd, and each of those under the
+// 12% main-soft tint (the history's active row). The tint over row-odd is the
+// darkest of them, so 4.5:1 against it covers all. Darker themes pass at 75%
+// accent; light ones (amber, yellow, lime...) need more black.
+$wulin-agent-darkest-panel-bg: color.mix($wulin-agent-main, $wulin-agent-row-odd, 12%);
+
+@function -ink-shade($base) {
+  @for $weight from 75 through 0 {
+    $shade: color.mix($base, black, $weight * 1%);
+    @if -contrast($shade, $wulin-agent-darkest-panel-bg) >= 4.5 {
+      @return $shade;
+    }
+  }
+  @return black;
+}
+
+$wulin-agent-main-strong: -ink-shade($wulin-agent-main);
+$wulin-agent-error: palette.color("red", "base");
+$wulin-agent-warning: palette.color("amber", "base");
+$wulin-agent-border: palette.color("grey", "lighten-2");
+
+// The panel's tokens. The toolbar toggle renders through a portal into the
+// host nav, outside #wulin-agent-root, so its slot carries them too.
+@mixin tokens {
+  // The accent itself is for borders and tints; text and filled buttons use
+  // main-strong (see -ink-shade), and hover darkens it further.
+  --wulin-agent-main: #{$wulin-agent-main};
+  --wulin-agent-main-strong: #{$wulin-agent-main-strong};
+  --wulin-agent-main-hover: #{color.mix($wulin-agent-main-strong, black, 83%)};
+  --wulin-agent-main-soft: #{color.change($wulin-agent-main, $alpha: 0.12)};
+  --wulin-agent-on-main: #fff;
+  --wulin-agent-disabled: #{palette.color("grey", "darken-2")};
+
+  --wulin-agent-text: #{palette.color("grey", "darken-3")};
+  --wulin-agent-text-muted: #{palette.color("grey", "darken-2")};
+  --wulin-agent-text-subtle: #{palette.color("grey", "base")};
+  --wulin-agent-border: #{$wulin-agent-border};
+  --wulin-agent-bg: #fff;
+  --wulin-agent-bg-subtle: #{$wulin-agent-bg-subtle};
+  --wulin-agent-row-odd: #{$wulin-agent-row-odd};
+
+  --wulin-agent-error: #{$wulin-agent-error};
+  --wulin-agent-error-strong: #{palette.color("red", "darken-3")};
+  --wulin-agent-error-hover: #{palette.color("red", "darken-4")};
+  --wulin-agent-error-soft: #{color.change($wulin-agent-error, $alpha: 0.1)};
+  --wulin-agent-error-line: #{color.mix($wulin-agent-error, $wulin-agent-border, 35%)};
+  --wulin-agent-error-wash: #{color.mix($wulin-agent-error, $wulin-agent-bg-subtle, 6%)};
+  --wulin-agent-success: #{palette.color("green", "darken-1")};
+  --wulin-agent-warning: #{$wulin-agent-warning};
+  --wulin-agent-warning-strong: #{palette.color("orange", "darken-4")};
+  --wulin-agent-warning-soft: #{color.change($wulin-agent-warning, $alpha: 0.1)};
+  --wulin-agent-info: #{palette.color("light-blue", "darken-2")};
+  --wulin-agent-aborted: #{palette.color("grey", "lighten-1")};
+  --wulin-agent-aborted-strong: #{palette.color("grey", "darken-2")};
+
+  --wulin-agent-radius: 2px;
+  --wulin-agent-radius-md: 8px;
+  --wulin-agent-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --wulin-agent-measure: 68ch;
+
+  // Series colors, in this fixed order. Validated as a categorical set on
+  // white: lightness band, chroma, >= 3:1 contrast, and adjacent pairs apart
+  // under protanopia and deuteranopia (the pie's last slice touches its first,
+  // and that pair passes too). None is a status color; the order is the
+  // safety mechanism, so change the set only by re-running the validation.
+  --wulin-agent-chart-1: #{palette.color("blue", "base")};
+  --wulin-agent-chart-2: #{palette.color("deep-orange", "base")};
+  --wulin-agent-chart-3: #{palette.color("teal", "base")};
+  --wulin-agent-chart-4: #{palette.color("orange", "darken-3")};
+  --wulin-agent-chart-5: #{palette.color("pink", "darken-3")};
+  --wulin-agent-chart-6: #{palette.color("indigo", "base")};
+
+  --wulin-agent-nav-height: 48px;
+  --wulin-agent-font: inherit;
+  --wulin-agent-composer-min-height: 32px;
+  --wulin-agent-composer-max-height: 120px;
+}
+
+// A filled button's four states. Materialize fills every focused button
+// (button:focus, specificity 0-1-1); each state below outranks that, and hover
+// and focus skip :disabled so a disabled button always looks disabled.
+@mixin filled-button($fill, $hover) {
+  border-color: $fill;
+  background: $fill;
+  color: var(--wulin-agent-on-main);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $hover;
+    background: $hover;
+  }
+
+  &:focus:not(:hover):not(:disabled) {
+    border-color: $fill;
+    background: $fill;
+  }
+
+  &:disabled {
+    border-color: var(--wulin-agent-disabled);
+    background: var(--wulin-agent-disabled);
+    color: var(--wulin-agent-on-main);
+    cursor: not-allowed;
+  }
+}
+
+#wulin-agent-root,
+.wulin-agent-toggle-slot {
+  @include tokens;
+}
+
+#wulin-agent-root :focus-visible {
+  outline: 2px solid var(--wulin-agent-main-strong);
+  outline-offset: 2px;
+}
+
+nav ul.right .wulin-agent-toggle-slot {
+  height: var(--wulin-agent-nav-height);
+}
+
+.wulin-agent-toggle {
+  display: block;
+  height: var(--wulin-agent-nav-height);
+  line-height: var(--wulin-agent-nav-height);
+  padding: 0 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--wulin-agent-on-main);
+  font-family: var(--wulin-agent-font);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color 0.3s;
+}
+
+// The toggle sits on the host's colored nav, where the panel's ring would
+// vanish; it takes the nav's own ink, inset so the nav does not clip it.
+.wulin-agent-toggle:focus-visible {
+  outline: 2px solid var(--wulin-agent-on-main);
+  outline-offset: -4px;
+}
+
+.wulin-agent-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.wulin-agent-toggle--open {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.wulin-agent-toggle .material-icons {
+  font-size: 20px;
+  line-height: inherit;
+  vertical-align: middle;
+  color: var(--wulin-agent-on-main);
+}
+
+.wulin-agent-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1003;
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  cursor: pointer;
+}
+
+.wulin-agent-backdrop:focus {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.wulin-agent-drawer {
+  position: fixed;
+  top: var(--wulin-agent-nav-height);
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  min-width: 420px;
+  max-width: 66.67vw;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  z-index: 1010;
+  background: var(--wulin-agent-bg);
+  border-left: 1px solid var(--wulin-agent-border);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--wulin-agent-font);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-drawer__resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  margin-left: -2px;
+  cursor: col-resize;
+  z-index: 3;
+}
+
+.wulin-agent-drawer__resize:hover {
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-drawer--open {
+  transform: translateX(0);
+}
+
+.wulin-agent-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wulin-agent-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  flex-shrink: 0;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  position: relative;
+  z-index: 2;
+}
+
+.wulin-agent-panel__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 24px;
+}
+
+.wulin-agent-panel__header .wulin-agent-approval-mode {
+  width: auto;
+  flex: 0 0 auto;
+  height: auto;
+  padding: 0.125rem 0.375rem;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.wulin-agent-panel__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wulin-agent-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-panel__status {
+  font-size: 12px;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-panel__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 20px;
+}
+
+.wulin-agent-panel__model-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-panel__model {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.125rem 0.375rem;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.4;
+  color: var(--wulin-agent-text);
+  background: var(--wulin-agent-bg-subtle);
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wulin-agent-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+  cursor: pointer;
+}
+
+.wulin-agent-icon-button .material-icons {
+  font-size: 18px;
+}
+
+.wulin-agent-icon-button:hover:not(:disabled) {
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+
+/* Materialize fills every focused button (button:focus); focus shows as the ring. */
+.wulin-agent-icon-button:focus:not(:hover) {
+  background: transparent;
+}
+
+.wulin-agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-status .material-icons {
+  font-size: 14px;
+}
+
+.wulin-agent-status--running .material-icons { color: var(--wulin-agent-info); }
+.wulin-agent-status--complete .material-icons { color: var(--wulin-agent-success); }
+.wulin-agent-status--rejected .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--expired .material-icons { color: var(--wulin-agent-aborted-strong); }
+.wulin-agent-status--awaiting_approval .material-icons { color: var(--wulin-agent-warning-strong); }
+.wulin-agent-status--failed .material-icons { color: var(--wulin-agent-error-strong); }
+
+.wulin-agent-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.wulin-agent-history {
+  position: relative;
+  flex-shrink: 1;
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  min-width: 120px;
+  min-height: 0;
+  border-right: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg-subtle);
+  overflow: hidden;
+}
+
+.wulin-agent-history__resize {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  margin-right: -2px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.wulin-agent-history__resize:hover {
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-history--collapsed {
+  width: 36px;
+  min-width: 36px;
+}
+
+.wulin-agent-history__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  padding: 0.25rem 4px;
+  border-bottom: 1px solid var(--wulin-agent-border);
+}
+
+.wulin-agent-history__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+  cursor: pointer;
+}
+
+.wulin-agent-history__toggle:hover {
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+.wulin-agent-history__toggle:focus {
+  background: transparent;
+}
+
+.wulin-agent-history__toggle .material-icons {
+  font-size: 18px;
+}
+
+.wulin-agent-history__title {
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-history__new {
+  padding: 0.125rem 0.375rem;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-main-strong);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.wulin-agent-history__new:hover {
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-history__new:focus:not(:hover) {
+  background: transparent;
+}
+
+.wulin-agent-history__new:focus-visible {
+  outline-offset: -2px;
+}
+
+.wulin-agent-history__list {
+  list-style: none;
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+
+.wulin-agent-history__row {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0;
+}
+
+.wulin-agent-history__row:hover:not(.wulin-agent-history__row--active) {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-history__row--active {
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item {
+  color: var(--wulin-agent-main-strong);
+  font-weight: 500;
+}
+
+.wulin-agent-history__item-actions {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.wulin-agent-history__row:hover .wulin-agent-history__item-actions,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-actions {
+  pointer-events: auto;
+}
+
+.wulin-agent-history__item-delete {
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wulin-agent-history__row:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item-delete {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.wulin-agent-history__row--active:hover .wulin-agent-history__item-delete,
+.wulin-agent-history__row--active:focus-within .wulin-agent-history__item-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.wulin-agent-history__item-delete:hover {
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-history__row--active .wulin-agent-history__item-delete:hover {
+  background: transparent;
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-history__item-delete:focus-visible {
+  outline-offset: -2px;
+}
+
+.wulin-agent-history__item-delete .material-icons {
+  font-size: 16px;
+}
+
+.wulin-agent-history__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.25rem 6px;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wulin-agent-history__row:hover .wulin-agent-history__item,
+.wulin-agent-history__row:focus-within .wulin-agent-history__item {
+  padding-right: 28px;
+}
+
+.wulin-agent-history__item-text {
+  display: block;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wulin-agent-history__item:focus {
+  background: transparent;
+}
+
+.wulin-agent-history__item:focus-visible {
+  outline-offset: -2px;
+}
+
+// A touch screen has no hover to reveal the delete button, and tapping a
+// button does not focus it on every platform; show it on every row there.
+@media (hover: none) {
+  .wulin-agent-history__item-actions {
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item-delete,
+  .wulin-agent-history__row--active .wulin-agent-history__item-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .wulin-agent-history__item {
+    padding-right: 28px;
+  }
+}
+
+.wulin-agent-history__status {
+  margin: 0;
+  padding: 0.375rem 12px;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-thread {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wulin-agent-scroll-bottom {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 8px);
+  z-index: 1;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius-md);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-scroll-bottom:disabled {
+  display: none;
+}
+
+.wulin-agent-thread__viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 18px 16px 12px;
+}
+
+.wulin-agent-thread__empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wulin-agent-text-muted);
+  font-size: 20px;
+}
+
+.wulin-agent-thread__working {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0;
+  font-size: 13px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--wulin-agent-border);
+  border-top-color: var(--wulin-agent-main);
+  border-radius: 50%;
+  animation: wulin-agent-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes wulin-agent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wulin-agent-message {
+  margin-bottom: 1rem;
+  line-height: 1.45;
+  font-size: 14px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.wulin-agent-message p {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.wulin-agent-message--user {
+  color: var(--wulin-agent-text);
+  font-weight: 500;
+  width: fit-content;
+  max-width: 85%;
+  margin-left: auto;
+}
+
+.wulin-agent-message--user .wulin-agent-message__bubble {
+  background: var(--wulin-agent-bg-subtle);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.wulin-agent-message__attachment {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  font-size: 12px;
+}
+
+.wulin-agent-message__attachment .material-icons {
+  font-size: 16px;
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-message__attachment-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.wulin-agent-message__attachment-label {
+  line-height: 1.35;
+}
+
+.wulin-agent-message__attachment-hint {
+  line-height: 1.35;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-message__attachment--error {
+  border-color: var(--wulin-agent-error-line);
+}
+
+.wulin-agent-message__attachment--error .wulin-agent-message__attachment-hint {
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-message--assistant {
+  color: var(--wulin-agent-text);
+  width: 100%;
+  max-width: 100%;
+}
+
+.wulin-agent-message__role {
+  margin-bottom: 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-message--user .wulin-agent-message__role {
+  text-align: right;
+}
+
+.wulin-agent-error {
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: var(--wulin-agent-error-strong);
+  font-size: 12px;
+}
+
+.wulin-agent-markdown {
+  max-width: var(--wulin-agent-measure);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.wulin-agent-markdown > :first-child {
+  margin-top: 0;
+}
+
+.wulin-agent-markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.wulin-agent-markdown p {
+  margin: 0 0 0.5rem;
+}
+
+.wulin-agent-markdown h1,
+.wulin-agent-markdown h2,
+.wulin-agent-markdown h3,
+.wulin-agent-markdown h4 {
+  margin: 0.75rem 0 0.375rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.wulin-agent-markdown h1 { font-size: 16px; }
+.wulin-agent-markdown h2 { font-size: 15px; }
+.wulin-agent-markdown h3,
+.wulin-agent-markdown h4 { font-size: 14px; }
+
+.wulin-agent-markdown ul,
+.wulin-agent-markdown ol {
+  margin: 0 0 0.5rem;
+  padding-left: 1.25rem;
+}
+
+.wulin-agent-markdown li {
+  margin: 0.125rem 0;
+}
+
+.wulin-agent-markdown a {
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-markdown blockquote {
+  margin: 0 0 0.5rem;
+  padding-left: 0.625rem;
+  border-left: 3px solid var(--wulin-agent-border);
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-markdown code {
+  padding: 0.0625rem 0.25rem;
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.wulin-agent-markdown pre {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.625rem;
+  overflow-x: auto;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+}
+
+.wulin-agent-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.wulin-agent-markdown table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 0 0.5rem;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wulin-agent-markdown th,
+.wulin-agent-markdown td {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  text-align: left;
+}
+
+.wulin-agent-markdown th {
+  background: var(--wulin-agent-bg-subtle);
+  font-weight: 600;
+}
+
+.wulin-agent-markdown tbody tr:nth-child(odd) {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-tool {
+  margin: 0.375rem 0;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  font-size: 12px;
+}
+
+.wulin-agent-tool summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-tool summary .wulin-agent-status {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.wulin-agent-tool pre {
+  margin: 0.375rem 0 0;
+  max-width: 100%;
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval {
+  margin: 0.5rem 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-left: 3px solid var(--wulin-agent-main);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+}
+
+.wulin-agent-approval__title {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval__tool {
+  font-weight: 600;
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-approval__args {
+  margin: 0 0 0.5rem;
+  padding: 0.375rem 0.5rem;
+  overflow-x: auto;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval__textarea {
+  display: block;
+  width: 100%;
+  min-height: 7rem;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.wulin-agent-approval__expiry {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-approval__expiry--soon {
+  color: var(--wulin-agent-warning-strong);
+  font-weight: 600;
+}
+
+.wulin-agent-approval__expired {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-approval__actions {
+  display: flex;
+  gap: 0.375rem;
+  justify-content: flex-end;
+}
+
+.wulin-agent-approval__approve,
+.wulin-agent-approval__reject,
+.wulin-agent-approval__edit {
+  height: 24px;
+  padding: 0 0.75rem;
+  border-radius: var(--wulin-agent-radius);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.wulin-agent-approval__edit {
+  margin-right: auto;
+  border: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  box-shadow: none;
+}
+
+.wulin-agent-approval__edit:hover {
+  border-color: var(--wulin-agent-main);
+  color: var(--wulin-agent-main-strong);
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-approval__approve,
+.wulin-agent-approval__reject {
+  box-shadow: var(--wulin-agent-shadow);
+}
+
+.wulin-agent-approval__approve {
+  border: none;
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
+}
+
+.wulin-agent-approval__approve--danger {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
+}
+
+.wulin-agent-approval--destructive {
+  border-color: var(--wulin-agent-error);
+  background: var(--wulin-agent-error-soft);
+}
+
+.wulin-agent-approval__fields {
+  margin: 0 0 0.5rem;
+}
+
+.wulin-agent-approval__fields div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 30%) 1fr;
+  gap: 8px;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--wulin-agent-border);
+}
+
+.wulin-agent-approval__fields dt,
+.wulin-agent-approval__fields dd {
+  margin: 0;
+  font-size: 12px;
+}
+
+.wulin-agent-approval__fields dt {
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-approval__error {
+  margin: 0 0 0.5rem;
+  color: var(--wulin-agent-error-strong);
+  font-size: 12px;
+}
+
+.wulin-agent-approval__reject {
+  border: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text-muted);
+  box-shadow: none;
+}
+
+.wulin-agent-approval__reject:hover {
+  border-color: var(--wulin-agent-error-strong);
+  color: var(--wulin-agent-error-strong);
+  background: var(--wulin-agent-error-soft);
+}
+
+.wulin-agent-thread__footer {
+  flex-shrink: 0;
+  min-width: 0;
+  margin-top: auto;
+  padding: 10px 16px;
+  border-top: 1px solid var(--wulin-agent-border);
+  background: var(--wulin-agent-bg);
+  position: relative;
+}
+
+.wulin-agent-composer__attachment {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin-bottom: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  color: var(--wulin-agent-text);
+  font-size: 13px;
+}
+
+.wulin-agent-composer__attachment-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.wulin-agent-composer__attachment-hint {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-composer__attachment--error {
+  border-color: var(--wulin-agent-error-line);
+  background: var(--wulin-agent-error-wash);
+}
+
+.wulin-agent-composer__attachment--error .wulin-agent-composer__attachment-hint {
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-composer__attachment .material-icons {
+  font-size: 18px;
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-composer__attachment-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wulin-agent-composer__attachment-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.wulin-agent-composer__attachment-remove:hover {
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-composer__attachment-remove .material-icons {
+  font-size: 16px;
+  color: inherit;
+}
+
+.wulin-agent-composer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.375rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.375rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  box-sizing: border-box;
+}
+
+.wulin-agent-composer:has(.wulin-agent-composer__input:focus) {
+  border-color: var(--wulin-agent-main);
+}
+
+.wulin-agent-composer__input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: var(--wulin-agent-composer-min-height);
+  max-height: var(--wulin-agent-composer-max-height);
+  box-sizing: border-box;
+  resize: none;
+  overflow-y: auto;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.wulin-agent-composer__input:focus {
+  border-color: var(--wulin-agent-main);
+}
+
+.wulin-agent-composer__input:disabled {
+  color: var(--wulin-agent-text-subtle);
+  cursor: not-allowed;
+}
+
+.wulin-agent-composer__attach {
+  flex-shrink: 0;
+  align-self: flex-end;
+  min-height: var(--wulin-agent-composer-min-height);
+  padding: 0 0.375rem;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+  cursor: pointer;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wulin-agent-composer__attach:hover:not(:disabled) {
+  background: var(--wulin-agent-row-odd);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-composer__attach:focus,
+.wulin-agent-composer__attach:active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-composer__attach:focus:not(:hover) {
+  background: transparent;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-composer__attach:focus-visible {
+  outline-offset: -2px;
+}
+
+.wulin-agent-composer__attach:disabled {
+  color: var(--wulin-agent-text-subtle);
+  cursor: not-allowed;
+}
+
+.wulin-agent-composer__attach .material-icons {
+  font-size: 20px;
+  line-height: var(--wulin-agent-composer-min-height);
+}
+
+.wulin-agent-composer__attach-error {
+  flex: 1 0 100%;
+  font-size: 12px;
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-history__notice,
+.wulin-agent-panel__notice,
+.wulin-agent-feedback__error {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 12px;
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-feedback__error {
+  flex: 1 0 100%;
+  padding-left: 0;
+}
+
+.wulin-agent-composer__send {
+  flex-shrink: 0;
+  align-self: flex-end;
+  min-height: var(--wulin-agent-composer-min-height);
+  max-height: var(--wulin-agent-composer-max-height);
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: var(--wulin-agent-radius);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  box-shadow: var(--wulin-agent-shadow);
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
+}
+
+.wulin-agent-approval--pending {
+  border: 1px solid var(--wulin-agent-warning);
+  background: var(--wulin-agent-warning-soft);
+}
+
+.wulin-agent-tool--executing {
+  border: 1px solid var(--wulin-agent-main);
+  background: var(--wulin-agent-main-soft);
+}
+
+.wulin-agent-tool--executing summary {
+  color: var(--wulin-agent-main-strong);
+}
+
+.wulin-agent-tool--rejected,
+.wulin-agent-tool--expired {
+  border: 1px solid var(--wulin-agent-aborted);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-aborted-strong);
+}
+
+.wulin-agent-tool--rejected summary,
+.wulin-agent-tool--expired summary {
+  color: var(--wulin-agent-aborted-strong);
+}
+
+.wulin-agent-tool--approved {
+  border: 1px solid var(--wulin-agent-border);
+}
+
+
+.wulin-agent-approval-mode {
+  display: block;
+  width: 140px;
+  height: 28px;
+  padding: 0 0.375rem;
+  font-size: 12px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg-subtle);
+  color: var(--wulin-agent-text);
+  cursor: pointer;
+  /* Materialize hides native selects (opacity: 0) for custom dropdowns */
+  opacity: 1;
+  appearance: auto;
+}
+
+.wulin-agent-grid-result {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.wulin-agent-grid-result__meta {
+  margin: 0 0 0.375rem;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-grid-result__scroll {
+  overflow-x: auto;
+  max-height: 240px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+}
+
+.wulin-agent-grid-result__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.wulin-agent-grid-result__table th,
+.wulin-agent-grid-result__table td {
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--wulin-agent-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wulin-agent-grid-result__table th {
+  position: sticky;
+  top: 0;
+  background: var(--wulin-agent-bg-subtle);
+  font-weight: 600;
+}
+
+.wulin-agent-grid-result__table tbody tr:nth-child(odd) {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-chart {
+  width: 100%;
+  min-height: 280px;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--wulin-agent-bg);
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+}
+
+.wulin-agent-chart__title {
+  margin: 0 0 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-chart__note {
+  margin: 0.25rem 0 0;
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-chart__data {
+  margin-top: 0.5rem;
+  font-size: 12px;
+}
+
+.wulin-agent-chart__data summary {
+  cursor: pointer;
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-chart__data .wulin-agent-grid-result__scroll {
+  margin-top: 0.375rem;
+}
+
+.wulin-agent-chart__empty {
+  margin: 0.5rem 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-turn-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0.375rem;
+}
+
+.wulin-agent-turn-copy__button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-turn-copy__button:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-turn-copy__result {
+  font-size: 12px;
+  color: var(--wulin-agent-text-muted);
+}
+
+.wulin-agent-turn-copy__result--failed {
+  color: var(--wulin-agent-error-strong);
+}
+
+.wulin-agent-feedback {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+}
+
+.wulin-agent-feedback .wulin-agent-icon-button {
+  width: 24px;
+  height: 24px;
+}
+
+.wulin-agent-feedback .wulin-agent-icon-button .material-icons {
+  font-size: 16px;
+}
+
+.wulin-agent-feedback .wulin-agent-icon-button:disabled {
+  color: var(--wulin-agent-text-subtle);
+  cursor: not-allowed;
+}
+
+.wulin-agent-feedback .wulin-agent-icon-button.is-active {
+  color: var(--wulin-agent-main-strong);
+}
+/* Dedicated workspace: fill the host screen while retaining its navigation. */
+#wulin-agent-page,
+#wulin-agent-page > #wulin-agent-root {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.wulin-agent-page {
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--wulin-agent-bg);
+  font-family: var(--wulin-agent-font);
+  color: var(--wulin-agent-text);
+}
+
+.wulin-agent-page .wulin-agent-panel__meta {
+  flex-wrap: wrap;
+}
+
+/* Google Material Symbols cognition; the host Material Icons font lacks it.
+ * Source: google/material-design-icons symbols/web/cognition (Apache-2.0).
+ * Use a system font: font-display:block on Material Icons can hide this
+ * masked element while the font loads, even though its text has zero size.
+ */
+.wulin-agent-toggle .material-icons.wulin-agent-cognition,
+#menu a[href="/wulin_agent"] .material-icons,
+#menu a[href="/wulin_agent/"] .material-icons {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-family: sans-serif;
+  font-size: 0;
+  overflow: hidden;
+  vertical-align: middle;
+  background-color: currentColor;
+  mask: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgLTk2MCA5NjAgOTYwIiB3aWR0aD0iMjQiPjxwYXRoIGQ9Ik00OTEtMzM5cTcwIDAgMTE5LTQ1dDQ5LTEwOXEwLTU3LTM2LjUtOTYuNVQ1MzQtNjI5cS00NyAwLTc5LjUgMzBUNDIyLTUyNXEwIDE5IDcuNSAzN3QyMS41IDMzbDU3LTU3cS0zLTItNC41LTV0LTEuNS03cTAtMTEgOS0xNy41dDIzLTYuNXEyMCAwIDMzIDE2LjV0MTMgMzkuNXEwIDMxLTI1LjUgNTIuNVQ0OTItNDE4cS00NyAwLTc5LjUtMzhUMzgwLTU0OXEwLTI5IDExLTU1LjV0MzEtNDYuNWwtNTctNTdxLTMyIDMxLTQ5IDcydC0xNyA4NnEwIDg4IDU2IDE0OS41VDQ5MS0zMzlaTTI0MC04MHYtMTcycS01Ny01Mi04OC41LTEyMS41VDEyMC01MjBxMC0xNTAgMTA1LTI1NXQyNTUtMTA1cTEyNSAwIDIyMS41IDczLjVUODI3LTYxNWw1MiAyMDVxNSAxOS03IDM0LjVUODQwLTM2MGgtODB2MTIwcTAgMzMtMjMuNSA1Ni41VDY4MC0xNjBoLTgwdjgwaC04MHYtMTYwaDE2MHYtMjAwaDEwOGwtMzgtMTU1cS0yMy05MS05OC0xNDh0LTE3Mi01N3EtMTE2IDAtMTk4IDgxdC04MiAxOTdxMCA2MCAyNC41IDExNHQ2OS41IDk2bDI2IDI0djIwOGgtODBabTI1NC0zNjBaIi8+PC9zdmc+") center / contain no-repeat;
+}
+
+#navigation #menu li.submenu li.item a[href="/wulin_agent"],
+#navigation #menu li.submenu li.item a[href="/wulin_agent/"] {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
+  min-height: 36px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+#navigation #menu li.submenu li.item a[href="/wulin_agent"] .material-icons,
+#navigation #menu li.submenu li.item a[href="/wulin_agent/"] .material-icons {
+  box-sizing: content-box;
+  top: 0;
+  font-size: 0;
+  flex: 0 0 21px;
+  min-width: 21px;
+  width: 21px;
+  height: 21px;
+  mask-origin: content-box;
+  mask-clip: content-box;
+}
+
+/* Token management follows the host theme; native dialog supplies focus trapping. */
+.wulin-agent-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wulin-agent-tokens__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: transparent;
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.wulin-agent-tokens__trigger .material-icons { font-size: 16px; }
+.wulin-agent-tokens__trigger:hover { background: var(--wulin-agent-bg-subtle); }
+
+.wulin-agent-tokens {
+  box-sizing: border-box;
+  width: calc(100vw - 32px);
+  max-width: 600px;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: 6px;
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: var(--wulin-agent-font);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: auto;
+}
+
+.wulin-agent-tokens::backdrop { background: rgba(0, 0, 0, 0.35); }
+.wulin-agent-tokens__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.wulin-agent-tokens .wulin-agent-icon-button,
+.wulin-agent-tokens .wulin-agent-icon-button:focus { background: transparent; color: var(--wulin-agent-text); }
+.wulin-agent-tokens .wulin-agent-icon-button:hover { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.wulin-agent-tokens h2 { margin: 4px 0 0; font-size: 22px; font-weight: 600; line-height: 1.3; }
+.wulin-agent-tokens h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.wulin-agent-tokens p { margin: 8px 0; }
+.wulin-agent-tokens__intro { padding: 8px 0; }
+.wulin-agent-tokens__endpoint { display: flex; flex-direction: column; gap: 6px; padding: 12px; background: var(--wulin-agent-bg-subtle); }
+.wulin-agent-tokens code { overflow-wrap: anywhere; font-size: 12px; user-select: text; }
+.wulin-agent-tokens__notice { padding: 8px 0; font-size: 12px; }
+.wulin-agent-tokens__error { color: var(--wulin-agent-error-strong); }
+.wulin-agent-tokens__reveal { padding: 16px; margin: 16px 0; background: var(--wulin-agent-main-soft); border: 1px solid var(--wulin-agent-main); }
+.wulin-agent-tokens__copy-row { display: flex; gap: 8px; align-items: center; }
+.wulin-agent-tokens__copy-row input { min-width: 0; flex: 1; }
+.wulin-agent-tokens__list { padding: 20px 0; }
+.wulin-agent-tokens__list h3 span { margin-left: 6px; font-size: 12px; font-weight: normal; }
+.wulin-agent-tokens__list ul { padding: 0; margin: 0; list-style: none; }
+.wulin-agent-tokens__list li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--wulin-agent-border); }
+.wulin-agent-tokens__token-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.wulin-agent-tokens__token-info strong { font-size: 13px; }
+.wulin-agent-tokens__token-info span { font-size: 12px; }
+.wulin-agent-tokens__revoke { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; font-size: 12px; }
+.wulin-agent-tokens__form { border-top: 1px solid var(--wulin-agent-border); padding-top: 20px; }
+.wulin-agent-tokens__fields { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 16px; margin-bottom: 16px; }
+.wulin-agent-tokens label { display: block; font-size: 12px; color: var(--wulin-agent-text); margin-bottom: 6px; }
+.wulin-agent-tokens input, .wulin-agent-tokens select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none;
+}
+.wulin-agent-tokens input:focus, .wulin-agent-tokens select:focus { border-color: var(--wulin-agent-main); box-shadow: none; }
+.wulin-agent-tokens__select { position: relative; }
+.wulin-agent-tokens__select select { appearance: none; -webkit-appearance: none; padding-right: 36px; }
+.wulin-agent-tokens__select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 6px;
+  height: 6px;
+  margin-top: -5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.wulin-agent-tokens__button { padding: 8px 12px; border: 1px solid var(--wulin-agent-border); border-radius: var(--wulin-agent-radius); background: var(--wulin-agent-bg); color: var(--wulin-agent-text); font: inherit; white-space: nowrap; cursor: pointer; }
+.wulin-agent-tokens__button:hover:not(:disabled) { background: var(--wulin-agent-row-odd); }
+.wulin-agent-tokens__button--primary {
+  @include filled-button(var(--wulin-agent-main-strong), var(--wulin-agent-main-hover));
+}
+.wulin-agent-tokens__text-button { padding: 4px 0; border: none; background: transparent; color: var(--wulin-agent-text); font: inherit; font-size: 12px; cursor: pointer; }
+.wulin-agent-tokens__text-button:hover { text-decoration: underline; }
+.wulin-agent-tokens__danger { color: var(--wulin-agent-error-strong); }
+.wulin-agent-tokens button:not(.wulin-agent-tokens__button--primary):disabled,
+.wulin-agent-tokens input:disabled,
+.wulin-agent-tokens select:disabled { color: var(--wulin-agent-text-subtle); cursor: default; }
+
+@media (max-width: 480px) {
+  .wulin-agent-tokens { padding: 18px; }
+  .wulin-agent-tokens__fields { grid-template-columns: 1fr; gap: 12px; }
+  .wulin-agent-tokens__list li { flex-wrap: wrap; }
+  .wulin-agent-tokens__revoke { align-items: flex-start; }
+}
+
+.wulin-agent-confirm {
+  box-sizing: border-box;
+  width: calc(100vw - 32px);
+  max-width: 360px;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: 6px;
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  font-family: var(--wulin-agent-font);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.wulin-agent-confirm::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.wulin-agent-confirm__message {
+  margin: 0 0 20px;
+}
+
+.wulin-agent-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wulin-agent-confirm__cancel,
+.wulin-agent-confirm__confirm {
+  padding: 6px 12px;
+  border: 1px solid var(--wulin-agent-border);
+  border-radius: var(--wulin-agent-radius);
+  font: inherit;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.wulin-agent-confirm__cancel {
+  background: var(--wulin-agent-bg);
+  color: var(--wulin-agent-text);
+  cursor: pointer;
+}
+
+.wulin-agent-confirm__cancel:hover {
+  background: var(--wulin-agent-row-odd);
+}
+
+.wulin-agent-confirm__confirm {
+  @include filled-button(var(--wulin-agent-error-strong), var(--wulin-agent-error-hover));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wulin-agent-drawer {
+    transition: none;
+  }
+
+  .wulin-agent-spinner {
+    animation: none;
+  }
+}
+
+/* Materialize fills every focused button (button:focus), which outranks a
+ * single class. Focus shows as the ring, so each control keeps its own fill. */
+.wulin-agent-toggle:focus:not(:hover) { background-color: transparent; }
+.wulin-agent-toggle--open:focus:not(:hover) { background-color: rgba(0, 0, 0, 0.15); }
+.wulin-agent-approval__edit:focus:not(:hover),
+.wulin-agent-approval__reject:focus:not(:hover),
+.wulin-agent-turn-copy__button:focus:not(:hover),
+.wulin-agent-scroll-bottom:focus,
+.wulin-agent-confirm__cancel:focus:not(:hover),
+.wulin-agent-tokens__button:not(.wulin-agent-tokens__button--primary):focus:not(:hover) { background: var(--wulin-agent-bg); }
+.wulin-agent-tokens__trigger:focus:not(:hover),
+.wulin-agent-tokens__text-button:focus { background: transparent; }

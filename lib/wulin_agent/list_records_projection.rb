@@ -88,12 +88,9 @@ module WulinAgent
     end
 
     def project_row(row, names)
+      return project_array_row(row, names) if effective_row_format == ROW_FORMAT_ARRAYS
+
       truncated_columns = []
-
-      if effective_row_format == ROW_FORMAT_ARRAYS
-        return names.map { |name| row[column_index(name)] }
-      end
-
       names.each_with_object({}) do |name, hash|
         index = column_index(name)
         next if index.nil?
@@ -104,6 +101,10 @@ module WulinAgent
       end.tap do |hash|
         hash["_truncated_columns"] = truncated_columns if truncated_columns.any?
       end
+    end
+
+    def project_array_row(row, names)
+      names.map { |name| truncate_value(row[column_index(name)]).first }
     end
 
     def truncate_value(value)
@@ -152,7 +153,7 @@ module WulinAgent
       return if unknown.empty?
 
       raise ValidationError,
-        "Unknown column(s): #{unknown.join(', ')}. Valid: #{all_column_names.join(', ')}."
+        "Unknown column(s): #{unknown.join(", ")}. Valid: #{all_column_names.join(", ")}."
     end
   end
 end

@@ -55,7 +55,7 @@ module WulinAgent
     def ask_llm(steps)
       prompt = "User request: #{request_text}\nSanitized tool sequence (JSON): #{steps.to_json}"
       Rails.logger.info("[skill_distiller] >>> prompt:\n#{prompt}")
-      response = RubyLLM.chat(model: RubyLLM.config.default_model)
+      response = RubyLLM.chat(**WulinAgent.chat_options)
         .with_instructions(SYSTEM)
         .ask(prompt)
       Rails.logger.info("[skill_distiller] <<< response: #{response.content}")

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Runs the chat UI's unit tests (spec/javascript/*.test.js) with node:test.
+# The modules import one another without file extensions, as hosts bundle
+# them, so each test is bundled first with the esbuild the dummy host
+# installs (spec/dummy/bin/build-assets). No other dependency is needed.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+esbuild=spec/dummy/node_modules/.bin/esbuild
+if [ ! -x "$esbuild" ]; then
+  echo "bin/test-js: $esbuild is missing; run spec/dummy/bin/build-assets first" >&2
+  exit 1
+fi
+
+out=$(mktemp -d)
+trap 'rm -rf "$out"' EXIT
+
+"$esbuild" spec/javascript/*.test.js --bundle --platform=node --format=esm \
+  --outdir="$out" --out-extension:.js=.mjs --external:node:* --log-level=warning
+node --test "$out"/*.test.mjs

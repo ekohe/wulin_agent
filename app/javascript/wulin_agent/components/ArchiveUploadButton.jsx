@@ -2,6 +2,7 @@ import {useRef, useState} from "react";
 import {uploadArchive} from "../api";
 import {ATTACH_ACCEPT} from "../attachmentTypes";
 import {setPendingArchive} from "../pendingArchive";
+import {strings} from "../strings";
 
 export function ArchiveUploadButton({disabled = false}) {
   const fileInputRef = useRef(null);
@@ -31,7 +32,7 @@ export function ArchiveUploadButton({disabled = false}) {
         inject_message: result.inject_message,
       });
     } catch (err) {
-      setError(err.message || "Upload failed");
+      setError(err.message || strings.uploadFailed);
     } finally {
       setUploading(false);
     }
@@ -49,16 +50,18 @@ export function ArchiveUploadButton({disabled = false}) {
       <button
         type="button"
         className="wulin-agent-composer__attach"
-        aria-label="Attach a file"
-        title="Attach a zip or text file"
+        aria-label={strings.attachFile}
+        title={strings.attachHint}
         disabled={disabled || uploading}
         onClick={handleClick}
       >
-        <i className="material-icons" aria-hidden="true">
+        <span className="material-icons" aria-hidden="true">
           attach_file
-        </i>
+        </span>
       </button>
-      {error && <span className="wulin-agent-composer__attach-error">{error}</span>}
+      {error && (
+        <span className="wulin-agent-composer__attach-error" role="alert">{error}</span>
+      )}
     </>
   );
 }

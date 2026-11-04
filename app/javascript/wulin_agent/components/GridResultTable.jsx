@@ -1,4 +1,5 @@
 import { isGridResult, gridRows } from "../gridResult";
+import {strings} from "../strings";
 
 function formatCell(value) {
   if (value == null || value === "") return "—";
@@ -17,11 +18,11 @@ export function GridResultTable({ result }) {
   return (
     <div className="wulin-agent-grid-result">
       <p className="wulin-agent-grid-result__meta">
-        {total} result{total > 1 ? "s" : ""}
-        {rows.length > 0 && ` · showing ${from}–${to}`}
+        {strings.gridSummary(total)}
+        {rows.length > 0 && ` · ${strings.gridWindow(from, to)}`}
       </p>
       {rows.length === 0 ? (
-        <p className="wulin-agent-grid-result__empty">0 lines.</p>
+        <p className="wulin-agent-grid-result__empty">{strings.gridEmpty}</p>
       ) : (
         <div className="wulin-agent-grid-result__scroll">
           <table className="wulin-agent-grid-result__table">

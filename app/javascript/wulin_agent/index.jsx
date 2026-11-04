@@ -2,7 +2,6 @@ import React from "react";
 import {createRoot} from "react-dom/client";
 import {AgentApp} from "./components/AgentApp";
 import {syncWulinTheme} from "./syncWulinTheme";
-import "./styles/agent_panel.css";
 
 function mountRoot() {
   let el = document.getElementById("wulin-agent-root");

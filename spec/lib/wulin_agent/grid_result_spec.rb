@@ -6,7 +6,7 @@ require "wulin_agent/grid_result"
 RSpec.describe WulinAgent::GridResult do
   before do
     WulinAgent::Catalog.reset!
-    PersonGrid
+    load_dummy_grids
   end
 
   describe ".grid_result?" do

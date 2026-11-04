@@ -19,7 +19,7 @@ module WulinAgent
         required << key unless optional?(ancestors)
       end
 
-      {properties: properties, required: required.uniq }
+      {properties: properties, required: required.uniq}
     end
 
     private
@@ -37,7 +37,6 @@ module WulinAgent
           "no Ruby source for #{@controller_class.name}##{@method_name} (owner: #{method.owner})"
       end
 
-      
       tree = RubyVM::AbstractSyntaxTree.parse_file(file)
       find_defn(tree, @method_name)
     end
@@ -115,7 +114,7 @@ module WulinAgent
     end
 
     def call_method(node)
-      node.type == :CALL ? node.children[1] : nil
+      (node.type == :CALL) ? node.children[1] : nil
     end
   end
 end

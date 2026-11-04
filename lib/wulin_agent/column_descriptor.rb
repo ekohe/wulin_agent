@@ -11,7 +11,6 @@ module WulinAgent
     :choices,
     :sortable,
     :filterable,
-    :reflection,
-    keyword_init: true
+    :reflection
   )
 end
