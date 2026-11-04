@@ -406,7 +406,15 @@ RSpec.describe WulinAgent::ToolRegistry do
       tool = described_class.find("read_record", admin)
       result = tool.execute(people.merge("ids" => [alice.id, "#{alice.id},#{bob.id}"]), admin)
 
-      expect(result).to eq("error" => "Each ids value must be a single integer.")
+      expect(result).to eq("error" => "Each ids value must be a single integer or UUID.")
+    end
+
+    it "passes UUID ids through, as hosts with UUID primary keys use them" do
+      uuids = Array.new(2) { SecureRandom.uuid }
+      expect(WulinAgent::GridDispatcher).to receive(:call)
+        .with("people", "index", {"checkbox_record_ids" => uuids.join(",")}, admin).and_return({"rows" => []})
+
+      described_class.find("read_record", admin).execute(people.merge("ids" => uuids), admin)
     end
 
     it "refuses a non-numeric id" do
@@ -521,6 +529,17 @@ RSpec.describe WulinAgent::ToolRegistry do
       expect(result).to eq("error" => WulinAgent::MetaGridTools::ONE_RECORD_ID_ERROR)
       expect(alice.reload.first_name).to eq("Alice")
       expect(bob.reload.first_name).to eq("Bob")
+    end
+
+    it "passes a UUID id through, as hosts with UUID primary keys use them" do
+      uuid = SecureRandom.uuid
+      expect(WulinAgent::GridDispatcher).to receive(:call)
+        .with("people", "update", {"id" => uuid, "item" => {"first_name" => "Alicia"}}, admin).and_return({"success" => true})
+
+      result = described_class.find("update_record", admin)
+        .execute(people.merge("id" => uuid, "attributes" => {"first_name" => "Alicia"}), admin, approved: true)
+
+      expect(result["success"]).to be(true)
     end
   end
 

@@ -17,9 +17,11 @@ module WulinAgent
     READ_RECORD_DESCRIPTION =
       "Read one or more records by id (full rows, no text truncation). Pass id or ids."
 
-    SINGLE_ID_ERROR = "id must be a single integer. Use ids for multiple records."
+    SINGLE_ID_ERROR = "id must be a single integer or UUID. Use ids for multiple records."
     # update_record and destroy_record have no ids: they act on one record.
-    ONE_RECORD_ID_ERROR = "id must be a single integer; this tool acts on one record at a time."
+    ONE_RECORD_ID_ERROR = "id must be a single integer or UUID; this tool acts on one record at a time."
+    # Hosts with UUID primary keys pass their ids as strings.
+    UUID_ID = /\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/
 
     READ_RECORD_ID_PROPERTIES = {
       id: {
@@ -326,7 +328,8 @@ module WulinAgent
         end
       end
 
-      # [Integer, nil] when value is one id, [nil, nil] when it was not given
+      # [id, nil] when value is one id (an Integer, or a UUID string kept as
+      # given), [nil, nil] when it was not given
       # (nil or a blank string, as in ids), or [nil, {"error" => message}].
       # Arrays and comma-separated strings are refused: Wulin would act on
       # every id in them.
@@ -334,21 +337,22 @@ module WulinAgent
         return [nil, nil] if blank_id?(value)
         return [value, nil] if value.is_a?(Integer)
         return [Integer(value, 10), nil] if value.is_a?(String) && value.match?(/\A\d+\z/)
+        return [value, nil] if value.is_a?(String) && value.match?(UUID_ID)
 
         [nil, {"error" => message}]
       end
 
-      # [Array<Integer>, nil] for a list that still has ids after blank entries
+      # [Array, nil] for a list that still has ids after blank entries
       # are dropped, [nil, nil] when that list is empty or ids was not given.
       def parse_id_list(value)
         return [nil, nil] if value.nil?
-        return [nil, {"error" => "ids must be an array of integers."}] unless value.is_a?(Array)
+        return [nil, {"error" => "ids must be an array of integers or UUIDs."}] unless value.is_a?(Array)
 
         ids = []
         value.each do |item|
           next if blank_id?(item)
 
-          parsed, error = parse_single_id(item, "Each ids value must be a single integer.")
+          parsed, error = parse_single_id(item, "Each ids value must be a single integer or UUID.")
           return [nil, error] if error
 
           ids << parsed
