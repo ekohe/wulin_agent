@@ -17,10 +17,10 @@ Gem::Specification.new do |s|
   s.executables = []
   s.require_paths = ["lib"]
   # ruby_llm 2.x needs 3.2.
-  s.required_ruby_version = ">= 3.2"
+  s.required_ruby_version = ">= 3.4"
 
   s.add_dependency "mcp", "~> 1.7"
-  s.add_dependency "rails"
+  s.add_dependency "rails", ">= 8.1"
   s.add_dependency "rubyzip"
   s.add_dependency "ruby_llm", "~> 2.1"
   s.add_dependency "wulin_master"

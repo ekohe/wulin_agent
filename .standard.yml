@@ -1,3 +1,4 @@
+ruby_version: 3.4 # the gemspec's floor: lint for the oldest Ruby the code must run on
 # Copies of other gems and installed packages, not this project's code.
 ignore:
   - "vendor/**/*"
