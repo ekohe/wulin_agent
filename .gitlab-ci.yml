@@ -1,9 +1,12 @@
-image: ruby:3.4.3
+# The wulin v3 Ruby policy: the floor is 3.4 (the gemspec), the default is 4.0. Tests run on both,
+# each on the newest patch of its line through the floating tag; anything else runs on the default.
+image: ruby:$RUBY_VERSION
 
 services:
   - postgres:latest
 
 variables:
+  RUBY_VERSION: "4.0"
   POSTGRES_DB: wulin_agent_test
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: ""
@@ -11,6 +14,7 @@ variables:
 
 cache:
   key:
+    prefix: ruby-$RUBY_VERSION
     files:
       - Gemfile.lock
       - spec/dummy/package-lock.json
@@ -46,6 +50,9 @@ before_script:
 
 rspec:
   stage: test
+  parallel:
+    matrix:
+      - RUBY_VERSION: ["3.4", "4.0"]
   script:
     - bundle exec rake app:db:test:prepare
     - bundle exec rspec
